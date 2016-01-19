@@ -1,10 +1,13 @@
 import os
 import sys
 import subprocess
+import logging
 
 class Fasttree:
     """Define an object to launch Fasttree"""
     def __init__(self, InputAliFile):
+        self.logger = logging.getLogger('main.lib.Fasttree')
+        self.logger.info('creating an instance of Fasttree')
         self.InputAliFile = InputAliFile
         self.OutputTree = ""
         self.QuietOption = False
@@ -32,10 +35,10 @@ class Fasttree:
             command.extend(["-out",self.OutputTree])
      
         command.append(self.InputAliFile)
-        
+        self.logger.debug(" ".join(command))
         try:
             Out = subprocess.call(command,
-                                  stdout=open("/dev/null", "w")
+                                  stdout=open("/dev/null", "w"),
                                   stderr=open("/dev/null", "w"))
         except:
             os.system("echo Unexpected error when we launch fasttree:\n")
@@ -86,6 +89,8 @@ class Fasttree:
 class Phylomerge:
     """Define an object to launch Phylomerge"""
     def __init__(self, InputAliFile, InputTreeFile):
+        self.logger = logging.getLogger('main.lib.Phylomerge')
+        self.logger.info('creating an instance of Phylomerge')
         self.InputAliFile = InputAliFile
         self.InputTreeFile = InputTreeFile
         self.InputMethod = "tree" # "tree" or "matrix"
@@ -102,20 +107,17 @@ class Phylomerge:
         self.OutputSequenceFile = ""
         
         
-    def get_output(self, output = ""):
-         #$phylomerge input.sequence.file=$alignment_path taxons.to.refine=$taxon_to_refine_file input.method=tree input.tree.file=$tree_path choice.criterion=merge taxon.to.sequence=$link_path  prescreening.on.size.by.taxon=no deletion.method=taxon selection.by.taxon=yes output.sequence.file=$out_phylomerge_path rearrange.tree=yes bootstrap.threshold=0.7
-                     #$ taxons.to.refine=$taxon_to_refine_file
-                 output.sequence.file=$out_phylomerge_path  bootstrap.threshold=0.7
-
+    def launch(self, output = ""):
         Out = ""
         command = ["phylomerge", "input.sequence.file=%s" %self.InputAliFile, "input.method=%s" %self.InputMethod,
                    "choice.criterion=%s" %self.ChoiceCriterion, "deletion.method=%s" %self.DeletionMethod
                   ]
         
         if output:
-            commend.append("output.sequence.file=%s" %output)
-        elif self.OutputSequenceFile:
-            commend.append("output.sequence.file=%s" %self.OutputSequenceFile)
+            self.OutputSequenceFile = output
+        
+        if self.OutputSequenceFile:
+            command.append("output.sequence.file=%s" %self.OutputSequenceFile)
 
         if self.InputTreeFile:
             if os.path.isfile(self.InputTreeFile):
@@ -145,13 +147,14 @@ class Phylomerge:
         
         if self.BootstrapThreshold:
             command.append("bootstrap.threshold=%s" %self.BootstrapThreshold)
+
             
-            
-        
+        self.logger.info(" ".join(command))
         try:
             Out = subprocess.call(command,
-                                  stdout=open("/dev/null", "w")
-                                  stderr=open("/dev/null", "w"))
+                                  #stdout=open("/dev/null", "w"),
+                                  #stderr=open("/dev/null", "w")
+                                 )
         except:
             os.system("echo Unexpected error when we launch phylomerge:\n")
             print " ".join(command)  

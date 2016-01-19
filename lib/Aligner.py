@@ -1,9 +1,7 @@
 import os
 import sys
 import subprocess
-
-## TO DO: check if Exonerate is installed and is path is Exonerate
-
+import logging
 
 class Exonerate:
     """Define an object to launch Exonerate"""
@@ -56,13 +54,16 @@ class Exonerate:
 class Mafft:
     """Define an object to launch Mafft"""
     def __init__(self, InputFile):
+        self.logger = logging.getLogger("main.lib.mafft")
+        self.logger.info('creating an instance of Mafft')
         self.InputFile = InputFile
+        self.OutputFile = ""
         self.AddOption = False
         self.AdjustdirectionOption = False
         self.AutoOption = False
         self.QuietOption = False
         
-    def get_output(self):
+    def get_output(self, output = ""):
         Out = ""
         command = ["mafft"]
 
@@ -75,8 +76,14 @@ class Mafft:
                 command.extend(["--add",self.AddOption])
         if self.QuietOption:
             command.append("--quiet")
+            
+        if output or self.OutputFile:
+            if output:
+                self.OutputFile = output
+            command.extend(["--out",self.OutputFile])
         
         command.append(self.InputFile)
+        self.logger.debug(" ".join(command))
         try:
             Out = subprocess.check_output(command,
                                           stderr=open("/dev/null", "w"))
