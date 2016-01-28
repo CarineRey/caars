@@ -331,7 +331,6 @@ for Family in HitDic.keys():
     FamilyOutputName = "%s_%s.fasta" %(OutPrefixName, Family)
     BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename)
     FastaString = BlastdbcmdProcess.get_output()
-    print FastaString
     logger.debug("blastdbcmd --- %s seconds ---" %(time.time() - start_blastdbcmd_time))
     #Rename sequences:
     NewString = ""
@@ -351,7 +350,7 @@ for Family in HitDic.keys():
     FamilyOutput.write(NewString)
     FamilyOutput.close()
 
-OutputTableFilename = "%s_table.tsv" %(OutPrefixName, Family)
+OutputTableFilename = "%s_table.tsv" %(OutPrefixName)
 OutputTableFile = open(OutputTableFilename,"w")
 OutputTableFile.write(OutputTableString)
 OutputTableFile.close()
