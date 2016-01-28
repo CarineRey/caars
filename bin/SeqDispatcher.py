@@ -311,6 +311,7 @@ else:
 
 ## Third step: For each family, write a fasta which contained all retained family
 logger.info("Write output files")
+OutputTableString = ""
 for Family in HitDic.keys():
     logger.debug("for %s" %Family)
     TmpRetainedNames = []
@@ -322,13 +323,13 @@ for Family in HitDic.keys():
     ## Write outputs
     #Get retained sequences names
     start_blastdbcmd_time = time.time()
-    TmpFilename = "%s/%s_sequences_names.txt" %(TmpDirName,Family)
+    TmpFilename = "%s/%s_sequences_names.txt" %(TmpDirName, Family)
     TmpFile =open(TmpFilename,"w")
     TmpFile.write("\n".join(TmpRetainedNames))
     TmpFile.close()
     #Get retained sequences
-    FamilyOutputName = "%s_%s.fasta" %(OutPrefixName,Family)
-    BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName,TmpFilename)
+    FamilyOutputName = "%s_%s.fasta" %(OutPrefixName, Family)
+    BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename)
     FastaString = BlastdbcmdProcess.get_output()
     print FastaString
     logger.debug("blastdbcmd --- %s seconds ---" %(time.time() - start_blastdbcmd_time))
@@ -338,15 +339,22 @@ for Family in HitDic.keys():
         if re.match(">",line):
             OldName = line
             Name = line.replace(">lcl|","").strip().split()[0]
-            Target = TmpDic[Name] 
+            Target = TmpDic[Name]
             NewName = ">%s|%s" %(Name,Target)
             NewString += NewName+"\n"
+            # Write in the output table query target family
+            OutputTableString += "%s\t%s\t%s\n" %(Name,Target,Family)
         else:
             NewString += line +"\n"
     
-    FamilyOutput =open(FamilyOutputName,"w")
+    FamilyOutput = open(FamilyOutputName,"w")
     FamilyOutput.write(NewString)
     FamilyOutput.close()
+
+OutputTableFilename = "%s_table.tsv" %(OutPrefixName, Family)
+OutputTableFile = open(OutputTableFilename,"w")
+OutputTableFile.write(OutputTableString)
+OutputTableFile.close()
         
 ### Remove tempdir if the option --tmp have not been use
 if not args.tmp:
