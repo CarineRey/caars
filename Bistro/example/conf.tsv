@@ -1,0 +1,3 @@
+id	path_fastq	run trinty 	path_assembly
+1	example/example_db.fastq	yes	assembly_1
+2	example/example_db2.fastq	yes	assembly_2
