@@ -94,7 +94,7 @@ let _ =
 (*** Get each used reference species ***)
 let used_ref_species = parsed_rna_conf_file
   |> List.map ~f:(fun s -> s.ref_species )
-  |> List.sort_uniq compare
+  |> Caml.List.sort_uniq compare
   
 (* TO DO unique of a list*)
 
