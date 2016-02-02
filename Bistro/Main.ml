@@ -56,7 +56,7 @@ let parse_ref_seqs_file path =
   
 
 (* Run Trinity on RNA samples *)
-let targets samples =
+let targets_trinity samples =
   let open Bistro_app in
   List.map samples ~f:(fun s ->
     let i = Bistro.Workflow.input s.path_fastq in
@@ -67,39 +67,66 @@ let targets samples =
   )
 
 
+(* cat fasta files *)
+let cat_fasta_files (fasta_list: fasta workflow list) : fasta workflow = 
+       workflow [
+          cmd "cat" ~stdout:dest [ list ~sep:" " dep fasta_list  ] ;
+    ]
+
+let targets_cat fasta_list =
+  let open Bistro_app in
+    let cat = cat_fasta_files fasta_list in
+    [
+      [ "tmp" ; "ref_sequences" ; ] %> cat  ;
+    ]
 
 (* RUN *)
 
 (* Parsing rna conf file *)
 let parsed_rna_conf_file = parse_rna_conf_file Sys.argv.(1)
-(* Check if all paths exist*)
-(* TO DO *)
+(* Check if all paths exist*) (* TO DO *)
+
 
 (* Parsing reference sequences file *)
 let parsed_ref_seqs_file = parse_ref_seqs_file Sys.argv.(2)
-(* Check if all paths exist*)
-(* TO DO *)
+(* Check if all paths exist*) (* TO DO *)
+
+(** Get each used reference species **)
+let used_ref_species = parsed_rna_conf_file
+  |> List.map ~f:(fun s -> s.ref_species )
+  |> Caml.List.sort_uniq compare
+  
+(** Concatenate all fasta with ref sequences **)
+let all_ref_seqs_fasta = parsed_ref_seqs_file
+  |> List.map ~f:(fun s -> s.path_fasta )
+  |> Caml.List.sort_uniq compare
+
+let fasta_paths = Caml.String.concat " " all_ref_seqs_fasta
+
+let _ = let open Bistro_app in
+   all_ref_seqs_fasta
+	|> List.map ~f:(fun f -> Bistro.Workflow.input f)
+	|> targets_cat
+	|> Bistro_app.simple
+
 
 
 (* Run Trinity on RNA samples *)
 let _ =
   parsed_rna_conf_file
   |> List.filter ~f:(fun s -> s.run_trinity )
-  |> targets
+  |> targets_trinity
   |> List.concat
   |> Bistro_app.simple
 
 (* Run Seq_Dispatcher.py on Trinity assemblies *)
 (** For each used reference species build a fasta with all its sequences **)
-(*** Get each used reference species ***)
-let used_ref_species = parsed_rna_conf_file
-  |> List.map ~f:(fun s -> s.ref_species )
-  |> Caml.List.sort_uniq compare
-  
-(* TO DO unique of a list*)
+
+
 
 let _ = List.iter ~f:(printf "%s\n" ) used_ref_species
-
-
+let _ = print_string fasta_paths
+let _ = List.iter ~f:(printf "\n%s\n" ) all_ref_seqs_fasta
+(*let _ = print_string all_ref_seqs_fasta*)
 
 
