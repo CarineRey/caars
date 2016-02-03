@@ -82,10 +82,20 @@ let targets_cat fasta_list =
 
 (* RUN *)
 
+let check_path_exists path =
+  if not (Sys.file_exists path) then (
+    let msg = "No such file or directory " ^ path in
+    failwith msg
+  )
+
 (* Parsing rna conf file *)
 let parsed_rna_conf_file = parse_rna_conf_file Sys.argv.(1)
-(* Check if all paths exist*) (* TO DO *)
 
+(* Check if all paths exist*)
+let () =
+  List.iter parsed_rna_conf_file ~f:(fun sample ->
+      check_path_exists sample.path_fastq
+    )
 
 (* Parsing reference sequences file *)
 let parsed_ref_seqs_file = parse_ref_seqs_file Sys.argv.(2)
