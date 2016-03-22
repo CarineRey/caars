@@ -1,1 +1,1 @@
-ocamlbuild -use-ocamlfind -tag thread -pkgs bistro.utils,bistro.bioinfo Main.byte && ./Main.byte  example_2/Config_files/Config_RNA-seq.tsv
+ocamlbuild -use-ocamlfind -tag thread -pkgs bistro.utils,bistro.bioinfo Main.byte && ./Main.byte  example_2/Config_files/Config_RNA-seq.tsv example_2/Config_files/Species_tree.nw example_2/Alignment_data/ example_2/Sequences_Species_links/

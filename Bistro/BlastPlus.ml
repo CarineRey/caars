@@ -4,7 +4,7 @@ open Bistro.EDSL_sh
 open Bistro_bioinfo.Std
 
 
-(* TO DO : type dbblast * ) 
+(* TO DO : type dbblast *) 
 
 let makeblastdb ?parse_seqids ~dbtype  ~dbname  (fasta : fasta workflow)  : fasta workflow =
 	workflow [

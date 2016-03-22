@@ -53,7 +53,7 @@ let targets_trinity samples =
 
 let fastq2fasta (fastq : _ fastq workflow ) : fasta workflow = 
        workflow [
-            cmd "awk" ~stdout:dest [ string "NR%4==1||NR%4==2" ; dep fastq ; string "| tr \"@\" \">\""]
+            cmd "awk" ~stdout:dest [ string "\"NR%4==1||NR%4==2\"" ; dep fastq ; string "| tr @ \">\""]
     ]
 
 
@@ -84,6 +84,10 @@ let check_path_exists path =
 
 (* Parsing rna conf file *)
 let rna_conf_file = Sys.argv.(1)
+let species_tree_file = Sys.argv.(2)
+let ali_dir = Sys.argv.(3)
+let seq2sp_dir =  Sys.argv.(4)
+
 let parsed_rna_conf_file = parse_rna_conf_file rna_conf_file
 
 (* Check if all paths exist*)
@@ -97,6 +101,27 @@ let used_ref_species = parsed_rna_conf_file
   |> List.map ~f:(fun s -> s.ref_species )
   |> Caml.List.sort_uniq compare
   
+(* Run ParseInput.py *)
+
+
+let parse_input config_file species_tree_file ali_dir seq2sp_dir : fasta workflow= 
+       workflow [
+            cmd "../bin/ParseInput.py"  [ string config_file ;
+                                          string species_tree_file;
+                                          string ali_dir;
+                                          string seq2sp_dir;
+                                          ident dest ;
+                                        ]
+    ]
+
+
+let temporary_transcriptome_dir  = parse_input rna_conf_file species_tree_file ali_dir seq2sp_dir
+
+let target_parse_input = let open Bistro_app in
+                            [[ "tmp";"test"] %> temporary_transcriptome_dir; ]
+let _ = Bistro_app.local target_parse_input
+
+
 
 (* Run Trinity on RNA samples *)
 let _  =
@@ -119,6 +144,14 @@ let _ =
 (* Run Seq_Dispatcher.py on Trinity assemblies *)
 (** For each used reference species build a fasta with all its sequences **)
 
+let seq_dispatcher query target seq2sp species : fasta workflow = 
+       workflow [
+            cmd "../bin/SeqDispatcher.py"  [ string "-q" ; string query ;
+                                              string "-t" ; string target ;
+                                              string "-t2f"; string seq2sp;
+                                              string "-out"; seq [ dest ; string ("/Trinity_" ^ species )] ;
+                                        ]
+    ]
 
 (*let _ = List.iter ~f:(printf "%s\n" ) used_ref_species*)
 
