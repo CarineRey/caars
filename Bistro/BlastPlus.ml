@@ -4,9 +4,10 @@ open Bistro.EDSL_sh
 open Bistro_bioinfo.Std
 
 
-(* TO DO : type dbblast *) 
 
-let makeblastdb ?parse_seqids ~dbtype  ~dbname  (fasta : fasta workflow)  : fasta workflow =
+type blast_db = [`blast_db] directory
+ 
+let makeblastdb ?parse_seqids ~dbtype  ~dbname  (fasta : fasta workflow)  : blast_db workflow =
 	workflow [
 		mkdir_p dest;
 		cmd "makeblastdb" [ option (flag string "-parse_seqids") parse_seqids ;

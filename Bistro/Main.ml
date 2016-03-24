@@ -51,20 +51,17 @@ let targets_trinity samples =
   )
 
 
-let fastq2fasta (fastq : _ fastq workflow ) : fasta workflow = 
-       workflow [
-            cmd "awk" ~stdout:dest [ string "\"NR%4==1||NR%4==2\"" ; dep fastq ; string "| tr @ \">\""]
-    ]
 
+(* to run makeblastdb on RNA samples *)
 
 let parse_seqids = "yes"
 let dbtype = "nucl"
-(* to run makeblastdb on RNA samples *)
+
 let targets_apytram samples =
   let open Bistro_app in
   List.map samples ~f:(fun s ->
     let fastq = Bistro.Workflow.input s.path_fastq in
-    let fasta = fastq2fasta fastq in
+    let fasta = Trinity.fastq2fasta fastq in
     let db_blast = BlastPlus.makeblastdb dbtype s.species fasta in
     [
       [ "tmp" ; "fasta"; s.species ^ ".fa" ] %> fasta  ;
@@ -121,7 +118,22 @@ let target_parse_input = let open Bistro_app in
                             [[ "tmp";"test"] %> temporary_transcriptome_dir; ]
 let _ = Bistro_app.local target_parse_input
 
+(* Read Normalization of RNA sample*)
+(*
+let _ = parsed_rna_conf_file
+  |> List.filter ~f:(fun s -> let res = false in 
+                                  (if (s.run_apytram) then
+                                   let res = true )
+                                res)
+*)
 
+(* Run makeblastdb on RNA samples *)
+let _ =
+  parsed_rna_conf_file
+  |> List.filter ~f:(fun s -> s.run_apytram )
+  |> targets_apytram
+  |> List.concat
+  |> Bistro_app.local
 
 (* Run Trinity on RNA samples *)
 let _  =
@@ -131,13 +143,7 @@ let _  =
   |> List.concat
   |> Bistro_app.local
 
-(* Run makeblastdb on RNA samples *)
-let _ =
-  parsed_rna_conf_file
-  |> List.filter ~f:(fun s -> s.run_apytram )
-  |> targets_apytram
-  |> List.concat
-  |> Bistro_app.local
+
 
 
 
