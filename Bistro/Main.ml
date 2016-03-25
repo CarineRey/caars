@@ -38,6 +38,22 @@ let parse_rna_conf_file path =
   |> List.map ~f:(String.split ~on:'\t')
   |> List.map ~f:parse_line_fields_of_rna_conf_file
 
+(* to run normalization *)
+let memmory = "1"
+let max_cov = "50"
+let nb_cpu = "2"
+let seq_type = "fq"
+
+let targets_normalization samples =
+  let open Bistro_app in
+  List.map samples ~f:(fun s ->
+    let fastq = Bistro.Workflow.input s.path_fastq in
+    let norm_fasta = Trinity.read_normalization seq_type memmory max_cov nb_cpu fastq in
+    [
+      [ "tmp" ; "norm_fasta"; s.species ^ ".norm.fa" ] %> norm_fasta  ;
+    ]
+  )
+  
 
 (* to run Trinity on RNA samples *)
 let targets_trinity samples =
@@ -61,7 +77,7 @@ let targets_apytram samples =
   let open Bistro_app in
   List.map samples ~f:(fun s ->
     let fastq = Bistro.Workflow.input s.path_fastq in
-    let fasta = Trinity.fastq2fasta fastq in
+    let fasta = Trinity.fastool fastq in
     let db_blast = BlastPlus.makeblastdb dbtype s.species fasta in
     [
       [ "tmp" ; "fasta"; s.species ^ ".fa" ] %> fasta  ;
@@ -119,13 +135,21 @@ let target_parse_input = let open Bistro_app in
 let _ = Bistro_app.local target_parse_input
 
 (* Read Normalization of RNA sample*)
-(*
+
+let run_normalization run_apytram run_trinity =
+    let run_assemblers = (run_apytram, run_trinity) in
+    match run_assemblers with
+        | (true,true) -> true
+        | (true,false) -> true
+        | (false,true) -> true
+        | (false,false) -> false
+
 let _ = parsed_rna_conf_file
-  |> List.filter ~f:(fun s -> let res = false in 
-                                  (if (s.run_apytram) then
-                                   let res = true )
-                                res)
-*)
+  |> List.filter ~f:(fun s -> run_normalization s.run_apytram s.run_trinity)
+  |> targets_normalization
+  |> List.concat
+  |> Bistro_app.local
+                                
 
 (* Run makeblastdb on RNA samples *)
 let _ =
