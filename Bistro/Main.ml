@@ -14,7 +14,7 @@ type rna_sample = {
   path_fastq : string ;
   run_trinity : bool ;
   path_assembly : string ;
-  run_apytram : bool
+  run_apytram : bool ;
 }
 
 let parse_line_fields_of_rna_conf_file = function
@@ -39,7 +39,7 @@ let parse_rna_conf_file path =
   |> List.map ~f:parse_line_fields_of_rna_conf_file
 
 (* to run normalization *)
-let memmory = "1"
+let memory = "1"
 let max_cov = "50"
 let nb_cpu = "2"
 let seq_type = "fq"
@@ -48,7 +48,7 @@ let targets_normalization samples =
   let open Bistro_app in
   List.map samples ~f:(fun s ->
     let fastq = Bistro.Workflow.input s.path_fastq in
-    let norm_fasta = Trinity.read_normalization seq_type memmory max_cov nb_cpu fastq in
+    let norm_fasta = Trinity.read_normalization seq_type memory max_cov nb_cpu fastq in
     [
       [ "tmp" ; "norm_fasta"; s.species ^ ".norm.fa" ] %> norm_fasta  ;
     ]
@@ -60,7 +60,7 @@ let targets_trinity samples =
   let open Bistro_app in
   List.map samples ~f:(fun s ->
     let fastq = Bistro.Workflow.input s.path_fastq in
-    let assembly = Trinity.trinity fastq in
+    let assembly = Trinity.trinity ~full_cleanup:true fastq in
     [
       [ "output" ; s.path_assembly ] %> assembly  ;
     ]
@@ -160,6 +160,7 @@ let _ =
   |> Bistro_app.local
 
 (* Run Trinity on RNA samples *)
+
 let _  =
   parsed_rna_conf_file
   |> List.filter ~f:(fun s -> s.run_trinity )
@@ -174,14 +175,6 @@ let _  =
 (* Run Seq_Dispatcher.py on Trinity assemblies *)
 (** For each used reference species build a fasta with all its sequences **)
 
-let seq_dispatcher query target seq2sp species : fasta workflow = 
-       workflow [
-            cmd "../bin/SeqDispatcher.py"  [ string "-q" ; string query ;
-                                              string "-t" ; string target ;
-                                              string "-t2f"; string seq2sp;
-                                              string "-out"; seq [ dest ; string ("/Trinity_" ^ species )] ;
-                                        ]
-    ]
 
 (*let _ = List.iter ~f:(printf "%s\n" ) used_ref_species*)
 
