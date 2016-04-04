@@ -39,9 +39,9 @@ let parse_rna_conf_file path =
   |> List.map ~f:parse_line_fields_of_rna_conf_file
 
 (* to run normalization *)
-let memory = "1"
-let max_cov = "50"
-let nb_cpu = "2"
+let memory = 1
+let max_cov = 40
+let nb_cpu = 2
 let seq_type = "fq"
 
 let targets_normalization samples =
@@ -50,23 +50,23 @@ let targets_normalization samples =
     let fastq = Bistro.Workflow.input s.path_fastq in
     let norm_fasta = Trinity.read_normalization seq_type memory max_cov nb_cpu fastq in
     [
-      [ "tmp" ; "norm_fasta"; s.species ^ ".norm.fa" ] %> norm_fasta  ;
+      [ "tmp_amalgam" ; "norm_fasta"; s.species ^ ".norm.fa" ] %> norm_fasta  ;
     ]
   )
   
-
+(*
 (* to run Trinity on RNA samples *)
 let targets_trinity samples =
   let open Bistro_app in
   List.map samples ~f:(fun s ->
     let fastq = Bistro.Workflow.input s.path_fastq in
-    let assembly = Trinity.trinity ~full_cleanup:true fastq in
+    let assembly = Trinity.trinity ~full_cleanup:true ~memory fastq in
     [
-      [ "output" ; s.path_assembly ] %> assembly  ;
+      [ "tmp_amalgam"; "assembly" ; s.path_assembly ] %> assembly  ;
     ]
   )
 
-
+*)
 
 (* to run makeblastdb on RNA samples *)
 
@@ -80,8 +80,8 @@ let targets_apytram samples =
     let fasta = Trinity.fastool fastq in
     let db_blast = BlastPlus.makeblastdb dbtype s.species fasta in
     [
-      [ "tmp" ; "fasta"; s.species ^ ".fa" ] %> fasta  ;
-      [ "tmp" ; "BlastDB"; s.species ^ "_DB" ] %> db_blast  ;
+      [ "tmp_amalgam" ; "fasta"; s.species ^ ".fa" ] %> fasta  ;
+      [ "tmp_amalgam" ; "BlastDB"; s.species ^ "_DB" ] %> db_blast  ;
     ]
   )
 
@@ -93,6 +93,8 @@ let check_path_exists path =
     failwith msg
   )
 
+
+
 (* RUN *)
 
 (* Parsing rna conf file *)
@@ -101,25 +103,16 @@ let species_tree_file = Sys.argv.(2)
 let ali_dir = Sys.argv.(3)
 let seq2sp_dir =  Sys.argv.(4)
 
-let parsed_rna_conf_file = parse_rna_conf_file rna_conf_file
-
-(* Check if all paths exist*)
-let () =
-  List.iter parsed_rna_conf_file ~f:(fun sample ->
-      check_path_exists sample.path_fastq
-    )
-
-(** Get each used reference species **)
-let used_ref_species = parsed_rna_conf_file
-  |> List.map ~f:(fun s -> s.ref_species )
-  |> Caml.List.sort_uniq compare
   
 (* Run ParseInput.py *)
 
+module Amalgam = struct
 
-let parse_input config_file species_tree_file ali_dir seq2sp_dir : fasta workflow= 
+type configuration = [ `configuration ] directory
+
+let parse_input rna_conf_file species_tree_file ali_dir seq2sp_dir : configuration workflow= 
        workflow [
-            cmd "../bin/ParseInput.py"  [ string config_file ;
+            cmd "../bin/ParseInput.py"  [ string rna_conf_file ;
                                           string species_tree_file;
                                           string ali_dir;
                                           string seq2sp_dir;
@@ -127,31 +120,99 @@ let parse_input config_file species_tree_file ali_dir seq2sp_dir : fasta workflo
                                         ]
     ]
 
+let ref_transcriptomes =
+    selector ["R_Sp_transcriptomes"] 
 
-let temporary_transcriptome_dir  = parse_input rna_conf_file species_tree_file ali_dir seq2sp_dir
+    
+let ref_seq_fam_links =
+    selector ["R_Sp_Seq_Fam_links"]
 
-let target_parse_input = let open Bistro_app in
-                            [[ "tmp";"test"] %> temporary_transcriptome_dir; ]
-let _ = Bistro_app.local target_parse_input
+let ref_fams =
+    selector ["R_Sp_Fams"]
 
-(* Read Normalization of RNA sample*)
+let seq_2_species_links =
+    selector ["Validated_Sequences2Species"]
 
-let run_normalization run_apytram run_trinity =
-    let run_assemblers = (run_apytram, run_trinity) in
-    match run_assemblers with
-        | (true,true) -> true
-        | (true,false) -> true
-        | (false,true) -> true
-        | (false,false) -> false
+  
+let norm_fasta_of_rna_conf rna_conf_file =
+  parse_rna_conf_file rna_conf_file
+  |> List.filter ~f:(fun s -> s.run_apytram || s.run_trinity)
+  |> List.map ~f:(fun s ->
+    let fastq = Bistro.Workflow.input s.path_fastq in
+    (s, Trinity.read_normalization seq_type memory max_cov nb_cpu fastq)
+  )
+
+
+let trinity_assemblies_of_norm_fasta norm_fasta =
+  List.filter_map norm_fasta ~f:(fun (s,norm_fasta) -> 
+    if s.run_trinity then
+      Some (s, Trinity.trinity ~full_cleanup:true ~memory norm_fasta)
+    else
+      None
+    )
+    
+
+let seq_dispatcher ?tab_by_family_dir query query_species ref_transcriptome seq2fam : fasta workflow = 
+       workflow [
+            cmd "../bin/SeqDispatcher.py"  [ 
+              option (opt "-tab_out_by_family" string) tab_by_family_dir;
+			  opt "-q" string query ;
+			  opt "-qs" string query_species ;
+			  opt "-t" string ref_transcriptome ;
+			  opt "-t2f" string seq2fam;
+			  opt "-out" seq [ dest ; string ("/Trinity." ^ query_species )] ;
+            ]
+    ]
+
+let trinity_annotated_fams_of_trinity_assemblies  =
+    List.map ~f:(fun (s,trinity_assembly) ->
+      let r = 
+        seq_dispatcher 
+          ~tab_by_family_dir:(configuration / seq_2_species_links) 
+          trinity_assembly 
+          s.species 
+          target
+          (configuration / 
+      in
+      (s, r)
+  )
+         
+
+let main rna_conf_file species_tree_file ali_dir seq2sp_dir  =
+    let configuration = parse_input rna_conf_file species_tree_file ali_dir seq2sp_dir in
+    let norm_fasta = norm_fasta_of_rna_conf rna_conf_file in
+    let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta in
+    let open Bistro_app in 
+    List.concat [
+      [ [ "tmp_amalgam" ] %>  configuration ] ;
+      List.map norm_fasta ~f:( fun (s,norm_fasta) ->
+        [ "tmp_amalgam" ; "norm_fasta" ; s.species ^ ".fa" ] %> norm_fasta
+        );
+      List.map trinity_assemblies ~f:( fun (s,trinity_assemblies) ->
+        [ "tmp_amalgam" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.species ^ ".fa" ] %> trinity_assemblies
+        );
+      
+    
+    ]
+ 
+
+end
+
+let  target_amalgam = Amalgam.main rna_conf_file species_tree_file ali_dir seq2sp_dir 
+
+let _ = Bistro_app.local target_amalgam
+
+(* Read Normalization of RNA sample
 
 let _ = parsed_rna_conf_file
-  |> List.filter ~f:(fun s -> run_normalization s.run_apytram s.run_trinity)
+  |> List.filter ~f:(fun s -> s.run_apytram || s.run_trinity)
   |> targets_normalization
   |> List.concat
   |> Bistro_app.local
                                 
+*)
 
-(* Run makeblastdb on RNA samples *)
+(* Run makeblastdb on RNA samples 
 let _ =
   parsed_rna_conf_file
   |> List.filter ~f:(fun s -> s.run_apytram )
@@ -159,15 +220,8 @@ let _ =
   |> List.concat
   |> Bistro_app.local
 
-(* Run Trinity on RNA samples *)
 
-let _  =
-  parsed_rna_conf_file
-  |> List.filter ~f:(fun s -> s.run_trinity )
-  |> targets_trinity
-  |> List.concat
-  |> Bistro_app.local
-
+*)
 
 
 

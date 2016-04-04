@@ -162,11 +162,31 @@ TranscriptomeDirPath = "%s/R_sp_transcriptome" %(out_dir)
 if not os.path.isdir(TranscriptomeDirPath):
 	os.makedirs(TranscriptomeDirPath)
 
+SeqSpLinkDirPath = "%s/Validated_Sequences2Species" %(out_dir)
+if not os.path.isdir(SeqSpLinkDirPath):
+	os.makedirs(SeqSpLinkDirPath)
+	
 SeqFamLinkDirPath = "%s/R_sp_Seq_Fam_link" %(out_dir)
 if not os.path.isdir(SeqFamLinkDirPath):
 	os.makedirs(SeqFamLinkDirPath)
-	
 
+ApytramGeneFamDirPath = "%s/R_sp_Gene_Families" %(out_dir)
+if not os.path.isdir(ApytramGeneFamDirPath):
+	os.makedirs(ApytramGeneFamDirPath)
+
+	
+def write_validated_seq2sp(SeenSeq2SpDict_i,Family):
+	SeqSpLink_File = "%s/%s.seq2sp.txt" %(SeqSpLinkDirPath,Family)
+	String = []
+	sep = ":"
+	for seq in SeenSeq2SpDict_i.keys():
+		String.append("%s%s%s\n" %(seq,sep,SeenSeq2SpDict_i[seq]))
+	
+	f = open(SeqSpLink_File,"w")
+	f.write("".join(String))
+	f.close()
+		
+	
 def write_seq_ref_Trinity(Ref_dic_trinity,AliDict_i,Family):
 	for sp in Ref_dic_trinity.keys():
 		#Transcriptome:
@@ -190,11 +210,6 @@ def write_seq_ref_Trinity(Ref_dic_trinity,AliDict_i,Family):
 		f = open(FamSeqLink_File,"a")
 		f.write("".join(string))
 		f.close()
-
-ApytramGeneFamDirPath = "%s/R_sp_Gene_Families" %(out_dir)
-if not os.path.isdir(ApytramGeneFamDirPath):
-	os.makedirs(ApytramGeneFamDirPath)
-
 
 def write_seq_ref_apytram(Ref_dic_trinity,AliDict_i,Family):
 	for sp in Ref_dic_apytram.keys():
@@ -227,6 +242,7 @@ for f in glob.glob("%s/*" %ali_dir):
 	# Check all sp in All_species and write each temporary files
 	Ref_dic_trinity = {}
 	Ref_dic_apytram = {}
+	SeenSeq2SpDict_i = {}
 	
 	for seq in AliDict_i.keys():
 		sp = Seq2Sp_dict[seq]
@@ -234,6 +250,7 @@ for f in glob.glob("%s/*" %ali_dir):
 			logger.error("Sequence name:%s is not unique")
 			sys.exit(1)	
 		SeenSeq2SpDict[seq] = sp
+		SeenSeq2SpDict_i[seq] = sp
 		CountDict2.setdefault(sp,{"Nb_seq":0,"Nb_family":0,"Families":[]})
 		CountDict2[sp]["Nb_seq"] +=1
 		if not Family in CountDict2[sp]["Families"]:
@@ -247,7 +264,8 @@ for f in glob.glob("%s/*" %ali_dir):
 		elif not sp in All_Species:
 			logger.error("%s not in the species tree (%s)" %(Seq2Sp_dict[seq],species_tree_file))
 			sys.exit(1)
-			
+		
+	write_validated_seq2sp(SeenSeq2SpDict_i,Family)		
 	write_seq_ref_Trinity(Ref_dic_trinity,AliDict_i,Family)
 	write_seq_ref_apytram(Ref_dic_apytram,AliDict_i,Family)
 

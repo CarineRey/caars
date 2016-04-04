@@ -33,9 +33,9 @@ let seq_dispatcher ?tab_by_family_dir query query_species target seq2sp : fasta 
 
 let query = "output/example_2/Trinity_assembly/Trinity_assembly.Cavia_porcellus_big.fa" (* trinity assembly *)
 let target = "tmp/test/R_sp_transcriptome/Mus_musculus_transcriptome.fa" (* annotated transcriptome *)
-let seq2sp = "tmp/test/R_sp_Seq_Fam_link/Mus_musculus_Fam_Seq.fa" (* seq2species files *)
+let seq2sp = "tmp/test/R_sp_Seq_Fam_link//Mus_musculus_Fam_Seq.fa" (* seq2species files *)
 let species = "Cavia_porcellus"
-let tab_by_family_dir = "test_seq_dispatcher//seq_dispatcher_family"
+let tab_by_family_dir = "tmp_amalgam/Validated_Sequences2Species/"
 
 let seq_dispatcher_out_dir = seq_dispatcher ~tab_by_family_dir:tab_by_family_dir query species target seq2sp 
 
@@ -65,7 +65,7 @@ let seq_integrator
 
 let ali = "example_2/Alignment_data/F01297.fasta"
 let fasta_to_add = "test_seq_dispatcher/seq_dispatcher/Trinity."^ species ^"_F01297.fasta"
-let seq2sp = "test_seq_dispatcher/seq_dispatcher_family/F01297.ok2.txt"
+let seq2sp = "tmp_amalgam/Validated_Sequences2Species/F01297.seq2sp.txt"
 
 let seq_integrator_out_dir = seq_integrator ali fasta_to_add seq2sp
 

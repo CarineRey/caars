@@ -107,7 +107,7 @@ if not os.path.isfile(args.alignment):
     logger.error(args.alignment+" (-ali) is not a file.")
     sys.exit(1)
 if not os.path.isfile(args.fasta):
-    logger.error(args.alignment+" (-fst) is not a file.")
+    logger.error(args.fasta+" (-fst) is not a file.")
     sys.exit(1)
 if not os.path.isfile(args.sequence2taxon):
     logger.error(args.sequence2taxon+" (-s2t) is not a file.")

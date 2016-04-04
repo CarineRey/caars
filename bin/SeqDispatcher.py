@@ -32,6 +32,8 @@ parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 requiredOptions = parser.add_argument_group('Required arguments')
 requiredOptions.add_argument('-q', '--query', type=str,
                              help='Query fasta file name.', required=True)
+requiredOptions.add_argument('-qs', '--query_species', type=str,
+                             help='query species', required=True)
 requiredOptions.add_argument('-t', '--target', type=str,
                              help='Target fasta file name', required=True)
 requiredOptions.add_argument('-d', '--database', type=str,
@@ -44,6 +46,12 @@ requiredOptions.add_argument('-t2f', '--target2family', type=str,
                              help='Link file name. A tabular file, each line correspond to a sequence name and its family. ', required=True)
 requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./output",
                    help = "Output prefix (Default ./output)")
+                   
+requiredOptions.add_argument('-tab_out_by_family', type=str, default = "./tab_out_by_family",
+                   help = "Return one tabulated file by famyly in this directory (Seq species)")
+                   
+requiredOptions.add_argument('--tab_out_one_file',action='store_true', default = "false",
+                   help = "Return one tabulated file (Seq species family)")
 ##############
 
 
@@ -73,6 +81,7 @@ args = parser.parse_args()
 
 ### Read arguments
 QueryFile = args.query
+SpeciesQuery = args.query_species
 TargetFile = args.target
 Target2FamilyFilename = args.target2family
 
@@ -115,31 +124,52 @@ if args.tmp:
 else:
     TmpDirName = tempfile.mkdtemp(prefix='tmp_SeqDispatcher')
 
+def end(exit_code):
+	### Remove tempdir if the option --tmp have not been use
+	if not args.tmp:
+		logger.debug("Remove the temporary directory")
+		#Remove the temporary directory :
+		if "tmp_SeqDispatcher" in TmpDirName:
+			shutil.rmtree(TmpDirName)
+	sys.exit(exit_code)
+
 ### Set up the output directory
-if args.output_prefix:
+if args.output_prefix and os.path.dirname(args.output_prefix):
     OutDirName = os.path.dirname(args.output_prefix)
     OutPrefixName = args.output_prefix
     if os.path.isdir(OutDirName):
         logger.info("The output directory %s exists" %(os.path.dirname(args.output_prefix)) )
     elif OutDirName: # if OutDirName is not a empty string we create the directory
-        logger.info("The temporary directory %s does not exist, it will be created" % (os.path.dirname(args.output_prefix)))
+        logger.info("The output directory %s does not exist, it will be created" % (os.path.dirname(args.output_prefix)))
         os.makedirs(os.path.dirname(args.output_prefix))
 else:
     logger.error("The output prefix must be defined")
-    sys.exit(1)
+    end(1)
+
+### Set up the tabulated by family output directory
+if args.tab_out_by_family:
+    TabOutDirName = args.tab_out_by_family
+    if os.path.isdir(TabOutDirName):
+        logger.info("The output directory %s exists" %(TabOutDirName) )
+    elif TabOutDirName: # if OutDirName is not a empty string we create the directory
+        logger.info("The output directory %s does not exist, it will be created" % (TabOutDirName))
+        os.makedirs(TabOutDirName)
+else:
+    logger.error("The output prefix must be defined")
+    end(1)
 
 ### Check that input files exist
 if not os.path.isfile(args.query):
     logger.error(args.alignment+" (-q) is not a file.")
-    sys.exit(1)
+    end(1)
 
 if not os.path.isfile(args.target):
     logger.error(args.target+" (-t) is not a file.")
-    sys.exit(1)
+    end(1)
         
 if not os.path.isfile(args.target2family):
     logger.error(args.target2family+" (-t2f) is not a file.")
-    sys.exit(1) 
+    end(1) 
 
 ### Parse input fasta files
 ## Get query names
@@ -152,7 +182,7 @@ if not  OutBashProcess[1]:
     QueryNames = OutBashProcess[0].strip().replace(">","").split("\n")
 else:
     logger.error(OutBashProcess[1])
-    sys.exit(1)
+    end(1)
 
 ## Get target names
 logger.info("Get target names")
@@ -164,7 +194,7 @@ if not  OutBashProcess[1]:
     TargetNames = OutBashProcess[0].strip().replace(">","").split("\n")
 else:
     logger.error(OutBashProcess[1])
-    sys.exit(1)
+    end(1)
                 
 ### Parse the target2family, create dictionnaries target2family and family2target
 Target2FamilyDic = {}
@@ -183,7 +213,7 @@ if MissingTargets:
     
 if len(Target2FamilyTable['Target']) != len(Target2FamilyTable['Target'].unique()):
     logger.error("There are not unique target names")
-    sys.exit(1)
+    end(1)
 Target2FamilyDic = Target2FamilyTable.set_index('Target').T.to_dict('list')
     
     
@@ -198,13 +228,13 @@ if not args.database:
     DatabaseName = "%s/Target_DB" %TmpDirName
 else:
     DatabaseName = args.database
-CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "")
+CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "", "")
 if not CheckDatabase_BlastdbcmdProcess.is_database():
     logger.info("Database %s does not exist" % DatabaseName)
     #Build blast formated database from a fasta file
     if not os.path.isfile(TargetFile):
         logger.error("The fasta file (-t) does not exist.")
-        sys.exit(1)
+        end(1)
     if os.path.isdir(os.path.dirname(DatabaseName)):
         logger.info("Database directory exists")
     else:
@@ -213,13 +243,16 @@ if not CheckDatabase_BlastdbcmdProcess.is_database():
     # database building
     logger.info(DatabaseName + " database building")
     MakeblastdbProcess = BlastPlus.Makeblastdb(TargetFile,DatabaseName)
-    ExitCode = MakeblastdbProcess.launch()
+    (out,err) = MakeblastdbProcess.launch()
+    if err:
+		end(1)
+		
 
-CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "")
+CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "", "")
 if not CheckDatabase_BlastdbcmdProcess.is_database():
     logger.error("Problem in the database building")
     logger.info("Database %s does not exist" % DatabaseName)
-    sys.exit(1)
+    end(1)
 else:
     logger.info("Database %s exists" % DatabaseName)
 
@@ -235,9 +268,16 @@ BlastnProcess.Threads = Threads
 BlastnProcess.OutFormat = "6"
 # Write blast ouptut in BlastOutputFile if the file does not exist
 if not os.path.isfile(BlastOutputFile):
-    ExitCode = BlastnProcess.launch(BlastOutputFile)
+    (out,err) = BlastnProcess.launch(BlastOutputFile)
+    if err:
+		end(1)
 else:
     logger.warn("%s has already been created, it will be used" %BlastOutputFile )
+
+if not os.stat(BlastOutputFile).st_size:
+	logger.debug("Blast found no hit")
+	end(0)
+	
 logger.debug("blast --- %s seconds ---" % (time.time() - start_blast_time))
 
 ### Parse blast results
@@ -294,24 +334,24 @@ logger.info("Build a query database")
 QueryDatabaseName = "%s/Query_DB" %TmpDirName
 if not os.path.isfile(QueryFile):
     logger.error("The query fasta file (-q) does not exist.")
-    sys.exit(1)
+    end(1)
 # database building
 logger.info(QueryDatabaseName + " database building")
 MakeblastdbProcess = BlastPlus.Makeblastdb(QueryFile,QueryDatabaseName)
 ExitCode = MakeblastdbProcess.launch()
 
-CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, "")
+CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, "", "")
 if not CheckDatabase_BlastdbcmdProcess.is_database():
     logger.error("Problem in the database building")
     logger.info("Database %s does not exist" % QueryDatabaseName)
-    sys.exit(1)
+    end(1)
 else:
     logger.info("Database %s exists" % QueryDatabaseName)
 
 
 ## Third step: For each family, write a fasta which contained all retained family
 logger.info("Write output files")
-OutputTableString = ""
+OutputTableString = []
 for Family in HitDic.keys():
     logger.debug("for %s" %Family)
     TmpRetainedNames = []
@@ -329,37 +369,46 @@ for Family in HitDic.keys():
     TmpFile.close()
     #Get retained sequences
     FamilyOutputName = "%s_%s.fasta" %(OutPrefixName, Family)
-    BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename)
-    FastaString = BlastdbcmdProcess.get_output()
+    TabFamilyOutputName = "%s/%s.seq2sp.txt" %(TabOutDirName, Family)
+    BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename, "")
+    (FastaString,err) = BlastdbcmdProcess.launch()
+    if err:
+		end(1)
     logger.debug("blastdbcmd --- %s seconds ---" %(time.time() - start_blastdbcmd_time))
     #Rename sequences:
-    NewString = ""
+    NewString = []
+    TabByFamilyString = []
     for line in FastaString.strip().split("\n"):
         if re.match(">",line):
             OldName = line
             Name = line.replace(">lcl|","").strip().split()[0]
             Target = TmpDic[Name]
-            NewName = ">%s|%s" %(Name,Target)
-            NewString += NewName+"\n"
-            # Write in the output table query target family
-            OutputTableString += "%s\t%s\t%s\n" %(Name,Target,Family)
+            NewName = ">%s|%s\n" %(Name,Target)
+            NewString.append(NewName)
+            if args.tab_out_one_file:
+				# Write in the output table query target family
+				OutputTableString.append("%s\t%s\t%s\n" %(NewName,Target,Family))
+            if args.tab_out_by_family:
+				TabByFamilyString.append("%s|%s:%s\n" %(Name,Target,SpeciesQuery))
         else:
-            NewString += line +"\n"
+             NewString.append(line+"\n")
     
     FamilyOutput = open(FamilyOutputName,"w")
-    FamilyOutput.write(NewString)
+    FamilyOutput.write("".join(NewString))
     FamilyOutput.close()
+    
+    if args.tab_out_by_family:
+		TabFamilyOutput = open(TabFamilyOutputName,"a")
+		TabFamilyOutput.write("".join(TabByFamilyString))
+		TabFamilyOutput.close()
+    
 
-OutputTableFilename = "%s_table.tsv" %(OutPrefixName)
-OutputTableFile = open(OutputTableFilename,"w")
-OutputTableFile.write(OutputTableString)
-OutputTableFile.close()
+if args.tab_out_one_file:
+	OutputTableFilename = "%s_table.tsv" %(OutPrefixName)
+	OutputTableFile = open(OutputTableFilename,"w")
+	OutputTableFile.write("".join(OutputTableString))
+	OutputTableFile.close()
         
-### Remove tempdir if the option --tmp have not been use
-if not args.tmp:
-    logger.debug("Remove the temporary directory")
-    #Remove the temporary directory :
-    if "tmp_apytram" in TmpDirName:
-        shutil.rmtree(TmpDirName)
+end(0)
 
 logger.info("--- %s seconds ---" % (time.time() - start_time))
