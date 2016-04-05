@@ -34,23 +34,23 @@ requiredOptions.add_argument('-q', '--query', type=str,
                              help='Query fasta file name.', required=True)
 requiredOptions.add_argument('-qs', '--query_species', type=str,
                              help='query species', required=True)
-requiredOptions.add_argument('-t', '--target', type=str,
+requiredOptions.add_argument('-t', '--ref_transcriptome', type=str,
                              help='Target fasta file name', required=True)
 requiredOptions.add_argument('-d', '--database', type=str,
-                             help='''Database prefix name of the target fasta file.
+                             help='''Database prefix name of the ref transcriptome fasta file.
                               If a database with the same name already exists,
                               the existing database will be kept and the database will NOT be rebuilt.
                               (Default: The database will be buil in the temporary directory and will be remove at the end.)''',
                               required=False)
-requiredOptions.add_argument('-t2f', '--target2family', type=str,
+requiredOptions.add_argument('-t2f', '--ref_transcriptome2family', type=str,
                              help='Link file name. A tabular file, each line correspond to a sequence name and its family. ', required=True)
 requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./output",
                    help = "Output prefix (Default ./output)")
                    
-requiredOptions.add_argument('-tab_out_by_family', type=str, default = "./tab_out_by_family",
-                   help = "Return one tabulated file by famyly in this directory (Seq species)")
+requiredOptions.add_argument('--s2s_tab_out_by_family', action='store_true', default = False,
+                   help = "Return one file by family  (Seq:species)")
                    
-requiredOptions.add_argument('--tab_out_one_file',action='store_true', default = "false",
+requiredOptions.add_argument('--tab_out_one_file',action='store_true', default = False,
                    help = "Return one tabulated file (Seq species family)")
 ##############
 
@@ -58,7 +58,7 @@ requiredOptions.add_argument('--tab_out_one_file',action='store_true', default =
 ##############
 Options = parser.add_argument_group('Options')
 Options.add_argument('-e', '--evalue',  type=float,
-                    help = "Evalue threshold of the blastn of the queries on the database of targets. (Default 1e-3)",
+                    help = "Evalue threshold of the blastn of the queries on the database of the ref transcriptome. (Default 1e-3)",
                     default = 1e-3 )
 
 Options.add_argument('-tmp',  type=str,
@@ -82,8 +82,8 @@ args = parser.parse_args()
 ### Read arguments
 QueryFile = args.query
 SpeciesQuery = args.query_species
-TargetFile = args.target
-Target2FamilyFilename = args.target2family
+TargetFile = args.ref_transcriptome
+Target2FamilyFilename = args.ref_transcriptome2family
 
 Evalue = args.evalue
 Threads = args.threads
@@ -146,29 +146,17 @@ else:
     logger.error("The output prefix must be defined")
     end(1)
 
-### Set up the tabulated by family output directory
-if args.tab_out_by_family:
-    TabOutDirName = args.tab_out_by_family
-    if os.path.isdir(TabOutDirName):
-        logger.info("The output directory %s exists" %(TabOutDirName) )
-    elif TabOutDirName: # if OutDirName is not a empty string we create the directory
-        logger.info("The output directory %s does not exist, it will be created" % (TabOutDirName))
-        os.makedirs(TabOutDirName)
-else:
-    logger.error("The output prefix must be defined")
-    end(1)
-
 ### Check that input files exist
 if not os.path.isfile(args.query):
     logger.error(args.alignment+" (-q) is not a file.")
     end(1)
 
-if not os.path.isfile(args.target):
-    logger.error(args.target+" (-t) is not a file.")
+if not os.path.isfile(args.ref_transcriptome):
+    logger.error(args.ref_transcriptome+" (-t) is not a file.")
     end(1)
         
-if not os.path.isfile(args.target2family):
-    logger.error(args.target2family+" (-t2f) is not a file.")
+if not os.path.isfile(args.ref_transcriptome2family):
+    logger.error(args.ref_transcriptome2family+" (-t2f) is not a file.")
     end(1) 
 
 ### Parse input fasta files
@@ -184,9 +172,9 @@ else:
     logger.error(OutBashProcess[1])
     end(1)
 
-## Get target names
-logger.info("Get target names")
-BashProcess = subprocess.Popen(["grep","-e", "^>",args.target],
+## Get ref_transcriptome sequence names
+logger.info("Get ref_transcriptome names")
+BashProcess = subprocess.Popen(["grep","-e", "^>",args.ref_transcriptome],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
 OutBashProcess = BashProcess.communicate()
@@ -196,7 +184,7 @@ else:
     logger.error(OutBashProcess[1])
     end(1)
                 
-### Parse the target2family, create dictionnaries target2family and family2target
+### Parse the ref_transcriptome2family, create dictionnaries target2family and family2target
 Target2FamilyDic = {}
 Family2TargetDic = {}
 
@@ -368,8 +356,8 @@ for Family in HitDic.keys():
     TmpFile.write("\n".join(TmpRetainedNames))
     TmpFile.close()
     #Get retained sequences
-    FamilyOutputName = "%s_%s.fasta" %(OutPrefixName, Family)
-    TabFamilyOutputName = "%s/%s.seq2sp.txt" %(TabOutDirName, Family)
+    FamilyOutputName = "%s.%s.fa" %(OutPrefixName, Family)
+    TabFamilyOutputName = "%s.%s.seq2sp.txt" %(OutPrefixName, Family)
     BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename, "")
     (FastaString,err) = BlastdbcmdProcess.launch()
     if err:
@@ -388,7 +376,7 @@ for Family in HitDic.keys():
             if args.tab_out_one_file:
 				# Write in the output table query target family
 				OutputTableString.append("%s\t%s\t%s\n" %(NewName,Target,Family))
-            if args.tab_out_by_family:
+            if args.s2s_tab_out_by_family:
 				TabByFamilyString.append("%s|%s:%s\n" %(Name,Target,SpeciesQuery))
         else:
              NewString.append(line+"\n")
@@ -397,8 +385,8 @@ for Family in HitDic.keys():
     FamilyOutput.write("".join(NewString))
     FamilyOutput.close()
     
-    if args.tab_out_by_family:
-		TabFamilyOutput = open(TabFamilyOutputName,"a")
+    if args.s2s_tab_out_by_family:
+		TabFamilyOutput = open(TabFamilyOutputName,"w")
 		TabFamilyOutput.write("".join(TabByFamilyString))
 		TabFamilyOutput.close()
     
@@ -409,6 +397,8 @@ if args.tab_out_one_file:
 	OutputTableFile.write("".join(OutputTableString))
 	OutputTableFile.close()
         
-end(0)
+
 
 logger.info("--- %s seconds ---" % (time.time() - start_time))
+
+end(0)

@@ -148,17 +148,16 @@ class Phylomerge:
         if self.BootstrapThreshold:
             command.append("bootstrap.threshold=%s" %self.BootstrapThreshold)
 
-            
-        self.logger.info(" ".join(command))
-        try:
-            Out = subprocess.call(command,
-                                  #stdout=open("/dev/null", "w"),
-                                  #stderr=open("/dev/null", "w")
-                                 )
-        except:
-            os.system("echo Unexpected error when we launch phylomerge:\n")
-            print " ".join(command)  
-        return Out
+        self.logger.debug(" ".join(command))
+        
+        p = subprocess.Popen(command,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if err:
+            self.logger.error(err)
+        return (out,err)
+
 
 #******************************************************************
 #*        Bio++ Phylogenetic Merger/Sampler, version 0.2          *

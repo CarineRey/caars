@@ -158,19 +158,19 @@ def read_ali_file(FastaFile):
 
 # Write a transcriptome for each RefSpTrinity
 TranscriptomePath_dict = {}
-TranscriptomeDirPath = "%s/R_sp_transcriptome" %(out_dir)
+TranscriptomeDirPath = "%s/R_Sp_transcriptomes" %(out_dir)
 if not os.path.isdir(TranscriptomeDirPath):
 	os.makedirs(TranscriptomeDirPath)
 
-SeqSpLinkDirPath = "%s/Validated_Sequences2Species" %(out_dir)
+SeqSpLinkDirPath = "%s/Alignments_Sequences2Species" %(out_dir)
 if not os.path.isdir(SeqSpLinkDirPath):
 	os.makedirs(SeqSpLinkDirPath)
 	
-SeqFamLinkDirPath = "%s/R_sp_Seq_Fam_link" %(out_dir)
+SeqFamLinkDirPath = "%s/R_Sp_Seq_Fam_links" %(out_dir)
 if not os.path.isdir(SeqFamLinkDirPath):
 	os.makedirs(SeqFamLinkDirPath)
 
-ApytramGeneFamDirPath = "%s/R_sp_Gene_Families" %(out_dir)
+ApytramGeneFamDirPath = "%s/R_Sp_Gene_Families" %(out_dir)
 if not os.path.isdir(ApytramGeneFamDirPath):
 	os.makedirs(ApytramGeneFamDirPath)
 

@@ -63,7 +63,7 @@ class Mafft:
         self.AutoOption = False
         self.QuietOption = False
         
-    def get_output(self, output = ""):
+    def launch(self, output = ""):
         Out = ""
         command = ["mafft"]
 
@@ -84,14 +84,15 @@ class Mafft:
         
         command.append(self.InputFile)
         self.logger.debug(" ".join(command))
-        try:
-            Out = subprocess.check_output(command,
-                                          stderr=open("/dev/null", "w"))
-        except:
-            os.system("echo Unexpected error when we launch Mafft:\n")
-            print " ".join(command)
+        
+        p = subprocess.Popen(command,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if err:
+            self.logger.error(err)
             
-        return Out
+        return (out, err) 
 
 
     

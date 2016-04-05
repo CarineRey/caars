@@ -57,8 +57,8 @@ let seq_integrator
             cmd "../bin/SeqIntegrator.py"  [ 
               option (opt "-tmp" string) tmp;
 			  opt "-ali" string ali ;
-			  opt "-fst" string fasta_to_add ;
-			  opt "-s2t" string seq2sp;
+			  opt "-fa" string fasta_to_add ; (* list de fasta *)
+			  opt "-seq2tax" string seq2sp;
 			  opt "-out" seq [ dest ; string "/seq_integrator"] ;
             ]
     ]

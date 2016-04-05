@@ -1,48 +1,31 @@
 #!/usr/bin/python
 # coding: utf-8
 import os
+import re
 import sys
 import time
-import tempfile
-import shutil
 import logging
 import argparse
 import subprocess
 
-from lib import PhyloPrograms
-from lib import Aligner
-
 start_time = time.time()
 
 ### Option defining
-parser = argparse.ArgumentParser(prog = "SeqIntegrator.py",
+parser = argparse.ArgumentParser(prog = "Parse_apytram_results.py",
                                  description='''
-    Add sequences to an alignment and merge sequences from defined species if they are phylogenetically enough close.''')
+    Parse apytram results : Concatenate all ".fasta" files from a same family.''')
 parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 
 
 ##############
 requiredOptions = parser.add_argument_group('Required arguments')
-requiredOptions.add_argument('-ali', '--alignment', type=str,
-                             help='Alignment file name.', required=True)
-requiredOptions.add_argument('-fa', '--fasta', type=str, nargs='*',
-                             help='Fasta file name', required=True)
-requiredOptions.add_argument('-seq2tax', '--sequence2taxon', type=str, nargs='*',
-                             help='Link file name. A tabular file, each line correspond to a sequence name and its species. ', required=True)
+requiredOptions.add_argument('--apytram_prefix',  type=str,
+                             help='apytram prefix. (ex: apytram)', required=True)
+requiredOptions.add_argument('--apytram_results_dirs', type=str, nargs='*',
+                             help='apytram results directories', required=True)
 requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./output",
                    help = "Output prefix (Default ./output)")
 ##############
-
-
-##############
-Options = parser.add_argument_group('Options')
-Options.add_argument('--realign_ali',  action='store_true',
-                    help = "A fasta file will be created at each iteration. (default: False)")
-Options.add_argument('-tmp',  type=str,
-                    help = "Directory to stock all intermediary files for the apytram run. (default: a directory in /tmp which will be removed at the end)",
-                    default = "" )
-Options.add_argument('-log', type=str, default="seqintegrator.log",
-                   help = "a log file to report avancement (default: seq_integrator.log)")
 
 ### Option parsing
 args = parser.parse_args()
@@ -50,50 +33,19 @@ args = parser.parse_args()
 ### Read arguments
 StartingAlignment = args.alignment
 
-### Set up the log directory
-if args.log:
-    LogDirName = os.path.dirname(args.log)
-    if not os.path.isdir(LogDirName) and LogDirName:
-        os.makedirs(LogDirName)
-
 ### Set up the logger
 LogFile = args.log
 # create logger
 logger = logging.getLogger("main")
 logger.setLevel(logging.DEBUG)
-# create file handler which logs even debug messages
-fh = logging.FileHandler(LogFile)
-fh.setLevel(logging.DEBUG)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 # add the handlers to the logger
-logger.addHandler(fh)
 logger.addHandler(ch)
-
-### Set up the working directory
-if args.tmp:
-    if os.path.isdir(args.tmp):
-        logger.info("The temporary directory %s exists" %(args.tmp) )
-    else:
-        logger.info("The temporary directory %s does not exist, it will be created" % (args.tmp))
-        os.makedirs(args.tmp)
-    TmpDirName = args.tmp
-else:
-    TmpDirName = tempfile.mkdtemp(prefix='tmp_SeqIntegrator')
-
-def end(ReturnCode):       
-	### Remove tempdir if the option --tmp have not been use
-	if not args.tmp:
-		logger.debug("Remove the temporary directory")
-		#Remove the temporary directory :
-		if "tmp_SeqIntegrator" in TmpDirName:
-			shutil.rmtree(TmpDirName)
-	sys.exit(ReturnCode)
 	
 ### Set up the output directory
 if args.output_prefix:
@@ -106,17 +58,22 @@ if args.output_prefix:
         os.makedirs(os.path.dirname(args.output_prefix))
 else:
     logger.error("The output prefix must be defined")
-    end(1)
+    sys.exit(1)
 
-### Check that input files exist
-if not os.path.isfile(StartingAlignment):
-        logger.debug(StartingAlignment+" is not a file.")
-        end(1)
+### Check that input directories exist
 
-StartingFastaFiles = []
-for f in args.fasta:
-	if os.path.isfile(f):
-		StartingFastaFiles.append(f)
+ApytramDir = []
+for d in args.apytram_results_dirs:
+	if os.path.isdir(d) and os.path.isfile("%s/%s.fasta" %(d, args.apytram_prefix):
+		if re.search("/$",d):
+			ApytramDir.append(d[:-1])
+		else:
+			ApytramDir.append(d)
+	else:
+		logger.warning("%s is not an apytram result dir" %d)
+
+
+		
 
 Seq2TaxonFiles = []	
 for f in args.sequence2taxon:
