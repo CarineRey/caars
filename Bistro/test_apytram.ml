@@ -51,14 +51,14 @@ let seq_integrator
       ?log
       ali
       fasta_to_add
-      seq2sp
+      sp2seq
 	  : fasta workflow = 
        workflow [
             cmd "../bin/SeqIntegrator.py"  [ 
               option (opt "-tmp" string) tmp;
 			  opt "-ali" string ali ;
 			  opt "-fa" string fasta_to_add ; (* list de fasta *)
-			  opt "-seq2tax" string seq2sp;
+			  opt "-sp2seq" dep sp2seq; (* list de sp2seq *)
 			  opt "-out" seq [ dest ; string "/seq_integrator"] ;
             ]
     ]
@@ -73,3 +73,21 @@ let target_seq_integrator = let open Bistro_app in
                             [[ "test_seq_integrator";"seq_integrator"] %> seq_integrator_out_dir; ]
 let _ = Bistro_app.local target_seq_integrator
 
+
+
+
+let prank
+  sequence_file
+  tree_file
+  outputfile
+  model (*DNA or protein*)
+  ?output_format
+  ?njtree
+  ?treeonly
+  ?quiet
+  ?F (*force insertions to be always skipped*)
+  ?codon
+  ?keep
+  ?iterate
+  
+  

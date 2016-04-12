@@ -5,10 +5,17 @@ open Bistro_bioinfo.Std
 
 let ( % ) f g = fun x -> g (f x)
 
-let trinity
+
+let run_as_paired x = match x with
+  | "single"  -> ""
+  | "paired" -> "--run_as_paired"
+  | _ -> ""
+  
+let trinity_fasta
 	?threads
 	?full_cleanup
 	~memory
+	~fasta_type
 	(fasta: fasta workflow) : fasta workflow =
 	workflow ?np:threads [
 		mkdir_p dest;
@@ -17,6 +24,7 @@ let trinity
             option (opt "--CPU" int) threads ;
             option (flag string "--full_cleanup") full_cleanup ;
             opt "-single" dep fasta;
+            string (run_as_paired fasta_type);
 			string "--seqType fa" ;
 			opt "--output" seq [ ident dest ; string "/trinity"] ;
 			]

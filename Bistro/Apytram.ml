@@ -10,7 +10,6 @@ let apytram
     ?fastq (* prendre en compte des listes *)
     ?fasta
     ?query
-    ?tmp
     ?i
     ?no_best_file
     ?only_best_file
@@ -31,12 +30,12 @@ let apytram
     db_type 
     db_blast  : fasta workflow =
     
-    workflow ~descr:"apytram.py" ~mem:(3 * 1024) ?np:threads [ (* add memory*)
+     
+    workflow ~descr:"apytram.py"  ~mem:(3 * 1024) ?np:threads [ (* add memory*)
     cmd "apytram.py" [
         option (opt "-fq" string ) fastq ; (* prendre en compte des listes *)
         option (opt "-fa" string ) fasta ;
-        option (opt "-q" string ) query ;
-        option (opt "-tmp" string ) tmp ;
+        option (opt "-q" dep ) query ;
         option (opt "-i" int ) i ;
         option (opt "-id" float ) id ;
         option (opt "-fid" float ) fid ;
@@ -50,10 +49,11 @@ let apytram
         option (flag string "--plot_ali") plot_ali ;
         option (opt "-memory" int) memory ;
         option (opt "-threads" int) threads ;
-        opt "-d" (fun blast_db -> seq [string db_blast ; string "/db"]) db_blast;
+        opt "-d" (fun blast_db -> seq [dep db_blast ; string "/db"]) db_blast;
         opt "-dt" string db_type ; (* Check {single,paired,FR,RF,F,R}*)
         opt "-out" seq [ident dest ; string "/apytram"];
-        opt "-log" seq [ident dest ; string "/apytram.log"]
+        opt "-log" seq [ident dest ; string "/apytram.log"];
+        opt "-tmp" ident  tmp ;
         ]
     ]
     
