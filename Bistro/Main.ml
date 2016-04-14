@@ -11,7 +11,9 @@ type rna_sample = {
   id : string ;
   species : string ;
   ref_species : string ;
-  path_fastq : string ;
+  path_fastq_single : string ;
+  path_fastq_left : string ;
+  path_fastq_right : string ;
   fastq_type : string ;
   run_trinity : bool ;
   path_assembly : string ;
@@ -35,18 +37,23 @@ type configuration = {
 }
 
 let parse_line_fields_of_rna_conf_file = function
-  | [ id ; species ; ref_species ; path_fastq ; fastq_type ; run_trinity ; path_assembly ; run_apytram] ->
+  | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ;  run_trinity ; path_assembly ; run_apytram] ->
      let run_trinity = match run_trinity with
        | "yes" | "Yes" -> true
        | "no" | "No" -> false
-       | _ -> failwith "Syntax error in configuration file" 
+       | _ -> failwith {| Syntax error in configuration file (run_trinity must be "yes" or "no" |}
      in
      let run_apytram = match run_apytram with
        | "yes" | "Yes" -> true
        | "no" | "No" -> false
-       | _ -> failwith "Syntax error in configuration file" 
+       | _ -> failwith {| Syntax error in configuration file (run_apytram must be "yes" or "no" |}
      in
-     { id ; species ; ref_species ; path_fastq ; fastq_type ; run_trinity ; path_assembly ; run_apytram }
+     let fastq_type = match (path_fastq_single , path_fastq_left , path_fastq_right) with
+       | ( "-", _ , _ ) -> "paired"
+       | ( _ , "-" ,"-") -> "single"
+       | _ -> failwith {| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}
+     in
+     { id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; fastq_type ; run_trinity ; path_assembly ; run_apytram }
   | _ -> failwith "Syntax error in configuration file"
 
 let parse_rna_conf_file path =
@@ -132,10 +139,14 @@ let ali_species2seq_links family =
   
 let norm_fasta { all_ref_samples ; threads ; memory } =
   List.map all_ref_samples ~f:(fun s ->
-    let fastq = Bistro.Workflow.input s.path_fastq in
+    let fastq = match s.fastq_type with
+      | "single" -> (Bistro.Workflow.input s.path_fastq_single, Bistro.Workflow.input s.path_fastq_single)
+      | "paired" -> (Bistro.Workflow.input s.path_fastq_left, Bistro.Workflow.input s.path_fastq_right)
+      | _ -> failwith "must be paired or single"
+      in
     let seq_type = "fq" in 
     let max_cov = 50 in 
-    (s, Trinity.read_normalization seq_type memory max_cov threads fastq)
+    (s, Trinity.read_normalization ~paired_single:s.fastq_type seq_type memory max_cov threads fastq)
   )
 
 
@@ -285,11 +296,12 @@ let merged_families_distributor merged_families =
     ]
 
 
-let phyldog_config_of_merged_families_dirs configuration merged_families_dirs =
+let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
     let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in 
     let treefile = configuration.species_tree_file in
-    Phyldog.phyldog_prep_config  ~treefile ~linkdir seqdir
+    let threads = configuration.threads in 
+    Phyldog.phyldog ~threads  ~timelimit:24 ~treefile ~linkdir seqdir
 
 let main configuration =
     let configuration_dir = parse_input configuration in
@@ -315,10 +327,8 @@ let main configuration =
     let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
     
     let merged_families_dirs = merged_families_distributor merged_families in
-    
-    let phyldog_config = phyldog_config_of_merged_families_dirs configuration merged_families_dirs in
-    
-    let phyldog = Phyldog.phyldog ~threads:3 phyldog_config in
+       
+    let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
     
     let open Bistro_app in 
     List.concat [
@@ -342,9 +352,7 @@ let main configuration =
      
      [ ["tmp_amalgam" ; "merged_families_dir" ] %> merged_families_dirs] ;
      
-     [ ["tmp_amalgam" ; "phyldog_config" ] %> phyldog_config] ;
-     
-     [ ["tmp_amalgam" ; "reconcilled_tree" ] %> phyldog] ;
+     [ ["tmp_amalgam" ; "phyldog" ] %> phyldog] ;
      
     ]
  

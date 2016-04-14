@@ -17,7 +17,7 @@ let trinity_fasta
 	~memory
 	~fasta_type
 	(fasta: fasta workflow) : fasta workflow =
-	workflow ?np:threads [
+	workflow  ?np:threads [
 		mkdir_p dest;
 		cmd "Trinity" [
 		    opt "--max_memory" (sprintf "%dG" % string) memory ;
@@ -37,15 +37,22 @@ let trinity_fasta
             cmd "awk" ~stdout:dest [ string {|"NR%4==1||NR%4==2"|} ; dep fastq ; string {| | tr @ ">" |}]
     ]
 *)
+
+let config_paired_or_single paired_single fastq_path =
+    if paired_single = "single" then
+    seq ~sep: " " [ string "--single" ; dep (fst fastq_path) ]
+    else
+    seq ~sep: " " [ string "--left" ; dep (fst fastq_path); string "--right" ; dep (snd fastq_path); string "--pairs_together --PARALLEL_STATS" ]
+      
     
-let read_normalization seq_type memmory max_cov nb_cpu (fastq : _ fastq workflow) : fasta workflow =
-	Bistro.Workflow.make [%sh{|
+let read_normalization ~paired_single seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
+	Bistro.Workflow.make ~version:2 [%sh{|
 	TRINITY_PATH=`which Trinity`
 	TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
 	READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-	$READ_NORMALISATION_PATH --single {{ dep fastq }} --seqType {{ string seq_type }} --JM {{ int memmory}}G --max_cov {{ int max_cov}} --CPU {{int nb_cpu}} --output {{ ident dest }} --no_cleanup
+	$READ_NORMALISATION_PATH  {{ config_paired_or_single paired_single fastq }} --seqType {{ string seq_type }} --JM {{ int memmory}}G --max_cov {{ int max_cov}} --CPU {{int nb_cpu}} --output {{ ident dest }} --no_cleanup
 	|}]
-	/ selector [ "tmp_normalized_reads/single.fa"]
+	/ selector [ if paired_single = "single" then "tmp_normalized_reads/single.fa" else "tmp_normalized_reads/both.fa"]
 	
 	
 let fastool (fastq : _ fastq workflow) :  fasta workflow =
