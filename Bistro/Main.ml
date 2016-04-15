@@ -2,19 +2,18 @@ open Core_kernel.Std
 open Bistro.Std
 open Bistro.EDSL_sh
 open Bistro_bioinfo.Std
+open Commons
 
 (* FUNCTIONS *)
 
 
 (* to parse rna conf file *)
+
 type rna_sample = {
   id : string ;
   species : string ;
   ref_species : string ;
-  path_fastq_single : string ;
-  path_fastq_left : string ;
-  path_fastq_right : string ;
-  fastq_type : string ;
+  sample_fastq : string sample_fastq ;
   run_trinity : bool ;
   path_assembly : string ;
   run_apytram : bool ;
@@ -36,8 +35,21 @@ type configuration = {
   memory : int;
 }
 
+let parse_fastq_path = function
+  | "-" -> None
+  | x -> Some x
+  
+let parse_orientation o = function
+  | "F" -> Left F
+  | "R" -> Left R
+  | "US" -> Left US
+  | "RF" -> Right RF
+  | "RF" -> Right FR
+  | "UP" -> Right UP
+  | _ -> failwith {| Syntax error in configuration file (orientation must be in ["F","F","RF","FR","US","UP"] |}
+
 let parse_line_fields_of_rna_conf_file = function
-  | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ;  run_trinity ; path_assembly ; run_apytram] ->
+  | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
      let run_trinity = match run_trinity with
        | "yes" | "Yes" -> true
        | "no" | "No" -> false
@@ -48,12 +60,16 @@ let parse_line_fields_of_rna_conf_file = function
        | "no" | "No" -> false
        | _ -> failwith {| Syntax error in configuration file (run_apytram must be "yes" or "no" |}
      in
-     let fastq_type = match (path_fastq_single , path_fastq_left , path_fastq_right) with
-       | ( "-", _ , _ ) -> "paired"
-       | ( _ , "-" ,"-") -> "single"
+
+     let sample_fastq = match (parse_fastq_path path_fastq_single, 
+                             parse_fastq_path path_fastq_left, 
+                             parse_fastq_path path_fastq_right) with
+                             (* faire le match sur une colonne suplémantaire *)
+       | ( None, Some  _, Some _) -> Paired_end (path_fastq_left, path_fastq_right, UP)
+       | ( Some  _ , None, None) -> Single_end (path_fastq_single, US)
        | _ -> failwith {| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}
      in
-     { id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; fastq_type ; run_trinity ; path_assembly ; run_apytram }
+     { id ; species ; ref_species ; sample_fastq ; run_trinity ; path_assembly ; run_apytram }
   | _ -> failwith "Syntax error in configuration file"
 
 let parse_rna_conf_file path =
@@ -74,6 +90,9 @@ let families_of_alignments_dir alignments_dir =
     )
   |> Array.map ~f:(fun f -> fst (String.lsplit2_exn f ~on:'.')) (* Il y a obligatoirement un point dans le nom du fichier fasta *)
   |> Array.to_list 
+    
+    
+(* List.contains_dup *)
     
 let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory = 
   let config_rna_seq = parse_rna_conf_file rna_conf_file in
@@ -139,21 +158,18 @@ let ali_species2seq_links family =
   
 let norm_fasta { all_ref_samples ; threads ; memory } =
   List.map all_ref_samples ~f:(fun s ->
-    let fastq = match s.fastq_type with
-      | "single" -> (Bistro.Workflow.input s.path_fastq_single, Bistro.Workflow.input s.path_fastq_single)
-      | "paired" -> (Bistro.Workflow.input s.path_fastq_left, Bistro.Workflow.input s.path_fastq_right)
-      | _ -> failwith "must be paired or single"
-      in
     let seq_type = "fq" in 
     let max_cov = 50 in 
-    (s, Trinity.read_normalization ~paired_single:s.fastq_type seq_type memory max_cov threads fastq)
+    let fastq = sample_fastq_map Bistro.Workflow.input s.sample_fastq in
+    (s, Trinity.read_normalization seq_type memory max_cov threads fastq)
   )
 
 
 let trinity_assemblies_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s,norm_fasta) -> 
+    let is_paired = sample_fastq_is_paired s.sample_fastq in
     if s.run_trinity then
-      Some (s, Trinity.trinity_fasta ~fasta_type:s.fastq_type ~full_cleanup:true ~memory norm_fasta)
+      Some (s, Trinity.trinity_fasta ~is_paired ~full_cleanup:true ~memory norm_fasta)
     else
       None
     )
@@ -316,7 +332,7 @@ let main configuration =
         List.map pairs ~f:(fun (s, fam) ->
           let query = configuration_dir / ref_fams s.ref_species fam in
           let blast_db = List.Assoc.find_exn blast_dbs s in
-          let db_type = s.fastq_type in
+          let db_type = sample_fastq_orientation s.sample_fastq in
           (s, fam, Apytram.apytram ~plot:true ~i:1 ~query db_type blast_db)
           ) in
           
