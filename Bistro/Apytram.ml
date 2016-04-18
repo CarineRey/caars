@@ -2,7 +2,7 @@ open Core.Std
 open Bistro.Std
 open Bistro.EDSL_sh
 open Bistro_bioinfo.Std
-
+open Commons
 
 let string_of_db_type = function
   | Left F -> "F"
@@ -57,7 +57,7 @@ let apytram
         option (opt "-memory" int) memory ;
         option (opt "-threads" int) threads ;
         opt "-d" (fun blast_db -> seq [dep db_blast ; string "/db"]) db_blast;
-        opt "-dt" string db_type ; (* Check {single,paired,FR,RF,F,R}*)
+        opt "-dt" string (string_of_db_type db_type);
         opt "-out" seq [ident dest ; string "/apytram"];
         opt "-log" seq [ident dest ; string "/apytram.log"];
         opt "-tmp" ident  tmp ;

@@ -44,7 +44,7 @@ let parse_orientation o = function
   | "R" -> Left R
   | "US" -> Left US
   | "RF" -> Right RF
-  | "RF" -> Right FR
+  | "FR" -> Right FR
   | "UP" -> Right UP
   | _ -> failwith {| Syntax error in configuration file (orientation must be in ["F","F","RF","FR","US","UP"] |}
 
