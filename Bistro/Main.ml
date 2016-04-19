@@ -39,7 +39,7 @@ let parse_fastq_path = function
   | "-" -> None
   | x -> Some x
   
-let parse_orientation o = function
+let parse_orientation = function
   | "F" -> Left F
   | "R" -> Left R
   | "US" -> Left US
@@ -51,23 +51,23 @@ let parse_orientation o = function
 let parse_line_fields_of_rna_conf_file = function
   | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
      let run_trinity = match run_trinity with
-       | "yes" | "Yes" -> true
-       | "no" | "No" -> false
+       | "yes" | "Yes" | "y" | "Y" -> true
+       | "no" | "No" | "n" | "N" -> false
        | _ -> failwith {| Syntax error in configuration file (run_trinity must be "yes" or "no" |}
      in
      let run_apytram = match run_apytram with
-       | "yes" | "Yes" -> true
-       | "no" | "No" -> false
+       | "yes" | "Yes" | "y" | "Y" -> true
+       | "no" | "No" | "n" | "N" -> false
        | _ -> failwith {| Syntax error in configuration file (run_apytram must be "yes" or "no" |}
      in
 
      let sample_fastq = match (parse_fastq_path path_fastq_single, 
                              parse_fastq_path path_fastq_left, 
-                             parse_fastq_path path_fastq_right) with
-                             (* faire le match sur une colonne suplémantaire *)
-       | ( None, Some  _, Some _) -> Paired_end (path_fastq_left, path_fastq_right, UP)
-       | ( Some  _ , None, None) -> Single_end (path_fastq_single, US)
-       | _ -> failwith {| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}
+                             parse_fastq_path path_fastq_right,
+                             parse_orientation orientation) with
+       | ( None, Some  _, Some _, Right o ) -> Paired_end (path_fastq_left, path_fastq_right, o)
+       | ( Some  _ , None, None, Left o ) -> Single_end (path_fastq_single, o)
+       | _ -> failwith (path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)(*{| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}*)
      in
      { id ; species ; ref_species ; sample_fastq ; run_trinity ; path_assembly ; run_apytram }
   | _ -> failwith "Syntax error in configuration file"
@@ -86,47 +86,32 @@ let families_of_alignments_dir alignments_dir =
     if Filename.check_suffix f ".fa" || Filename.check_suffix f ".fasta" then
       true
     else
-      (printf "pas content %s n'est pas un fasta \n" f ; false)
+      (printf "Warning: %s is not a fasta file\n" f ; false)
     )
   |> Array.map ~f:(fun f -> fst (String.lsplit2_exn f ~on:'.')) (* Il y a obligatoirement un point dans le nom du fichier fasta *)
   |> Array.to_list 
     
     
-(* List.contains_dup *)
-    
 let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory = 
   let config_rna_seq = parse_rna_conf_file rna_conf_file in
   let filter_samples f = List.filter config_rna_seq ~f in
-  { 
-    config_rna_seq;
-    apytram_samples= filter_samples (fun s -> s.run_apytram) ;
-    trinity_samples = filter_samples (fun s -> s.run_trinity);
-    all_ref_samples = filter_samples (fun s -> s.run_apytram || s.run_trinity);
-    families = families_of_alignments_dir alignments_dir;
-    rna_conf_file ;
-    species_tree_file ;
-    alignments_dir ;
-    seq2sp_dir ;
-    threads = int_of_string threads ;
-    memory =int_of_string memory ;
-  }
-  
-let apytram_ref_species { apytram_samples } =
-  List.map apytram_samples ~f:(fun s -> s.ref_species)
-  |> List.dedup
-
-let apytram_species { apytram_samples } =
-  List.map apytram_samples ~f:(fun s -> s.species)
-  |> List.dedup
-  
-
-(* to run normalization *)
-let memory = 1
-let max_cov = 40
-let nb_cpu = 2
-let seq_type = "fq"
-
-
+  let id_list = List.map config_rna_seq ~f:(fun s -> s.id) in
+  if List.contains_dup id_list then
+    failwith {|There are duplicate id in the first colum of the config file.|}
+  else
+    { 
+      config_rna_seq;
+      apytram_samples = filter_samples (fun s -> s.run_apytram);
+      trinity_samples = filter_samples (fun s -> s.run_trinity);
+      all_ref_samples = filter_samples (fun s -> s.run_apytram || s.run_trinity);
+      families = families_of_alignments_dir alignments_dir;
+      rna_conf_file ;
+      species_tree_file ;
+      alignments_dir ;
+      seq2sp_dir ;
+      threads = int_of_string threads ;
+      memory = int_of_string memory ;
+    }
 
 module Amalgam = struct
 
@@ -165,7 +150,7 @@ let norm_fasta { all_ref_samples ; threads ; memory } =
   )
 
 
-let trinity_assemblies_of_norm_fasta norm_fasta =
+let trinity_assemblies_of_norm_fasta norm_fasta memory =
   List.filter_map norm_fasta ~f:(fun (s,norm_fasta) -> 
     let is_paired = sample_fastq_is_paired s.sample_fastq in
     if s.run_trinity then
@@ -322,7 +307,7 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
 let main configuration =
     let configuration_dir = parse_input configuration in
     let norm_fasta = norm_fasta configuration in
-    let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta in
+    let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory in
     let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir trinity_assemblies in
     
     let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
