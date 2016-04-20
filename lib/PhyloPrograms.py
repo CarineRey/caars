@@ -105,6 +105,7 @@ class Phylomerge:
         self.RearrangeTree = False
         self.BootstrapThreshold = 0
         self.OutputSequenceFile = ""
+        self.OutputTaxonToSequence = ""
         
         
     def launch(self, output = ""):
@@ -147,6 +148,9 @@ class Phylomerge:
         
         if self.BootstrapThreshold:
             command.append("bootstrap.threshold=%s" %self.BootstrapThreshold)
+            
+        if self.OutputTaxonToSequence:
+            command.append("output.taxon.to.sequence=%s" %self.OutputTaxonToSequence)
 
         self.logger.debug(" ".join(command))
         
