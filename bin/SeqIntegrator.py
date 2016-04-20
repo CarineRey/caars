@@ -25,10 +25,10 @@ parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 requiredOptions = parser.add_argument_group('Required arguments')
 requiredOptions.add_argument('-ali', '--alignment', type=str,
                              help='Alignment file name.', required=True)
-requiredOptions.add_argument('-fa', '--fasta', type=str, nargs='*',
-                             help='Fasta file name', required=True)
-requiredOptions.add_argument('-seq2tax', '--sequence2taxon', type=str, nargs='*',
-                             help='Link file name. A tabular file, each line correspond to a sequence name and its species. ', required=True)
+requiredOptions.add_argument('-fa', '--fasta', type=str,
+                             help='Fasta file names delimited by a coma')
+requiredOptions.add_argument('-sp2seq', type=str,
+                             help='Link file name. A tabular file, each line correspond to a sequence name and its species. File names delimited by  comas.' , required=True)
 requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./output",
                    help = "Output prefix (Default ./output)")
 ##############
@@ -36,19 +36,27 @@ requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./
 
 ##############
 Options = parser.add_argument_group('Options')
-Options.add_argument('--realign_ali',  action='store_true',
+Options.add_argument('--realign_ali',  action='store_true', default = False,
                     help = "A fasta file will be created at each iteration. (default: False)")
 Options.add_argument('-tmp',  type=str,
                     help = "Directory to stock all intermediary files for the apytram run. (default: a directory in /tmp which will be removed at the end)",
                     default = "" )
-Options.add_argument('-log', type=str, default="seqintegrator.log",
+Options.add_argument('-log', type=str, default="SeqIntegrator.log",
                    help = "a log file to report avancement (default: seq_integrator.log)")
 
 ### Option parsing
 args = parser.parse_args()
 
+
+
 ### Read arguments
 StartingAlignment = args.alignment
+
+if args.fasta:
+	FastaFiles = args.fasta.split(",")
+else:
+	FastaFiles = []
+Sp2SeqFiles = args.sp2seq.split(",")
 
 ### Set up the log directory
 if args.log:
@@ -75,6 +83,8 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+
+logger.debug(sys.argv)
 ### Set up the working directory
 if args.tmp:
     if os.path.isdir(args.tmp):
@@ -114,21 +124,24 @@ if not os.path.isfile(StartingAlignment):
         end(1)
 
 StartingFastaFiles = []
-for f in args.fasta:
+for f in FastaFiles:
 	if os.path.isfile(f):
 		StartingFastaFiles.append(f)
 
-Seq2TaxonFiles = []	
-for f in args.sequence2taxon:
+StartingSp2SeqFiles = []	
+for f in Sp2SeqFiles:
 	if os.path.isfile(f):
-		Seq2TaxonFiles.append(f) 
+		logger.debug(f)
+		StartingSp2SeqFiles.append(f) 
         
 ### A function to cat input files
 def cat(Files,OutputFile):
     (out, err, Output) = ("","","") 
     command = ["cat"]
+    logger.debug("totto")
+    logger.debug(Files)
    
-    if len(Files) == 1:
+    if type(Files) == type([]) and len(Files) == 1:
         Output = Files[0]
     else:
         command.extend(Files)
@@ -141,21 +154,65 @@ def cat(Files,OutputFile):
             logger.error(err)
         Output = OutputFile
     return (out, err, Output)
+
+def mv (In,Out):
+    (out, err) = ("","") 
+    command = ["mv", In , Out]
     
+    logger.debug(" ".join(command))
+    p = subprocess.Popen(command,
+					   stdout=subprocess.PIPE,
+					   stderr=subprocess.PIPE)
+    (out, err) = p.communicate()
+    if err:
+		logger.error(err)
+		
+    return (out, err)
+    
+def cp (In,Out):
+    (out, err) = ("","") 
+    command = ["cp", In , Out]
+   
+    logger.debug(" ".join(command))
+    p = subprocess.Popen(command,
+					   stdout=subprocess.PIPE,
+					   stderr=subprocess.PIPE)
+    (out, err) = p.communicate()
+    if err:
+        logger.error(err)
+    
+    return (out, err)
+    
+if args.realign_ali:
+	### Realign the last alignment
+	InitialMafftProcess = Aligner.Mafft(StartingAlignment)
+	InitialMafftProcess.AutoOption = True
+	InitialMafftProcess.QuietOption = True
+	InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName,"RealignAli")
+		
+	if os.path.isfile(StartingAlignment):
+		(out,err) = InitialMafftProcess.launch()
+		StartingAlignment = InitialMafftProcess.OutputFile
+	else:
+		logger.error("%s is not a file." %(StartingAlignment))
+		end(1)
+
+### Concate all  sp2seq files
+logger.info("Concate all Sp2Seq files")
+Sp2Seq = "%s/StartingSp2Seq.txt" %(TmpDirName)
+(out, err, Sp2Seq) = cat(StartingSp2SeqFiles,Sp2Seq)
+		
 # Check if their are seqeunces to add
-if StartingFastaFiles and Seq2TaxonFiles:
+if StartingFastaFiles and Sp2SeqFiles:
 	logger.info("Sequences to add")
 	logger.debug(StartingFastaFiles)
-	logger.debug(Seq2TaxonFiles)
+	logger.debug(Sp2SeqFiles)
 	   
-	### Concate all ses2taxon files and fasta files
-
-	Seq2Taxon = "%s/StartingSeq2Taxon.txt" %(TmpDirName)
+	### Concate all fasta files
 	StartingFasta = "%s/StartingFasta.fa" %(TmpDirName)
 	logger.info("Concate all fasta files")
 	(out, err, StartingFasta) = cat(StartingFastaFiles,StartingFasta)
-	logger.info("Concate all seq2taxon files")
-	(out, err, Seq2Taxon) = cat(Seq2TaxonFiles,Seq2Taxon)
+
 
 	### Add the fasta file to the existing alignment
 	logger.info("Add the fasta file to the existing alignment")
@@ -188,53 +245,61 @@ if StartingFastaFiles and Seq2TaxonFiles:
 
 	### Use phylomerge to merge sequence from a same species
 	logger.info("Use phylomerge to merge sequence from a same species")
+	FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
 	PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, FasttreeProcess.OutputTree)
-	PhylomergeProcess.SequenceToTaxon = Seq2Taxon
+	PhylomergeProcess.TaxonToSequence = Sp2Seq
 	PhylomergeProcess.RearrangeTree = True
 	PhylomergeProcess.BootstrapThreshold = 0.8
 	PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
+	PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
 
 	if os.path.isfile(MafftProcess.OutputFile) and \
 	   os.path.isfile(FasttreeProcess.OutputTree) and \
-	   os.path.isfile(PhylomergeProcess.SequenceToTaxon) :
+	   os.path.isfile(PhylomergeProcess.TaxonToSequence) :
 	   PhylomergeProcess.launch()
 	else:
 		logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
-		 %(MafftProcess.OutputFile, FasttreeProcess.OutputTree,PhylomergeProcess.SequenceToTaxon))
+		 %(MafftProcess.OutputFile, FasttreeProcess.OutputTree,PhylomergeProcess.TaxonToSequence))
 		end(1)
-	LastAliToAlign = PhylomergeProcess.OutputSequenceFile
+
 	logger.info("Realign the merge alignment")
+	### Realign the last alignment
+	FinalMafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
+	FinalMafftProcess.AutoOption = True
+	FinalMafftProcess.QuietOption = True
+	FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
+	if os.path.isfile(FinalMafftProcess.InputFile):
+		(out,err) = FinalMafftProcess.launch()
+	else:
+		logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.InputFile))
+		end(1)
+	LastAli = FinalMafftProcess.OutputFile
 	
 else: #No sequences to add
-	logger.warning("No sequences to add")
-	LastAliToAlign = args.alignment
-	logger.info("Realign the input alignment")
-		
-### Realign the last alignment
-FinalMafftProcess = Aligner.Mafft(LastAliToAlign)
-FinalMafftProcess.AutoOption = True
-FinalMafftProcess.QuietOption = True
-FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
+	logger.warning("No sequences to add, the input file will be the output file")
+	LastAli = "%s.fa" %OutPrefixName
+	FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+	(out,err) = cp(Sp2Seq,FinalSp2Seq)
+	if args.realign_ali:
+		(out,err) = mv(StartingAlignment, LastAli)
+	else:
+		(out,err) = cp(StartingAlignment, LastAli)
 
-
-if os.path.isfile(FinalMafftProcess.InputFile):
-	(out,err) = FinalMafftProcess.launch()
-else:
-	logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.InputFile))
-	end(1)
-		
 ### Built a tree with the final alignment
 logger.info("Built a tree with the final alignment")
-FinalFasttreeProcess = PhyloPrograms.Fasttree(FinalMafftProcess.OutputFile)
+FinalFasttreeProcess = PhyloPrograms.Fasttree(LastAli)
 FinalFasttreeProcess.Nt = True
 FinalFasttreeProcess.Gtr = True
 FinalFasttreeProcess.OutputTree = "%s.tree" %OutPrefixName
 
-if os.path.isfile(FinalMafftProcess.OutputFile):
+if os.path.isfile(LastAli):
     FinalFasttreeProcess.get_output()
 else:
-    logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.OutputFile))
+    logger.error("%s is not a file. There was an issue with the previous step." %(LastAli))
     end(1)
         
 logger.debug("--- %s seconds ---" % (time.time() - start_time))
+
+### TO DO Build the sp2seq link file ###
+
 end(0)

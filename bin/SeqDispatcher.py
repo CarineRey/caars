@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import string
 import tempfile
 import shutil
 import logging
@@ -47,7 +48,7 @@ requiredOptions.add_argument('-t2f', '--ref_transcriptome2family', type=str,
 requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./output",
                    help = "Output prefix (Default ./output)")
                    
-requiredOptions.add_argument('--s2s_tab_out_by_family', action='store_true', default = False,
+requiredOptions.add_argument('--sp2seq_tab_out_by_family', action='store_true', default = False,
                    help = "Return one file by family  (Seq:species)")
                    
 requiredOptions.add_argument('--tab_out_one_file',action='store_true', default = False,
@@ -125,13 +126,13 @@ else:
     TmpDirName = tempfile.mkdtemp(prefix='tmp_SeqDispatcher')
 
 def end(exit_code):
-	### Remove tempdir if the option --tmp have not been use
-	if not args.tmp:
-		logger.debug("Remove the temporary directory")
-		#Remove the temporary directory :
-		if "tmp_SeqDispatcher" in TmpDirName:
-			shutil.rmtree(TmpDirName)
-	sys.exit(exit_code)
+    ### Remove tempdir if the option --tmp have not been use
+    if not args.tmp:
+        logger.debug("Remove the temporary directory")
+        #Remove the temporary directory :
+        if "tmp_SeqDispatcher" in TmpDirName:
+            shutil.rmtree(TmpDirName)
+    sys.exit(exit_code)
 
 ### Set up the output directory
 if args.output_prefix and os.path.dirname(args.output_prefix):
@@ -233,8 +234,8 @@ if not CheckDatabase_BlastdbcmdProcess.is_database():
     MakeblastdbProcess = BlastPlus.Makeblastdb(TargetFile,DatabaseName)
     (out,err) = MakeblastdbProcess.launch()
     if err:
-		end(1)
-		
+        end(1)
+        
 
 CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "", "")
 if not CheckDatabase_BlastdbcmdProcess.is_database():
@@ -258,14 +259,14 @@ BlastnProcess.OutFormat = "6"
 if not os.path.isfile(BlastOutputFile):
     (out,err) = BlastnProcess.launch(BlastOutputFile)
     if err:
-		end(1)
+        end(1)
 else:
     logger.warn("%s has already been created, it will be used" %BlastOutputFile )
 
 if not os.stat(BlastOutputFile).st_size:
-	logger.debug("Blast found no hit")
-	end(0)
-	
+    logger.debug("Blast found no hit")
+    end(0)
+    
 logger.debug("blast --- %s seconds ---" % (time.time() - start_blast_time))
 
 ### Parse blast results
@@ -340,6 +341,9 @@ else:
 ## Third step: For each family, write a fasta which contained all retained family
 logger.info("Write output files")
 OutputTableString = []
+SeqId_dic = {"SeqPrefix" : "TR%s0" %(SpeciesQuery[0:3].upper()),
+             "SeqNb" : 1, "NbFigures" : 10}
+
 for Family in HitDic.keys():
     logger.debug("for %s" %Family)
     TmpRetainedNames = []
@@ -357,27 +361,32 @@ for Family in HitDic.keys():
     TmpFile.close()
     #Get retained sequences
     FamilyOutputName = "%s.%s.fa" %(OutPrefixName, Family)
-    TabFamilyOutputName = "%s.%s.seq2sp.txt" %(OutPrefixName, Family)
+    TabFamilyOutputName = "%s.%s.sp2seq.txt" %(OutPrefixName, Family)
     BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename, "")
     (FastaString,err) = BlastdbcmdProcess.launch()
     if err:
-		end(1)
+        end(1)
     logger.debug("blastdbcmd --- %s seconds ---" %(time.time() - start_blastdbcmd_time))
     #Rename sequences:
     NewString = []
     TabByFamilyString = []
     for line in FastaString.strip().split("\n"):
         if re.match(">",line):
-            OldName = line
+            SeqName = "%s%s%s" %(SeqId_dic["SeqPrefix"],
+                                     string.zfill(SeqId_dic["SeqNb"],
+                                                  SeqId_dic["NbFigures"]
+                                                  ),
+                                     "_%s" %(Family))
+            SeqId_dic["SeqNb"] += 1
             Name = line.replace(">lcl|","").strip().split()[0]
             Target = TmpDic[Name]
-            NewName = ">%s|%s\n" %(Name,Target)
+            NewName = ">%s\n" %(SeqName)
             NewString.append(NewName)
             if args.tab_out_one_file:
-				# Write in the output table query target family
-				OutputTableString.append("%s\t%s\t%s\n" %(NewName,Target,Family))
-            if args.s2s_tab_out_by_family:
-				TabByFamilyString.append("%s|%s:%s\n" %(Name,Target,SpeciesQuery))
+                # Write in the output table query target family
+                OutputTableString.append("%s\t%s\t%s\n" %(SeqName,Target,Family))
+            if args.sp2seq_tab_out_by_family:
+                TabByFamilyString.append("%s:%s\n" %(SpeciesQuery,SeqName))
         else:
              NewString.append(line+"\n")
     
@@ -385,17 +394,17 @@ for Family in HitDic.keys():
     FamilyOutput.write("".join(NewString))
     FamilyOutput.close()
     
-    if args.s2s_tab_out_by_family:
-		TabFamilyOutput = open(TabFamilyOutputName,"w")
-		TabFamilyOutput.write("".join(TabByFamilyString))
-		TabFamilyOutput.close()
+    if args.sp2seq_tab_out_by_family:
+        TabFamilyOutput = open(TabFamilyOutputName,"w")
+        TabFamilyOutput.write("".join(TabByFamilyString))
+        TabFamilyOutput.close()
     
 
 if args.tab_out_one_file:
-	OutputTableFilename = "%s_table.tsv" %(OutPrefixName)
-	OutputTableFile = open(OutputTableFilename,"w")
-	OutputTableFile.write("".join(OutputTableString))
-	OutputTableFile.close()
+    OutputTableFilename = "%s_table.tsv" %(OutPrefixName)
+    OutputTableFile = open(OutputTableFilename,"w")
+    OutputTableFile.write("".join(OutputTableString))
+    OutputTableFile.close()
         
 
 

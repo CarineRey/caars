@@ -1,197 +1,120 @@
 #!/usr/bin/python
 # coding: utf-8
-import os
-import re
+
 import sys
-import time
+import os
 import logging
-import argparse
-import subprocess
-
-start_time = time.time()
-
-### Option defining
-parser = argparse.ArgumentParser(prog = "Parse_apytram_results.py",
-                                 description='''
-    Parse apytram results : Concatenate all ".fasta" files from a same family.''')
-parser.add_argument('--version', action='version', version='%(prog)s 1.0')
-
-
-##############
-requiredOptions = parser.add_argument_group('Required arguments')
-requiredOptions.add_argument('--apytram_prefix',  type=str,
-                             help='apytram prefix. (ex: apytram)', required=True)
-requiredOptions.add_argument('--apytram_results_dirs', type=str, nargs='*',
-                             help='apytram results directories', required=True)
-requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./output",
-                   help = "Output prefix (Default ./output)")
-##############
-
-### Option parsing
-args = parser.parse_args()
-
-### Read arguments
-StartingAlignment = args.alignment
+import re
+import string
 
 ### Set up the logger
-LogFile = args.log
-# create logger
-logger = logging.getLogger("main")
+# create logger with 'spam_application'
+logger = logging.getLogger('parse_apytram_input')
 logger.setLevel(logging.DEBUG)
+# create file handler which logs even debug messages
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.DEBUG) #WARN
 # create formatter and add it to the handlers
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
 # add the handlers to the logger
 logger.addHandler(ch)
-	
-### Set up the output directory
-if args.output_prefix:
-    OutDirName = os.path.dirname(args.output_prefix)
-    OutPrefixName = args.output_prefix
-    if os.path.isdir(OutDirName):
-        logger.info("The output directory %s exists" %(os.path.dirname(args.output_prefix)) )
-    elif OutDirName: # if OutDirName is not a empty string we create the directory
-        logger.info("The temporary directory %s does not exist, it will be created" % (os.path.dirname(args.output_prefix)))
-        os.makedirs(os.path.dirname(args.output_prefix))
-else:
-    logger.error("The output prefix must be defined")
+
+
+if len(sys.argv) != 3:
+    logger.error("2 arguments are required")
     sys.exit(1)
 
-### Check that input directories exist
+ConfigFileName = sys.argv[1]
+OutDirName = sys.argv[2]
 
-ApytramDir = []
-for d in args.apytram_results_dirs:
-	if os.path.isdir(d) and os.path.isfile("%s/%s.fasta" %(d, args.apytram_prefix):
-		if re.search("/$",d):
-			ApytramDir.append(d[:-1])
-		else:
-			ApytramDir.append(d)
-	else:
-		logger.warning("%s is not an apytram result dir" %d)
+if not os.path.isfile(ConfigFileName):
+    logger.error("The first argument must be a file")
+    sys.exit(1)
 
 
-		
+### Set up the output directory
+if OutDirName:
+    if os.path.isdir(OutDirName):
+        logger.info("The output directory %s exists" %(OutDirName) )
+    elif os.path.isfile(OutDirName):
+        logger.error("The second argument must be a directory")
+        sys.exit(1)
+    elif OutDirName: # if OutDirName is not a empty string we create the directory
+        logger.info("The output directory %s does not exist, it will be created" %(OutDirName))
+        os.makedirs(OutDirName)
+else:
+    logger.error("The second argument must be a directory")
+    sys.exit(1)
 
-Seq2TaxonFiles = []	
-for f in args.sequence2taxon:
-	if os.path.isfile(f):
-		Seq2TaxonFiles.append(f) 
-        
-### A function to cat input files
-def cat(Files,OutputFile):
-    (out, err, Output) = ("","","") 
-    command = ["cat"]
-   
-    if len(Files) == 1:
-        Output = Files[0]
-    else:
-        command.extend(Files)
-        logger.debug(" ".join(command))
-        p = subprocess.Popen(command,
-                           stdout=open(OutputFile, 'w'),
-                           stderr=subprocess.PIPE)
-        (out, err) = p.communicate()
-        if err:
-            logger.error(err)
-        Output = OutputFile
-    return (out, err, Output)
+
+# A function to read and write a new fasta and a sp2seq file
+def read_fasta_from_apytram(FastaPath2Sp_dic,
+                            OutFastaFileName,
+                            Sp2SeqFileName,
+                            SeqId_dic
+                            ):
+    """Read a list of fasta and write a new fasta file with unique sequence names
+    Build also a Sp2Seq lin file"""
+    String_list = []
+    SeqName_list = []
     
-# Check if their are seqeunces to add
-if StartingFastaFiles and Seq2TaxonFiles:
-	logger.info("Sequences to add")
-	logger.debug(StartingFastaFiles)
-	logger.debug(Seq2TaxonFiles)
-	   
-	### Concate all ses2taxon files and fasta files
-
-	Seq2Taxon = "%s/StartingSeq2Taxon.txt" %(TmpDirName)
-	StartingFasta = "%s/StartingFasta.fa" %(TmpDirName)
-	logger.info("Concate all fasta files")
-	(out, err, StartingFasta) = cat(StartingFastaFiles,StartingFasta)
-	logger.info("Concate all seq2taxon files")
-	(out, err, Seq2Taxon) = cat(Seq2TaxonFiles,Seq2Taxon)
-
-	### Add the fasta file to the existing alignment
-	logger.info("Add the fasta file to the existing alignment")
-	MafftProcess = Aligner.Mafft(StartingAlignment)
-	MafftProcess.AddOption = StartingFasta
-	MafftProcess.AdjustdirectionOption = False
-	MafftProcess.AutoOption = True
-	MafftProcess.QuietOption = True
-	MafftProcess.OutputFile = "%s/StartMafft.fa" %TmpDirName
-	if os.path.isfile(StartingAlignment) and os.path.isfile(StartingFasta):
-		(out,err) = MafftProcess.launch()
-	else:
-		logger.error("%s or %s is not a file" %(StartingAlignment,StartingFasta))
-		end(1)
-
-	#Remove _R_ add by mafft adjustdirection option
-	#os.system("sed -i s/_R_//g %s" %MafftProcess.OutputFile)
-
-	### Built a tree with the global alignment
-	logger.info("Built a tree with the global alignment")
-	FasttreeProcess = PhyloPrograms.Fasttree(MafftProcess.OutputFile)
-	FasttreeProcess.Nt = True
-	FasttreeProcess.Gtr = True
-	FasttreeProcess.OutputTree = "%s/StartTree.tree" %TmpDirName
-	if os.path.isfile(MafftProcess.OutputFile):
-		FasttreeProcess.get_output()
-	else:
-		logger.error("%s is not a file. There was an issue with the previous step." %(MafftProcess.OutputFile))
-		end(1)
-
-	### Use phylomerge to merge sequence from a same species
-	logger.info("Use phylomerge to merge sequence from a same species")
-	PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, FasttreeProcess.OutputTree)
-	PhylomergeProcess.SequenceToTaxon = Seq2Taxon
-	PhylomergeProcess.RearrangeTree = True
-	PhylomergeProcess.BootstrapThreshold = 0.8
-	PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
-
-	if os.path.isfile(MafftProcess.OutputFile) and \
-	   os.path.isfile(FasttreeProcess.OutputTree) and \
-	   os.path.isfile(PhylomergeProcess.SequenceToTaxon) :
-	   PhylomergeProcess.launch()
-	else:
-		logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
-		 %(MafftProcess.OutputFile, FasttreeProcess.OutputTree,PhylomergeProcess.SequenceToTaxon))
-		end(1)
-	LastAliToAlign = PhylomergeProcess.OutputSequenceFile
-	logger.info("Realign the merge alignment")
-	
-else: #No sequences to add
-	logger.warning("No sequences to add")
-	LastAliToAlign = args.alignment
-	logger.info("Realign the input alignment")
-		
-### Realign the last alignment
-FinalMafftProcess = Aligner.Mafft(LastAliToAlign)
-FinalMafftProcess.AutoOption = True
-FinalMafftProcess.QuietOption = True
-FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
+    for (InFastaFileName, Species) in FastaPath2Sp_dic.items():
+		InFile = open(InFastaFileName,"r") 
+		for line in InFile:
+			if re.match(">",line):
+				# This is a new sequence
+				SeqName = "%s%s%s" %(SeqId_dic[Species]["SeqPrefix"],
+				                     string.zfill(SeqId_dic[Species]["SeqNb"],
+				                                  SeqId_dic[Species]["NbFigures"]
+				                                  ),
+				                     "_%s" %(Family))
+				SeqId_dic[Species]["SeqNb"] += 1
+				SeqName_list.append(SeqName)
+				String_list.append( ">%s\n" %(SeqName))
+			else:
+				String_list.append(line)
+		InFile.close()
+    
+    # Write all sequences in the output fasta file
+    OutFile = open(OutFastaFileName,"w")
+    OutFile.write("".join(String_list))
+    OutFile.close()
+    
+    #Build and write the Sp2SeqFile
+    Sp2SeqFile = open(Sp2SeqFileName,"w")
+    Sp2Seq_String = "%s:" %(Species) + ("\n%s:" %(Species)).join(SeqName_list)
+    Sp2SeqFile.write(Sp2Seq_String)
+    Sp2SeqFile.close()
+    return(SeqId_dic)
 
 
-if os.path.isfile(FinalMafftProcess.InputFile):
-	(out,err) = FinalMafftProcess.launch()
-else:
-	logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.InputFile))
-	end(1)
-		
-### Built a tree with the final alignment
-logger.info("Built a tree with the final alignment")
-FinalFasttreeProcess = PhyloPrograms.Fasttree(FinalMafftProcess.OutputFile)
-FinalFasttreeProcess.Nt = True
-FinalFasttreeProcess.Gtr = True
-FinalFasttreeProcess.OutputTree = "%s.tree" %OutPrefixName
+### Read the config file:
+## Sp\tFam\tdir_path
+ConfigFile = open(ConfigFileName,"r")
+SeqId_dic = {}
+FastaPath2SpPerFam_dic = {}
+ApytramPrefix = "apytram"
+NbFigures = 10
+for line in ConfigFile:
+    (Species, Family, ApytramDir) = line.strip().split("\t")
+    InFastaFileName = "%s/%s.fasta" %(ApytramDir,ApytramPrefix)
+    if os.path.isfile(InFastaFileName):
+		FastaPath2SpPerFam_dic.setdefault(Family,{})
+		FastaPath2SpPerFam_dic[Family][InFastaFileName] = Species
+		SeqId_dic.setdefault(Species, {"SeqPrefix" : "AP%s0" %(Species[0:3].upper()),
+									   "SeqNb" : 1, "NbFigures" : NbFigures})
 
-if os.path.isfile(FinalMafftProcess.OutputFile):
-    FinalFasttreeProcess.get_output()
-else:
-    logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.OutputFile))
-    end(1)
-        
-logger.debug("--- %s seconds ---" % (time.time() - start_time))
-end(0)
+for Family in FastaPath2SpPerFam_dic.keys():
+	OutFastaFileName = "%s/apytram.%s.fa" %(OutDirName,Family)
+	Sp2SeqFileName = "%s/apytram.%s.sp2seq.txt" %(OutDirName,Family)
+	SeqId_dic = read_fasta_from_apytram(FastaPath2SpPerFam_dic[Family],
+                            OutFastaFileName,
+                            Sp2SeqFileName,
+                            SeqId_dic)
+                            
+sys.exit(0)
+
+    
+    

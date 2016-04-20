@@ -32,16 +32,21 @@ requiredOptions.add_argument('-datatype',  type=str, choices=["DNA","RNA","CODON
 requiredOptions.add_argument('-dataformat',  type=str, choices=["FASTA","MASE","PHYLIP","CLUSTAL","DCSE","NEXUS"], default = "FASTA",
                              help="What alignment format? FASTA or MASE or PHYLIP or CLUSTAL or DCSE or NEXUS?")
                              
+requiredOptions.add_argument('-starting_tree_dir',  type=str,
+                             help="Absolute PATH to the folder containing all the starting tree files")
+                             
 requiredOptions.add_argument('-linkdir',  type=str,
                              help="Absolute PATH to the folder containing all the link files", required=True)
                              
 requiredOptions.add_argument('-optdir',  type=str,
                              help="Absolute PATH to the folder that will contain all the option files", required=True)
                              
-requiredOptions.add_argument('-resdir',  type=str, default = "",
-                             help="Absolute PATH to the folder that will contain all the result files")
-                             
-requiredOptions.add_argument('-treefile',  type=str,
+requiredOptions.add_argument('-species_tree_resdir',  type=str, default = "",
+                             help="Absolute PATH to the folder that will contain result files concerning the species tree")
+requiredOptions.add_argument('-gene_trees_resdir',  type=str, default = "",
+                             help="Absolute PATH to the folder that will contain result files concerning all gene trees")
+                                               
+requiredOptions.add_argument('-species_tree_file',  type=str,
                              help="Absolute PATH to the starting species tree file (Newick)")
 requiredOptions.add_argument('-startingtree',  type=str, choices=["RANDOM","MRP"], default = "RANDOM",
                              help="If no species tree file, What kind of species tree? RANDOM or MRP?")
@@ -58,7 +63,7 @@ requiredOptions.add_argument("-equgenomes", action='store_true', default = False
 requiredOptions.add_argument("-topogene", action='store_true', default = False,
                              help="Do you want to optimize the gene tree topologies?")
                              
-requiredOptions.add_argument('-timelimit',  type=float, default = 2,
+requiredOptions.add_argument('-timelimit',  type=int, default = 2,
                              help="What time limit do you want to set, in hours (minimum 2h)?")
                                
                              
@@ -67,17 +72,19 @@ requiredOptions.add_argument('-timelimit',  type=float, default = 2,
 ### Option parsing
 args = parser.parse_args()
 
+print( " ".join(sys.argv))
 
 SEQDIR = args.seqdir
 DATATYPE = args.datatype
 DATAFORMAT = args.dataformat
 LINKDIR = args.linkdir
 OPTDIR = args.optdir
-RESDIR = args.resdir
-
-TREEFILE = args.treefile
+SP_RESDIR = args.species_tree_resdir
+GENES_RESDIR = args.gene_trees_resdir
+STARTINGTREEDIR = args.starting_tree_dir
+TREEFILE = args.species_tree_file
 STARTINGTREE = args.startingtree
-if args.treefile:
+if TREEFILE:
 	TREEFILEGIVEN = True
 else:
 	TREEFILEGIVEN = False
@@ -94,10 +101,6 @@ EQUGENOMES = args.equgenomes
 TOPOGENE = args.topogene
 TIMELIMIT = str(args.timelimit)
 
-
-
-
-
 if __name__ == '__main__':
 	#Alignment folder
 	listAlns=list()
@@ -106,6 +109,15 @@ if __name__ == '__main__':
 		sys.exit()
 	explore(SEQDIR, listAlns)
 	print (SEQDIR + " exists and contains "+str(len(listAlns))+" files, presumably all alignments.\n")
+	
+	#StartingTree folder
+	listTrees=list()
+	if STARTINGTREEDIR:
+		if not os.path.isdir(STARTINGTREEDIR):
+			print (STARTINGTREEDIR + " does not exist.\n")
+			sys.exit()
+		explore(STARTINGTREEDIR, listTrees)
+		print (STARTINGTREEDIR + " exists and contains "+str(len(listTrees))+" files, presumably all trees.\n")
 	
 	#Data type
 	if not DATATYPE in ["DNA","RNA","CODON","PROTEIN"]: 
@@ -138,22 +150,23 @@ if __name__ == '__main__':
 	print (OPTDIR + " exists and will contain the option files.\n")
 
 	#Result file folder
-	if RESDIR:
-		if ( not os.path.isdir(RESDIR)) : 
-			print ("\nCreating the folder "+RESDIR+"\n")
-			try:
-				os.makedirs(RESDIR)
-			except OSError:
-				if not os.path.isdir(RESDIR):
-					raise
-		print (RESDIR + " exists and will contain the result files.\n")
+	for RESDIR in [SP_RESDIR, GENES_RESDIR]:
+		if RESDIR:
+			if ( not os.path.isdir(RESDIR)) : 
+				print ("\nCreating the folder "+RESDIR+"\n")
+				try:
+					os.makedirs(RESDIR)
+				except OSError:
+					if not os.path.isdir(RESDIR):
+						raise
+			print (RESDIR + " exists and will contain the result files.\n")
 
 	#Species tree
 	if TREEFILEGIVEN:
 		pathExists = os.path.isfile(TREEFILE)
 		if ( not pathExists) : 
 			sys.exit(1)
-		print ("Starting from "+TREEFILE + " \n")
+		print ("Starting from "+TREEFILE+"\n")
 	else : 
 		if not STARTINGTREE in ["RANDOM","MRP"]: 
 			sys.exit(1)
@@ -203,15 +216,21 @@ if __name__ == '__main__':
 	listOptionFiles = list()
 	listSizes = list()
 	dictLinks=dict()
+	dictTrees=dict()
 	print ("Now we create one option file per gene family, but we do so only if we find an alignment file and a link file that correspond to each other.\n")
 	print ("Correspondance is based on the radical of the file names (file name without .extension).\n")
 	listAlns.sort()
 	listLinks.sort()
+	listTrees.sort()
 	radical = ""
 	for link in listLinks:
 		dictLinks[os.path.basename(link).split('.')[0]] = link
+	if STARTINGTREEDIR:
+		for tree in listTrees:
+			dictTrees[os.path.basename(tree).split('.')[0]] = tree
+
 	for aln in listAlns:
-		radical = os.path.basename(aln).split('.')[0]
+		radical = os.path.basename(aln).split('.')[0] 
 		if (dictLinks.__contains__(radical)):
 			#First, open the link file in order to build a list of species
 			try:
@@ -234,8 +253,10 @@ if __name__ == '__main__':
 				sys.exit()
 			fopt.write("\n######## First, data files ########\n")
 			fopt.write("PATH="+os.path.join(SEQDIR,"")+"\n")
-			if RESDIR != "":
-				fopt.write("RESULT="+os.path.join(RESDIR,"")+"\n")
+			if GENES_RESDIR:
+				fopt.write("RESULT="+os.path.join(GENES_RESDIR,"")+"\n")
+			else:
+				fopt.write("RESULT=\n")
 			fopt.write("DATA="+radical+"\n")
 			fopt.write("taxaseq.file="+dictLinks[radical]+"\n")
 			fopt.write("input.sequence.file="+aln+"\n")
@@ -251,8 +272,13 @@ if __name__ == '__main__':
 				fopt.write("input.sequence.format=Dcse\n")
 			elif ("NEXUS".startswith(DATAFORMAT)):
 				fopt.write("input.sequence.format=Nexus\n")
-			listSizes.append(str(os.stat( aln )[6])	)		
-			fopt.write("gene.tree.file=$(RESULT)$(DATA).GeneTree\n")
+			listSizes.append(str(os.stat( aln )[6])	)
+			if (dictTrees.__contains__(radical)):	
+				fopt.write("gene.tree.file="+dictTrees[radical]+"\n")
+			else:
+				fopt.write("gene.tree.file=$(RESULT)$(DATA).GeneTree\n")
+				if STARTINGTREEDIR:
+					print ("Alignment "+ aln + " does not have a corresponding starting tree file.\n")
 			fopt.write("output.reconciled.tree.file=$(RESULT)$(DATA).ReconciledTree\n")
 			fopt.write("output.duplications.tree.file=$(RESULT)$(DATA).DuplicationTree\n")
 			fopt.write("output.losses.tree.file=$(RESULT)$(DATA).LossTree\n")
@@ -304,6 +330,9 @@ if __name__ == '__main__':
 			listOptionFiles.append(os.path.join(OPTDIR,radical)+'.opt')
 		else:
 			print ("Alignment "+ aln + " does not have a corresponding link file. Skipping it.\n")
+
+			
+			
 	#Now the gene option files have been created
 
 	#Creating the list of gene option files
@@ -313,7 +342,7 @@ if __name__ == '__main__':
 		print "Unknown file: ", os.path.join(OPTDIR,"listGenes.txt")
 		sys.exit()
 	for i in range(len(listOptionFiles)):
-		fout.write(listOptionFiles[i]+":"+ listSizes[i] +"\n")
+		fout.write(listOptionFiles[i] +":"+ listSizes[i] +"\n")
 	fout.close()
 
 	#Creating the species list file.
@@ -372,8 +401,10 @@ if __name__ == '__main__':
 	   	sys.exit()
 	fopt.write("\n######## First, data files ########\n")
 	fopt.write("OPT="+os.path.join(OPTDIR,"")+"\n")
-	if RESDIR:
-		fopt.write("RESULT="+os.path.join(RESDIR,"")+"\n")
+	if SP_RESDIR:
+		fopt.write("RESULT="+os.path.join(SP_RESDIR,"")+"\n")
+	else:
+		fopt.write("RESULT=\n")	
 	fopt.write("DATA="+radical+"\n")
 	if TREEFILEGIVEN:
 		fopt.write("init.species.tree=user\n")
@@ -412,12 +443,7 @@ if __name__ == '__main__':
 	print ("\n\t~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n")
 	print ("\n\n\n\tTo launch PHYLDOG, you will need to run something like:\n\n")
 	
-	if not args.resdir:
-		resdir = " RESULT=RESULT_PATH/ "
-	else:
-		resdir = ""
-		
-	print ("\tmpirun -np NUMBER_OF_PROCESSES PATH_TO_PHYLDOG/phyldog param=%s %s\n\n" %(os.path.join(OPTDIR,"GeneralOptions.txt"),resdir))
+	print ("\tmpirun -np NUMBER_OF_PROCESSES PATH_TO_PHYLDOG/phyldog param=%s\n\n" %(os.path.join(OPTDIR,"GeneralOptions.txt")))
 
 	print ("\n\tThank you for using this PHYLDOG file preparation script!\n\n")
 
