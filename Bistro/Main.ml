@@ -31,7 +31,7 @@ type configuration = {
   species_tree_file : string ;
   alignments_dir : string ;
   seq2sp_dir : string ;
-  out_dir : string ;
+  outdir : string ;
   threads : int;
   memory : int;
 }
@@ -93,7 +93,7 @@ let families_of_alignments_dir alignments_dir =
   |> Array.to_list 
     
     
-let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory out_dir = 
+let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory outdir = 
   let config_rna_seq = parse_rna_conf_file rna_conf_file in
   let filter_samples f = List.filter config_rna_seq ~f in
   let id_list = List.map config_rna_seq ~f:(fun s -> s.id) in
@@ -112,7 +112,7 @@ let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir
       seq2sp_dir ;
       threads = int_of_string threads ;
       memory = int_of_string memory ;
-      out_dir;
+      outdir;
     }
 
 module Amalgam = struct
@@ -335,27 +335,27 @@ let main configuration =
     
     let open Bistro_app in 
     List.concat [
-      [ [ configuration.out_dir ; "configuration" ] %>  configuration_dir ] ;
+      [ [ configuration.outdir ; "configuration" ] %>  configuration_dir ] ;
       List.map norm_fasta ~f:(fun (s,norm_fasta) ->
-        [ configuration.out_dir ; "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
+        [ configuration.outdir ; "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
         );
       List.map trinity_assemblies ~f:(fun (s,trinity_assemblies) ->
-        [ configuration.out_dir ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assemblies
+        [ configuration.outdir ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assemblies
         );
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
-        [ configuration.out_dir ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species  ] %> trinity_annotated_fams
+        [ configuration.outdir ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species  ] %> trinity_annotated_fams
         );
       List.map blast_dbs ~f:(fun (s,blast_db) ->
-        [ configuration.out_dir ; "blast_db" ; s.id ^ "_"^ s.species ] %> blast_db
+        [ configuration.outdir ; "blast_db" ; s.id ^ "_"^ s.species ] %> blast_db
         );
       List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-        [ configuration.out_dir ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+        [ configuration.outdir ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
         );
-     [ [configuration.out_dir ; "apytram_results" ] %> apytram_results_dir] ;
+     [ [configuration.outdir ; "apytram_results" ] %> apytram_results_dir] ;
      
-     [ [configuration.out_dir ; "merged_families_dir" ] %> merged_families_dirs] ;
+     [ [configuration.outdir ; "merged_families_dir" ] %> merged_families_dirs] ;
      
-     [ [configuration.out_dir ; "phyldog" ] %> phyldog] ;
+     [ [configuration.outdir ; "phyldog" ] %> phyldog] ;
      
     ]
  
@@ -370,11 +370,11 @@ let alignments_dir = Sys.argv.(3)
 let seq2sp_dir =  Sys.argv.(4)
 let threads =  Sys.argv.(5)
 let memory =  Sys.argv.(6)
-let out_dir =  Sys.argv.(7)
+let outdir =  Sys.argv.(7)
 
 
-let configuration = load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory out_dir
+let configuration = load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory outdir
 
 let target_amalgam = Amalgam.main configuration 
 
-let _ = Bistro_app.local target_amalgam
+let _ = Bistro_app.local ~outdir target_amalgam
