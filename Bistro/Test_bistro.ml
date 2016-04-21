@@ -28,4 +28,4 @@ let db = BlastPlus.makeblastdb ~dbtype:"nucl"  "test_db" fasta
 let target = let open Bistro_app in 
     [[ out ; "db" ] %>  db]
     
-let _ = Bistro_app.local target
+let _ = Bistro_app.local target ~outdir:out

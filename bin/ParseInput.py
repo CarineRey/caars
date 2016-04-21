@@ -89,7 +89,7 @@ f = open(config_file,"r")
 HeaderConf = f.readline()
 for line in f:
     line_list = line.split("\t")
-    if len(line_list) == 11:
+    if len(line_list) == 10:
         (rna_id, sp, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
         if sp in All_Species and ref_species in All_Species:
             if run_apytram.strip() in ["y","yes","Y","Yes"]:
@@ -245,7 +245,7 @@ for f in glob.glob("%s/*" %ali_dir):
         sys.exit(1)
     # Check all sp in All_species and write each temporary files
     Ref_dic_trinity = {}
-    Ref_dic_apytram = {}
+    Ref_dic_apytram = dict([(key, []) for key in RefSpApytram])
     SeenSeq2SpDict_i = {}
     
     for seq in AliDict_i.keys():
