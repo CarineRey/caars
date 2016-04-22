@@ -152,11 +152,11 @@ let norm_fasta { all_ref_samples ; threads ; memory } =
   )
 
 
-let trinity_assemblies_of_norm_fasta norm_fasta memory =
+let trinity_assemblies_of_norm_fasta norm_fasta memory threads =
   List.filter_map norm_fasta ~f:(fun (s,norm_fasta) -> 
     let is_paired = sample_fastq_is_paired s.sample_fastq in
     if s.run_trinity then
-      Some (s, Trinity.trinity_fasta ~is_paired ~full_cleanup:true ~memory norm_fasta)
+      Some (s, Trinity.trinity_fasta ~is_paired ~full_cleanup:true ~memory ~threads norm_fasta)
     else
       None
     )
@@ -304,12 +304,12 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in 
     let treefile = configuration.species_tree_file in
     let threads = configuration.threads in 
-    Phyldog.phyldog ~threads  ~timelimit:24 ~treefile ~linkdir seqdir
+    Phyldog.phyldog ~threads  ~timelimit:9999999 ~treefile ~linkdir seqdir
 
 let main configuration =
     let configuration_dir = parse_input configuration in
     let norm_fasta = norm_fasta configuration in
-    let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory in
+    let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory configuration.threads in
     let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir trinity_assemblies in
     
     let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
@@ -320,7 +320,7 @@ let main configuration =
           let query = configuration_dir / ref_fams s.ref_species fam in
           let blast_db = List.Assoc.find_exn blast_dbs s in
           let db_type = sample_fastq_orientation s.sample_fastq in
-          (s, fam, Apytram.apytram ~plot:true ~i:1 ~query db_type blast_db)
+          (s, fam, Apytram.apytram ~plot:true ~i:3 ~query db_type blast_db)
           ) in
           
         
@@ -377,4 +377,4 @@ let configuration = load_configuration rna_conf_file species_tree_file alignment
 
 let target_amalgam = Amalgam.main configuration 
 
-let _ = Bistro_app.local ~outdir target_amalgam
+let _ = Bistro_app.local target_amalgam

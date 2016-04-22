@@ -9,16 +9,16 @@ let ( % ) f g = fun x -> g (f x)
 
 
 let trinity_fasta
-	?threads
 	?full_cleanup
+	~threads
 	~memory
 	~is_paired
 	(fasta: fasta workflow) : fasta workflow =
-	workflow  ?np:threads [
+	workflow  ~np:threads ~mem:(1024 * 120) [
 		mkdir_p dest;
 		cmd "Trinity" [
-		    opt "--max_memory" (sprintf "%dG" % string) memory ;
-            option (opt "--CPU" int) threads ;
+		    opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
+            opt "--CPU" ident np ;
             option (flag string "--full_cleanup") full_cleanup ;
             opt "-single" dep fasta;
             flag string "--run_as_paired" is_paired;
