@@ -18,6 +18,7 @@ let phyldog
 	?timelimit
 	~threads
 	~linkdir
+        ~treedir
 	(seqdir: fasta directory workflow)
 	: phylotree directory workflow =
 	
@@ -40,6 +41,7 @@ let phyldog
               option (flag string "-topogene") topogene ;
               opt "-linkdir" dep linkdir;
               opt "-seqdir" dep seqdir;
+              opt "-starting_tree_dir" dep treedir;
               opt "-species_tree_resdir" ident results_species;
               opt "-gene_trees_resdir" ident results_genes; 
 	  		  opt "-optdir" seq [ ident config_dir ] ;

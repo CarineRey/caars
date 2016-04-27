@@ -38,7 +38,7 @@ let apytram
     db_blast  : fasta workflow =
     
      
-    workflow ~descr:"apytram.py"  ~mem:(12 * 1024) [ (* add memory*)
+    workflow ~descr:"apytram.py"  ~mem:(2 * 1024) [ (* add memory*)
     cmd "apytram.py" [
         option (opt "-fq" string ) fastq ; (* prendre en compte des listes *)
         option (opt "-fa" string ) fasta ;
@@ -55,7 +55,8 @@ let apytram
         option (flag string "--plot") plot ;
         option (flag string "--plot_ali") plot_ali ;
         (*option (opt "-memory" ident) memory ;*)
-        opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;
+        opt "-memory" int 2 ;
+        (*opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;*)
         option (opt "-threads" int) threads ;
         opt "-d" (fun blast_db -> seq [dep db_blast ; string "/db"]) db_blast;
         opt "-dt" string (string_of_db_type db_type);

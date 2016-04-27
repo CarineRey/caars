@@ -174,7 +174,7 @@ let blast_dbs_of_norm_fasta norm_fasta =
     
 
 let seq_dispatcher ?s2s_tab_by_family query query_species ref_transcriptome seq2fam : fasta workflow = 
-       workflow ~version:5 [
+       workflow ~version:6 [
             mkdir_p tmp;
             cmd "../bin/SeqDispatcher.py"  [ 
               option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
@@ -301,10 +301,11 @@ let merged_families_distributor merged_families =
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
+    let treedir = merged_families_dirs / selector [ "Merged_tree" ] in
     let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in 
     let treefile = configuration.species_tree_file in
     let threads = configuration.threads in 
-    Phyldog.phyldog ~threads  ~timelimit:9999999 ~treefile ~linkdir seqdir
+    Phyldog.phyldog ~threads ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
 
 let main configuration =
     let configuration_dir = parse_input configuration in
@@ -377,4 +378,4 @@ let configuration = load_configuration rna_conf_file species_tree_file alignment
 
 let target_amalgam = Amalgam.main configuration 
 
-let _ = Bistro_app.local target_amalgam
+let _ = Bistro_app.local target_amalgam ~outdir

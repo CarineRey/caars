@@ -17,7 +17,8 @@ let trinity_fasta
 	workflow  ~np:threads ~mem:(1024 * 120) [
 		mkdir_p dest;
 		cmd "Trinity" [
-		    opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
+		    (*opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;*)
+		    opt "--max_memory" ident (seq [ string "50G" ]) ;
             opt "--CPU" ident np ;
             option (flag string "--full_cleanup") full_cleanup ;
             opt "-single" dep fasta;
