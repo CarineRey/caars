@@ -275,8 +275,10 @@ if __name__ == '__main__':
 			listSizes.append(str(os.stat( aln )[6])	)
 			if (dictTrees.__contains__(radical)):	
 				fopt.write("gene.tree.file="+dictTrees[radical]+"\n")
+				fopt.write("init.gene.tree=user\n")
 			else:
 				fopt.write("gene.tree.file=$(RESULT)$(DATA).GeneTree\n")
+				fopt.write("init.gene.tree=bionj\n") #the program will build a starting user gene tree
 				if STARTINGTREEDIR:
 					print ("Alignment "+ aln + " does not have a corresponding starting tree file.\n")
 			fopt.write("output.reconciled.tree.file=$(RESULT)$(DATA).ReconciledTree\n")
@@ -285,7 +287,6 @@ if __name__ == '__main__':
 			fopt.write("output.numbered.tree.file=$(RESULT)$(DATA).NumberedTree\n")
 			fopt.write("input.sequence.sites_to_use=all\n")
 			fopt.write("input.sequence.max_gap_allowed=100%\n")
-			fopt.write("init.gene.tree=bionj\n") #the program will build a starting user gene tree
 			fopt.write("output.starting.gene.tree.file=$(RESULT)$(DATA).StartingTree\n")
 			fopt.write("\n######## Second, model options ########\n")
 			if DATATYPE == "DNA":

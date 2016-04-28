@@ -11,21 +11,20 @@ let ( % ) f g = fun x -> g (f x)
 let trinity_fasta
 	?full_cleanup
 	~threads
-	~memory
+	?(memory = 1)
 	~is_paired
 	(fasta: fasta workflow) : fasta workflow =
-	workflow  ~np:threads ~mem:(1024 * 120) [
+	workflow  ~np:threads ~mem:(1024 * memory) [
 		mkdir_p dest;
 		cmd "Trinity" [
-		    (*opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;*)
-		    opt "--max_memory" ident (seq [ string "50G" ]) ;
-            opt "--CPU" ident np ;
-            option (flag string "--full_cleanup") full_cleanup ;
-            opt "-single" dep fasta;
-            flag string "--run_as_paired" is_paired;
-			string "--seqType fa" ;
-			opt "--output" seq [ ident dest ; string "/trinity"] ;
-			]
+		    opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
+                    opt "--CPU" ident np ;
+                    option (flag string "--full_cleanup") full_cleanup ;
+                    opt "-single" dep fasta;
+                    flag string "--run_as_paired" is_paired;
+		    string "--seqType fa" ;
+		    opt "--output" seq [ ident dest ; string "/trinity"] ;
+		]
 	]
     / selector [ "trinity.Trinity.fasta" ]
 
@@ -44,11 +43,11 @@ let config_paired_or_single = function
  
     
 let read_normalization seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
-	Bistro.Workflow.make ~version:2 [%sh{|
+	Bistro.Workflow.make ~version:2 ~np:8 ~mem:(99 * 1024) [%sh{|
 	TRINITY_PATH=`which Trinity`
 	TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
 	READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-	$READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ int memmory}}G --max_cov {{ int max_cov}} --CPU {{int nb_cpu}} --output {{ ident dest }} --no_cleanup
+	$READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov}} --CPU {{ident np}} --output {{ ident dest }} --no_cleanup
 	|}]
 	/ selector [ match fastq with
 	              | Single_end _ -> "tmp_normalized_reads/single.fa" 

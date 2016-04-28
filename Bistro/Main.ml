@@ -378,4 +378,4 @@ let configuration = load_configuration rna_conf_file species_tree_file alignment
 
 let target_amalgam = Amalgam.main configuration 
 
-let _ = Bistro_app.local target_amalgam ~outdir
+let _ = Bistro_app.local ~np:configuration.threads  ~mem:( 1024 * configuration.memory) target_amalgam ~outdir
