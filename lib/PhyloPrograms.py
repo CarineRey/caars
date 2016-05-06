@@ -126,7 +126,7 @@ class Phylomerge:
                 
         if self.TaxonsToRefine:
             if os.path.isfile(self.TaxonsToRefine):
-                command.append("taxons.to.refine=%s" %self.InputTaxonsToRefine)
+                command.append("taxons.to.refine=%s" %self.TaxonsToRefine)
                 
         if self.TaxonToSequence:
             if os.path.isfile(self.TaxonToSequence):

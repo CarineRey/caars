@@ -16,6 +16,7 @@ let phyldog
 	?equgenomes
 	?topogene
 	?timelimit
+        ?(memory = 1)
 	~threads
 	~linkdir
         ~treedir
@@ -25,7 +26,7 @@ let phyldog
 	let config_dir = dest // "Configuration" in
 	let results_species = dest // "Species_tree/" in
 	let results_genes = dest // "Gene_trees/" in
-	workflow ~version:4 ~np:threads [
+	workflow ~version:4 ~np:threads ~mem:(1024 * memory) [
 	mkdir_p config_dir;
 	mkdir_p results_species;
 	mkdir_p results_genes;
@@ -48,7 +49,7 @@ let phyldog
 	  		  ];
 	 (* Run phyldog *)
     cmd "mpirun" [
-	  	    opt "-np" int threads ;
+	  	    opt "-np" ident np ;
 	  	    string "phyldog";
 	  	    seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
 	        ];

@@ -36,6 +36,8 @@ requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./
 
 ##############
 Options = parser.add_argument_group('Options')
+Options.add_argument('-sptorefine',   type=str, default = "",
+                    help = "A list of species names delimited by commas. These species will be concerned by merging. (default: All species will be concerned)")
 Options.add_argument('--realign_ali',  action='store_true', default = False,
                     help = "A fasta file will be created at each iteration. (default: False)")
 Options.add_argument('-tmp',  type=str,
@@ -51,7 +53,10 @@ args = parser.parse_args()
 
 ### Read arguments
 StartingAlignment = args.alignment
-
+SpToRefine = []
+if args.sptorefine:
+    SpToRefine = args.sptorefine.split(",")
+	
 if args.fasta:
 	FastaFiles = args.fasta.split(",")
 else:
@@ -245,13 +250,20 @@ if StartingFastaFiles and Sp2SeqFiles:
 
 	### Use phylomerge to merge sequence from a same species
 	logger.info("Use phylomerge to merge sequence from a same species")
-	FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
-	PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, FasttreeProcess.OutputTree)
-	PhylomergeProcess.TaxonToSequence = Sp2Seq
-	PhylomergeProcess.RearrangeTree = True
-	PhylomergeProcess.BootstrapThreshold = 0.8
-	PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
-	PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
+        FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+        PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, FasttreeProcess.OutputTree)
+        PhylomergeProcess.TaxonToSequence = Sp2Seq  
+        PhylomergeProcess.RearrangeTree = True
+        PhylomergeProcess.BootstrapThreshold = 0.8
+        PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
+        PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
+	if SpToRefine:
+            logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
+            SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
+            SpToRefineFile = open(SpToRefineFilename,"w")
+            SpToRefineFile.write("\n".join(SpToRefine)+"\n")
+            SpToRefineFile.close()
+            PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
 	if os.path.isfile(MafftProcess.OutputFile) and \
 	   os.path.isfile(FasttreeProcess.OutputTree) and \

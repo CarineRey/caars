@@ -120,7 +120,7 @@ module Amalgam = struct
 type configuration_dir = [ `configuration ] directory
 
 let parse_input { rna_conf_file ; species_tree_file ; alignments_dir ; seq2sp_dir } : configuration_dir workflow= 
-       workflow ~version:9 [
+       workflow ~np:1 ~version:9 [
             cmd "../bin/ParseInput.py"  [ string rna_conf_file ;
                                           string species_tree_file;
                                           string alignments_dir;
@@ -219,6 +219,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
 let seq_integrator
       ?realign_ali
       ?log
+      ?(species_to_refine_list = []) 
       ~family
       ~trinity_fam_results_dirs
       ~apytram_results_dir
@@ -249,13 +250,14 @@ let seq_integrator
       let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
       let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
 
-       workflow ~version:10 [
+       workflow ~version:11 [
             cmd "../bin/SeqIntegrator.py"  [ 
-              opt "-tmp" ident dest;
+              opt "-tmp" ident tmp;
               opt "-ali" string alignment ;
               opt "-fa" (seq ~sep:"") fasta;
               opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
               opt "-out" seq [ dest ; string "/" ; string family] ;
+              opt "-sptorefine" (seq ~sep:",") (List.map species_to_refine_list ~f:(fun sp -> string sp) );
             ]
     ]
 
@@ -271,8 +273,9 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
 
     let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
     let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
+    let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species)  in
 
-    (family, seq_integrator ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
+    (family, seq_integrator ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
     )
 
 
@@ -305,7 +308,8 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in 
     let treefile = configuration.species_tree_file in
     let threads = configuration.threads in 
-    Phyldog.phyldog ~threads ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
+    let memory = configuration.memory in
+    Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
 
 let main configuration =
     let configuration_dir = parse_input configuration in

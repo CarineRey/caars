@@ -24,7 +24,14 @@ let trinity_fasta
                     flag string "--run_as_paired" is_paired;
 		    string "--seqType fa" ;
 		    opt "--output" seq [ ident dest ; string "/trinity"] ;
-		]
+		];
+                cmd "sed" [
+                     string "-re";
+                     string {|"s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/"|};
+                     string "-i";
+                     string "trinity.Trinity.fasta"
+                     ]
+               (* sed -re "s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/" t -i *) 
 	]
     / selector [ "trinity.Trinity.fasta" ]
 
@@ -43,16 +50,18 @@ let config_paired_or_single = function
  
     
 let read_normalization seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
+        let tmp_output = match fastq with
+                      | Single_end _ -> "tmp_normalized_reads/single.fa"
+                      | Paired_end _ -> "tmp_normalized_reads/both.fa"
+                      in
 	Bistro.Workflow.make ~version:2 ~np:8 ~mem:(99 * 1024) [%sh{|
 	TRINITY_PATH=`which Trinity`
 	TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
 	READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-	$READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov}} --CPU {{ident np}} --output {{ ident dest }} --no_cleanup
+	$READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov}} --CPU {{ident np}} --output {{ ident tmp }} --no_cleanup
+	mv {{tmp // tmp_output}} {{ident dest}};
 	|}]
-	/ selector [ match fastq with
-	              | Single_end _ -> "tmp_normalized_reads/single.fa" 
-	              | Paired_end _ -> "tmp_normalized_reads/both.fa"
-	          ]
+	 
 	
 	
 let fastool (fastq : _ fastq workflow) :  fasta workflow =
