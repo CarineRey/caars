@@ -32,12 +32,15 @@ let apytram
     ?plot
     ?plot_ali
     ?(threads = 1)
-    ?(memory = 1)
+    ?(memory = 1) 
     ?time_max
     db_type 
     db_blast  : fasta workflow =
     
-     
+    let memory = match memory with
+      | 0 -> 1
+      | _ -> memory
+      in 
     workflow ~descr:"apytram.py" ~np:threads ~mem:(memory * 1024) [ (* add memory*)
     cmd "apytram.py" [
         option (opt "-fq" string ) fastq ; (* prendre en compte des listes *)

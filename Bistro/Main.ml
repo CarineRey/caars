@@ -325,7 +325,9 @@ let main configuration =
           let query = configuration_dir / ref_fams s.ref_species fam in
           let blast_db = List.Assoc.find_exn blast_dbs s in
           let db_type = sample_fastq_orientation s.sample_fastq in
-          (s, fam, Apytram.apytram ~plot:true ~i:3 ~query db_type blast_db)
+          let div a b = Int.of_float ( (Float.of_int a) *. ( (Float.of_int b) ** -1.) ) in
+          let memory = div configuration.memory configuration.threads in  (* Voir avec Philippe pour utiliser le signe de division *)
+          (s, fam, Apytram.apytram ~plot:true ~i:3 ~memory ~query db_type blast_db)
           ) in
           
         

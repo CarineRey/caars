@@ -29,8 +29,8 @@ let trinity_fasta
                      string "-re";
                      string {|"s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/"|};
                      string "-i";
-                     string "trinity.Trinity.fasta"
-                     ]
+                     seq [ident dest; string "/trinity.Trinity.fasta";];
+                     ];
                (* sed -re "s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/" t -i *) 
 	]
     / selector [ "trinity.Trinity.fasta" ]
