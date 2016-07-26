@@ -1,6 +1,9 @@
 FROM carinerey/apytram
 MAINTAINER Carine Rey carine.rey@ens-lyon.fr
 
+
+RUN apt-get clean && apt-get update
+
 #### install ete2
 RUN apt-get install -qy python-setuptools \
                         python-qt4 \
