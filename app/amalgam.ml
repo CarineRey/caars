@@ -2,22 +2,22 @@
 # File: Main.ml
 # Created by: Carine Rey
 # Created on: March 2016
-# 
-# 
+#
+#
 # Copyright 2016 Carine Rey
-# This software is a computer program whose purpose is to assembly 
+# This software is a computer program whose purpose is to assembly
 # sequences from RNA-Seq data (paired-end or single-end) using one or
-# more reference homologous sequences. 
+# more reference homologous sequences.
 # This software is governed by the CeCILL license under French law and
-# abiding by the rules of distribution of free software.  You can  use, 
+# abiding by the rules of distribution of free software.  You can  use,
 # modify and/ or redistribute the software under the terms of the CeCILL
 # license as circulated by CEA, CNRS and INRIA at the following URL
-# "http://www.cecill.info". 
+# "http://www.cecill.info".
 # As a counterpart to the access to the source code and  rights to copy,
 # modify and redistribute granted by the license, users are provided only
 # with a limited warranty  and the software's author,  the holder of the
 # economic rights,  and the successive licensors  have only  limited
-# liability. 
+# liability.
 # In this respect, the user's attention is drawn to the risks associated
 # with loading,  using,  modifying and/or developing or reproducing the
 # software by the user in light of its specific status of free software,
@@ -25,9 +25,9 @@
 # therefore means  that it is reserved for developers  and  experienced
 # professionals having in-depth computer knowledge. Users are therefore
 # encouraged to load and test the software's suitability as regards their
-# requirements in conditions enabling the security of their systems and/or 
-# data to be ensured and,  more generally, to use and operate it in the 
-# same conditions as regards security. 
+# requirements in conditions enabling the security of their systems and/or
+# data to be ensured and,  more generally, to use and operate it in the
+# same conditions as regards security.
 # The fact that you are presently reading this means that you have had
 # knowledge of the CeCILL license and that you accept its terms.
 *)
@@ -73,7 +73,7 @@ type configuration = {
 let parse_fastq_path = function
   | "-" -> None
   | x -> Some x
-  
+
 let parse_orientation = function
   | "F" -> Left F
   | "R" -> Left R
@@ -96,8 +96,8 @@ let parse_line_fields_of_rna_conf_file = function
        | _ -> failwith {| Syntax error in configuration file (run_apytram must be "yes" or "no" |}
      in
 
-     let sample_fastq = match (parse_fastq_path path_fastq_single, 
-                             parse_fastq_path path_fastq_left, 
+     let sample_fastq = match (parse_fastq_path path_fastq_single,
+                             parse_fastq_path path_fastq_left,
                              parse_fastq_path path_fastq_right,
                              parse_orientation orientation) with
        | ( None, Some  _, Some _, Right o ) -> Paired_end (path_fastq_left, path_fastq_right, o)
@@ -117,24 +117,24 @@ let parse_rna_conf_file path =
 
 let families_of_alignments_dir alignments_dir =
   Sys.readdir alignments_dir
-  |> Array.filter ~f:(fun f -> 
+  |> Array.filter ~f:(fun f ->
     if Filename.check_suffix f ".fa" || Filename.check_suffix f ".fasta" then
       true
     else
       (printf "Warning: %s is not a fasta file\n" f ; false)
     )
   |> Array.map ~f:(fun f -> fst (String.lsplit2_exn f ~on:'.')) (* Il y a obligatoirement un point dans le nom du fichier fasta *)
-  |> Array.to_list 
-    
-    
-let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory outdir = 
+  |> Array.to_list
+
+
+let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory outdir =
   let config_rna_seq = parse_rna_conf_file rna_conf_file in
   let filter_samples f = List.filter config_rna_seq ~f in
   let id_list = List.map config_rna_seq ~f:(fun s -> s.id) in
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
   else
-    { 
+    {
       config_rna_seq;
       apytram_samples = filter_samples (fun s -> s.run_apytram);
       trinity_samples = filter_samples (fun s -> s.run_trinity);
@@ -153,7 +153,7 @@ module Amalgam = struct
 
 type configuration_dir = [ `configuration ] directory
 
-let parse_input { rna_conf_file ; species_tree_file ; alignments_dir ; seq2sp_dir } : configuration_dir workflow= 
+let parse_input { rna_conf_file ; species_tree_file ; alignments_dir ; seq2sp_dir } : configuration_dir workflow=
        workflow ~np:1 ~version:9 [
             cmd "../bin/ParseInput.py"  [ string rna_conf_file ;
                                           string species_tree_file;
@@ -164,30 +164,30 @@ let parse_input { rna_conf_file ; species_tree_file ; alignments_dir ; seq2sp_di
     ]
 
 let ref_transcriptomes =
-    selector ["R_Sp_transcriptomes"] 
+    selector ["R_Sp_transcriptomes"]
 
 let ref_seq_fam_links =
     selector ["R_Sp_Seq_Fam_links"]
 
 let ref_fams species family =
-    selector ["R_Sp_Gene_Families"; species ^ "." ^ family ^ ".fa"] 
+    selector ["R_Sp_Gene_Families"; species ^ "." ^ family ^ ".fa"]
 
 let ali_species2seq_links family =
     selector ["Alignments_Species2Sequences" ; "alignments." ^  family ^ ".sp2seq.txt" ]
 
 
-  
+
 let norm_fasta { all_ref_samples ; threads ; memory } =
   List.map all_ref_samples ~f:(fun s ->
-    let seq_type = "fq" in 
-    let max_cov = 50 in 
+    let seq_type = "fq" in
+    let max_cov = 50 in
     let fastq = sample_fastq_map Bistro.Workflow.input s.sample_fastq in
     (s, Trinity.read_normalization seq_type memory max_cov threads fastq)
   )
 
 
 let trinity_assemblies_of_norm_fasta norm_fasta memory threads =
-  List.filter_map norm_fasta ~f:(fun (s,norm_fasta) -> 
+  List.filter_map norm_fasta ~f:(fun (s,norm_fasta) ->
     let is_paired = sample_fastq_is_paired s.sample_fastq in
     if s.run_trinity then
       Some (s, Trinity.trinity_fasta ~is_paired ~full_cleanup:true ~memory ~threads norm_fasta)
@@ -199,18 +199,18 @@ let parse_seqids = true
 let dbtype = "nucl"
 
 let blast_dbs_of_norm_fasta norm_fasta =
-  List.filter_map norm_fasta ~f:(fun (s,norm_fasta) -> 
+  List.filter_map norm_fasta ~f:(fun (s,norm_fasta) ->
     if s.run_apytram then
       Some (s, BlastPlus.makeblastdb ~parse_seqids ~dbtype  s.species norm_fasta)
     else
       None
     )
-    
 
-let seq_dispatcher ?s2s_tab_by_family query query_species ref_transcriptome seq2fam : fasta workflow = 
+
+let seq_dispatcher ?s2s_tab_by_family query query_species ref_transcriptome seq2fam : fasta workflow =
        workflow ~version:6 [
             mkdir_p tmp;
-            cmd "../bin/SeqDispatcher.py"  [ 
+            cmd "../bin/SeqDispatcher.py"  [
               option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
               opt "-tmp" ident tmp ;
               opt "-q" dep query ;
@@ -223,17 +223,17 @@ let seq_dispatcher ?s2s_tab_by_family query query_species ref_transcriptome seq2
 
 let trinity_annotated_fams_of_trinity_assemblies configuration_dir   =
     List.map ~f:(fun (s,trinity_assembly) ->
-      let r = 
-        seq_dispatcher 
+      let r =
+        seq_dispatcher
           ~s2s_tab_by_family:true
-          trinity_assembly 
-          s.species 
+          trinity_assembly
+          s.species
           (configuration_dir / ref_transcriptomes / selector [ s.ref_species ^ "_transcriptome.fa" ])
           (configuration_dir / ref_seq_fam_links / selector [ s.ref_species ^ "_Fam_Seq.fa" ])
       in
       (s, r)
   )
-         
+
 
 let parse_apytram_results apytram_annotated_ref_fams =
   let config = tmp // "config.tsv" in
@@ -247,13 +247,13 @@ let parse_apytram_results apytram_annotated_ref_fams =
     ) ;
     cmd "../bin/Parse_apytram_results.py"  [ config ; dest ]
     ]
-    
+
 
 
 let seq_integrator
       ?realign_ali
       ?log
-      ?(species_to_refine_list = []) 
+      ?(species_to_refine_list = [])
       ~family
       ~trinity_fam_results_dirs
       ~apytram_results_dir
@@ -261,31 +261,31 @@ let seq_integrator
       alignment
       : _ directory workflow
       =
-     
+
       let get_trinity_file_list extension dirs =
         List.map  dirs ~f:(fun (s,dir) ->
             [ dep dir ; string ("/Trinity." ^ s.species ^ "." ^ family ^ "." ^ extension) ; string ","]
             )
         |> List.concat
         in
-        
+
       let get_apytram_file_list extension dir =
           [ dep dir ; string ("/apytram." ^ family ^ "." ^ extension) ; string ","]
       in
-        
-      
-      
+
+
+
       let trinity_fasta_list  =  get_trinity_file_list "fa" trinity_fam_results_dirs in
       let trinity_sp2seq_list  =  get_trinity_file_list "sp2seq.txt" trinity_fam_results_dirs in
-      
+
       let apytram_fasta  =  get_apytram_file_list "fa" apytram_results_dir in
       let apytram_sp2seq  =  get_apytram_file_list "sp2seq.txt" apytram_results_dir in
-      
+
       let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
       let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
 
        workflow ~version:11 [
-            cmd "../bin/SeqIntegrator.py"  [ 
+            cmd "../bin/SeqIntegrator.py"  [
               opt "-tmp" ident tmp;
               opt "-ali" string alignment ;
               opt "-fa" (seq ~sep:"") fasta;
@@ -331,17 +331,17 @@ let merged_families_distributor merged_families =
       |> seq ~sep:"\n"
       )
     |> seq ~sep:"\n"
-    ) ; 
-    cmd "bash" [ config ] 
+    ) ;
+    cmd "bash" [ config ]
     ]
 
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
     let treedir = merged_families_dirs / selector [ "Merged_tree" ] in
-    let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in 
+    let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in
     let treefile = configuration.species_tree_file in
-    let threads = configuration.threads in 
+    let threads = configuration.threads in
     let memory = configuration.memory in
     Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
 
@@ -350,9 +350,9 @@ let main configuration =
     let norm_fasta = norm_fasta configuration in
     let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory configuration.threads in
     let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir trinity_assemblies in
-    
+
     let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
-    
+
     let apytram_annotated_ref_fams =
         let div a b = Int.of_float ( (Float.of_int a) *. ( (Float.of_int b) ** -1.) ) in
         let memory = div configuration.memory configuration.threads in  (* Voir avec Philippe pour utiliser le signe de division *)
@@ -363,18 +363,18 @@ let main configuration =
           let db_type = sample_fastq_orientation s.sample_fastq in
           (s, fam, Apytram.apytram ~plot:true ~i:3 ~memory ~query db_type blast_db)
           ) in
-          
-        
+
+
     let apytram_results_dir = parse_apytram_results apytram_annotated_ref_fams in
-       
-    
+
+
     let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
-    
+
     let merged_families_dirs = merged_families_distributor merged_families in
-       
+
     let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
-    
-    let open Bistro_app in 
+
+    let open Bistro_app in
     List.concat [
       [ [ configuration.outdir ; "configuration" ] %>  configuration_dir ] ;
       List.map norm_fasta ~f:(fun (s,norm_fasta) ->
@@ -393,13 +393,13 @@ let main configuration =
         [ configuration.outdir ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
         );
      [ [configuration.outdir ; "apytram_results" ] %> apytram_results_dir] ;
-     
+
      [ [configuration.outdir ; "merged_families_dir" ] %> merged_families_dirs] ;
-     
+
      [ [configuration.outdir ; "phyldog" ] %> phyldog] ;
-     
+
     ]
- 
+
 
 end
 
@@ -416,6 +416,6 @@ let outdir =  Sys.argv.(7)
 
 let configuration = load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory outdir
 
-let target_amalgam = Amalgam.main configuration 
+let target_amalgam = Amalgam.main configuration
 
 let _ = Bistro_app.local ~np:configuration.threads  ~mem:( 1024 * configuration.memory) target_amalgam ~outdir

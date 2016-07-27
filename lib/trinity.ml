@@ -31,12 +31,12 @@ let trinity_fasta
                      string "-i";
                      seq [ident dest; string "/trinity.Trinity.fasta";];
                      ];
-               (* sed -re "s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/" t -i *) 
+               (* sed -re "s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/" t -i *)
 	]
     / selector [ "trinity.Trinity.fasta" ]
 
 
-(*let fastq2fasta (fastq : _ fastq workflow ) : fasta workflow = 
+(*let fastq2fasta (fastq : _ fastq workflow ) : fasta workflow =
        workflow [
             cmd "awk" ~stdout:dest [ string {|"NR%4==1||NR%4==2"|} ; dep fastq ; string {| | tr @ ">" |}]
     ]
@@ -47,8 +47,8 @@ let config_paired_or_single = function
         seq ~sep: " " [ string "--single" ; dep w ]
   | Paired_end (lw, rw , _) ->
        seq ~sep: " " [ string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
- 
-    
+
+
 let read_normalization seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
         let tmp_output = match fastq with
                       | Single_end _ -> "tmp_normalized_reads/single.fa"
@@ -61,9 +61,9 @@ let read_normalization seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
 	$READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov}} --CPU {{ident np}} --output {{ ident tmp }} --no_cleanup
 	mv {{tmp // tmp_output}} {{ident dest}};
 	|}]
-	 
-	
-	
+
+
+
 let fastool (fastq : _ fastq workflow) :  fasta workflow =
 	Bistro.Workflow.make [%sh {|
 	TRINITY_PATH=`which Trinity`
@@ -71,4 +71,3 @@ let fastool (fastq : _ fastq workflow) :  fasta workflow =
 	FASTOOL_PATH=$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool
 	$FASTOOL_PATH --illumina-trinity --to-fasta  {{ dep fastq }} > {{ ident dest }}
 	|} ]
-
