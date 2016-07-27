@@ -46,9 +46,9 @@ import re
 
 import pandas
 
-from lib import PhyloPrograms
-from lib import Aligner
-from lib import BlastPlus
+import PhyloPrograms
+import Aligner
+import BlastPlus
 
 
 
