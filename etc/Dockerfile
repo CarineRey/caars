@@ -81,7 +81,8 @@ RUN git clone https://github.com/carinerey/amalgam /root/mydisk/amalgam/
 
 WORKDIR /root/mydisk/amalgam/Bistro/
 RUN  bash compile_commands.sh    
-ENV PATH /root/mydisk/amalgam/Bistro:$PATH
+ENV PATH /root/mydisk/amalgam/utils/bin:/root/mydisk/amalgam:$PATH
+ENV PYTHONPATH /root/mydisk/amalgam/utils/lib
 
 #### install sratoolkit
 WORKDIR /opt/
