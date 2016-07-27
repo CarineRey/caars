@@ -155,7 +155,7 @@ type configuration_dir = [ `configuration ] directory
 
 let parse_input { rna_conf_file ; species_tree_file ; alignments_dir ; seq2sp_dir } : configuration_dir workflow=
        workflow ~np:1 ~version:9 [
-            cmd "../bin/ParseInput.py"  [ string rna_conf_file ;
+            cmd "ParseInput.py"  [ string rna_conf_file ;
                                           string species_tree_file;
                                           string alignments_dir;
                                           string seq2sp_dir;
@@ -210,7 +210,7 @@ let blast_dbs_of_norm_fasta norm_fasta =
 let seq_dispatcher ?s2s_tab_by_family query query_species ref_transcriptome seq2fam : fasta workflow =
        workflow ~version:6 [
             mkdir_p tmp;
-            cmd "../bin/SeqDispatcher.py"  [
+            cmd "SeqDispatcher.py"  [
               option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
               opt "-tmp" ident tmp ;
               opt "-q" dep query ;
@@ -244,7 +244,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
     )
   in
   workflow ~version:3 [
-    script "../bin/Parse_apytram_results.py" config ~args:[dest]
+    script "Parse_apytram_results.py" config ~args:[dest]
   ]
 
 
@@ -284,7 +284,7 @@ let seq_integrator
       let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
 
        workflow ~version:11 [
-            cmd "../bin/SeqIntegrator.py"  [
+            cmd "SeqIntegrator.py"  [
               opt "-tmp" ident tmp;
               opt "-ali" string alignment ;
               opt "-fa" (seq ~sep:"") fasta;

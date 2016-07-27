@@ -65,7 +65,7 @@ let phyldog
 	mkdir_p results_species;
 	mkdir_p results_genes;
 	(* Preparing phyldog configuration files*)
-	cmd "../bin/PhyldogPrepData.py" [
+	cmd "PhyldogPrepData.py" [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
               option (opt "-species_tree_file" string) treefile ;
