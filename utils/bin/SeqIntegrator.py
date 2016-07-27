@@ -43,8 +43,8 @@ import logging
 import argparse
 import subprocess
 
-from lib import PhyloPrograms
-from lib import Aligner
+import PhyloPrograms
+import Aligner
 
 start_time = time.time()
 
