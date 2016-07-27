@@ -1,6 +1,6 @@
 open Core.Std
 open Bistro.Std
-open Bistro.EDSL_sh
+open Bistro.EDSL
 open Bistro_bioinfo.Std
 open Commons
 
@@ -54,20 +54,20 @@ let read_normalization seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
                       | Single_end _ -> "tmp_normalized_reads/single.fa"
                       | Paired_end _ -> "tmp_normalized_reads/both.fa"
                       in
-	Bistro.Workflow.make ~version:2 ~np:8 ~mem:(99 * 1024) [%sh{|
+	workflow ~version:2 ~np:8 ~mem:(99 * 1024) [script "sh" [%bistro{|
 	TRINITY_PATH=`which Trinity`
 	TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
 	READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
 	$READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov}} --CPU {{ident np}} --output {{ ident tmp }} --no_cleanup
 	mv {{tmp // tmp_output}} {{ident dest}};
-	|}]
+	|}]]
 
 
 
 let fastool (fastq : _ fastq workflow) :  fasta workflow =
-	Bistro.Workflow.make [%sh {|
+	workflow [script "sh" [%bistro {|
 	TRINITY_PATH=`which Trinity`
 	TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
 	FASTOOL_PATH=$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool
 	$FASTOOL_PATH --illumina-trinity --to-fasta  {{ dep fastq }} > {{ ident dest }}
-	|} ]
+	|} ]]

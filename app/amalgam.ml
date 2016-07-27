@@ -34,7 +34,7 @@
 
 open Core_kernel.Std
 open Bistro.Std
-open Bistro.EDSL_sh
+open Bistro.EDSL
 open Bistro_bioinfo.Std
 open Commons
 
@@ -181,7 +181,7 @@ let norm_fasta { all_ref_samples ; threads ; memory } =
   List.map all_ref_samples ~f:(fun s ->
     let seq_type = "fq" in
     let max_cov = 50 in
-    let fastq = sample_fastq_map Bistro.Workflow.input s.sample_fastq in
+    let fastq = sample_fastq_map input s.sample_fastq in
     (s, Trinity.read_normalization seq_type memory max_cov threads fastq)
   )
 
@@ -236,17 +236,16 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir   =
 
 
 let parse_apytram_results apytram_annotated_ref_fams =
-  let config = tmp // "config.tsv" in
-  workflow ~version:3 [
-    mkdir_p tmp;
-    heredoc ~dest:config (
+  let config = Bistro.Expr.(
       List.map apytram_annotated_ref_fams ~f:(fun (s, f, w) ->
         seq ~sep:"\t" [ string s.species ; string f ; dep w ]
       )
       |> seq ~sep:"\n"
-    ) ;
-    cmd "../bin/Parse_apytram_results.py"  [ config ; dest ]
-    ]
+    )
+  in
+  workflow ~version:3 [
+    script "../bin/Parse_apytram_results.py" config ~args:[dest]
+  ]
 
 
 
@@ -314,26 +313,26 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
 
 
 let merged_families_distributor merged_families =
-  let config = tmp // "config.tsv" in
   let extension_list = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
   workflow ~version:1 [
     mkdir_p tmp;
     mkdir_p (dest // "Merged_fasta");
     mkdir_p (dest // "Merged_tree");
     mkdir_p (dest // "Sp2Seq_link");
-    heredoc ~dest:config (
-      List.map extension_list ~f:(fun (ext,dir) ->
-          List.map  merged_families ~f:(fun (f, w) ->
-          let input = w / selector [ f ^ ext ] in
-          let output = dest // dir // (f ^ ext)  in
-            seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+    let config = Bistro.Expr.(
+        List.map extension_list ~f:(fun (ext,dir) ->
+            List.map  merged_families ~f:(fun (f, w) ->
+                let input = w / selector [ f ^ ext ] in
+                let output = dest // dir // (f ^ ext)  in
+                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+              )
+            |> seq ~sep:"\n"
           )
-      |> seq ~sep:"\n"
+        |> seq ~sep:"\n"
       )
-    |> seq ~sep:"\n"
-    ) ;
-    cmd "bash" [ config ]
-    ]
+    in
+    script "bash" config
+  ]
 
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
