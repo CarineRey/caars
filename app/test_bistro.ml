@@ -34,7 +34,7 @@
 
 open Core_kernel.Std
 open Bistro.Std
-open Bistro.EDSL_sh
+open Bistro.EDSL
 open Bistro_bioinfo.Std
 
 
@@ -55,7 +55,7 @@ let makeblastdb ?parse_seqids ~dbtype  dbname  (fasta : fasta workflow)  : blast
 let fasta_file = Sys.argv.(1)
 let out = Sys.argv.(2)
 
-let fasta = Bistro.Workflow.input fasta_file
+let fasta = input fasta_file
 
 let db = BlastPlus.makeblastdb ~dbtype:"nucl"  "test_db" fasta
 
