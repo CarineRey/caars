@@ -77,21 +77,21 @@ ENV PATH /opt/phylomerge:$PATH
 
 #### install amalgam
 
-RUN git clone https://github.com/carinerey/amalgam /root/mydisk/amalgam/
+RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
 
-WORKDIR /root/mydisk/amalgam/Bistro/
-RUN  bash compile_commands.sh    
-ENV PATH /root/mydisk/amalgam/utils/bin:/root/mydisk/amalgam:$PATH
-ENV PYTHONPATH /root/mydisk/amalgam/utils/lib
+WORKDIR /usr/local/amalgam/
+RUN make
+ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
+ENV PYTHONPATH /usr/local/amalgam/utils/lib
 
 #### install sratoolkit
 WORKDIR /opt/
 RUN wget "http://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.5.2/sratoolkit.2.5.2-ubuntu64.tar.gz"
 RUN tar -zxf sratoolkit.2.5.2-ubuntu64.tar.gz
 RUN rm sratoolkit.2.5.2-ubuntu64.tar.gz
-ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
+ENV PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
 
-#### build a workingd irectory
-RUN mkdir -p /root/mydisk/amalgam/data
-WORKDIR /root/mydisk/amalgam/data
+#### build a working directory
+RUN mkdir -p /data
+WORKDIR /data
 
