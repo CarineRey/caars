@@ -1,0 +1,5 @@
+B _build/app
+B _build/lib
+PKG bistro.utils
+PKG bistro.bioinfo
+PKG ppx_bistro
