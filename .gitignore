@@ -3,3 +3,5 @@
 _build
 *.byte
 *.native
+_bistro/
+test_out/
