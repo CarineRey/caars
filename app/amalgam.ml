@@ -419,8 +419,8 @@ let spec =
   +> flag "--species-tree"    (required file)   ~doc:"PATH Species tree file in nw format containing all species."
   +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
   +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
-  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs."
-  +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use."
+  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs. (Default:1)"
+  +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
 
 let command =
   Command.basic
