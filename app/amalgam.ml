@@ -145,7 +145,7 @@ let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir
       alignments_dir ;
       seq2sp_dir ;
       threads ;
-      memory = int_of_string memory ;
+      memory ;
       outdir;
     }
 
@@ -406,6 +406,7 @@ end
 
 let main config_file outdir species_tree_file alignments_dir seq2sp_dir np memory () =
   let np = Option.value ~default:1 np in
+  let memory = Option.value ~default:1 memory in
   let configuration = load_configuration config_file species_tree_file alignments_dir seq2sp_dir np memory outdir in
   let target_amalgam = Amalgam.main configuration in
   Bistro_app.local ~np:configuration.threads  ~mem:( 1024 * configuration.memory) target_amalgam ~outdir
@@ -417,9 +418,9 @@ let spec =
   +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
   +> flag "--species_tree"    (required file)   ~doc:"PATH Species tree file in nw format containing all species."
   +> flag "--alignment_dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
-  +> fagg "--seq2sp_dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
+  +> flag "--seq2sp_dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs."
-  +> flag "--memory"          (optional int)    ~doc:"INT number of GB of system memory to use."
+  +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use."
 
 let command =
   Command.basic
