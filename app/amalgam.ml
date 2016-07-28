@@ -1,5 +1,5 @@
 (*
-# File: Main.ml
+# File: amalgam.ml
 # Created by: Carine Rey
 # Created on: March 2016
 #
@@ -404,29 +404,22 @@ end
 
 (* RUN *)
 
-let rna_conf_file = Sys.argv.(0)
-let species_tree_file = Sys.argv.(0)
-let alignments_dir = Sys.argv.(0)
-let seq2sp_dir =  Sys.argv.(0)
-let threads =  Sys.argv.(0)
-let memory =  Sys.argv.(0)
-let outdir =  Sys.argv.(0)
-
-
-
-let main config_file outdir np () =
+let main config_file outdir species_tree_file alignments_dir seq2sp_dir np memory () =
   let np = Option.value ~default:1 np in
   let configuration = load_configuration config_file species_tree_file alignments_dir seq2sp_dir np memory outdir in
   let target_amalgam = Amalgam.main configuration in
   Bistro_app.local ~np:configuration.threads  ~mem:( 1024 * configuration.memory) target_amalgam ~outdir
 
-
 let spec =
   let open Command.Spec in
   empty
-  +> flag "--config" (required file)   ~doc:"PATH Configuration file"
-  +> flag "--outdir" (required string) ~doc:"PATH Destination directory"
-  +> flag "--np"     (optional int)    ~doc:"INT Number of CPUs"
+  +> flag "--config"          (required file)   ~doc:"PATH Configuration file."
+  +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
+  +> flag "--species_tree"    (required file)   ~doc:"PATH Species tree file in nw format containing all species."
+  +> flag "--alignment_dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
+  +> fagg "--seq2sp_dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
+  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs."
+  +> flag "--memory"          (optional int)    ~doc:"INT number of GB of system memory to use."
 
 let command =
   Command.basic
