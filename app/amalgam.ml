@@ -416,9 +416,9 @@ let spec =
   empty
   +> flag "--config"          (required file)   ~doc:"PATH Configuration file."
   +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
-  +> flag "--species_tree"    (required file)   ~doc:"PATH Species tree file in nw format containing all species."
-  +> flag "--alignment_dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
-  +> flag "--seq2sp_dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
+  +> flag "--species-tree"    (required file)   ~doc:"PATH Species tree file in nw format containing all species."
+  +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
+  +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs."
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use."
 
