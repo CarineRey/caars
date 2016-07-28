@@ -53,6 +53,7 @@ ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
 
 #### install TranDecoder
 WORKDIR /opt
+RUN apt-get install -qy unzip
 RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.0.zip
 RUN unzip v3.0.0.zip  && rm v3.0.0.zip
 WORKDIR /opt/TransDecoder-3.0.0/
