@@ -76,11 +76,9 @@ ENV PATH /opt/phylomerge:$PATH
 
 
 #### install amalgam
-
 RUN git clone https://github.com/carinerey/amalgam /root/mydisk/amalgam/
-
-WORKDIR /root/mydisk/amalgam/Bistro/
-RUN  bash compile_commands.sh    
+WORKDIR /root/mydisk/amalgam/
+RUN make
 ENV PATH /root/mydisk/amalgam/utils/bin:/root/mydisk/amalgam:$PATH
 ENV PYTHONPATH /root/mydisk/amalgam/utils/lib
 
