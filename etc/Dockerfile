@@ -44,6 +44,13 @@ RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install
 ##### install fastree
 RUN apt-get install -qy fasttree  # pranck
 
+#### install sratoolkit
+WORKDIR /opt/
+RUN wget "http://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.5.2/sratoolkit.2.5.2-ubuntu64.tar.gz"
+RUN tar -zxf sratoolkit.2.5.2-ubuntu64.tar.gz
+RUN rm sratoolkit.2.5.2-ubuntu64.tar.gz
+ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
+
 ##### install opam 
 RUN apt-get update && apt-get install -y \
     aspcud bzip2 curl wget git  curl make m4 unzip gcc \
@@ -81,13 +88,6 @@ WORKDIR /root/mydisk/amalgam/
 RUN make
 ENV PATH /root/mydisk/amalgam/utils/bin:/root/mydisk/amalgam:$PATH
 ENV PYTHONPATH /root/mydisk/amalgam/utils/lib
-
-#### install sratoolkit
-WORKDIR /opt/
-RUN wget "http://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.5.2/sratoolkit.2.5.2-ubuntu64.tar.gz"
-RUN tar -zxf sratoolkit.2.5.2-ubuntu64.tar.gz
-RUN rm sratoolkit.2.5.2-ubuntu64.tar.gz
-ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
 
 #### build a workingd irectory
 RUN mkdir -p /root/mydisk/amalgam/data
