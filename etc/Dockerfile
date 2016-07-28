@@ -91,13 +91,15 @@ ENV PATH /opt/phylomerge:$PATH
 
 
 #### install amalgam
-RUN git clone https://github.com/carinerey/amalgam /root/mydisk/amalgam/
-WORKDIR /root/mydisk/amalgam/
+RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
+WORKDIR /usr/local/amalgam/
 RUN make
-ENV PATH /root/mydisk/amalgam/utils/bin:/root/mydisk/amalgam:$PATH
-ENV PYTHONPATH /root/mydisk/amalgam/utils/lib
+ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
+ENV PYTHONPATH /usr/local/amalgam/utils/lib
 
-#### build a workingd irectory
+#### build a workingd directory
 RUN mkdir -p /root/mydisk/amalgam/data
-WORKDIR /root/mydisk/amalgam/data
 
+#### build a working directory
+RUN mkdir -p /data
+WORKDIR /data

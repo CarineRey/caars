@@ -32,7 +32,7 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core_kernel.Std
+open Core.Std
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
@@ -144,7 +144,7 @@ let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir
       species_tree_file ;
       alignments_dir ;
       seq2sp_dir ;
-      threads = int_of_string threads ;
+      threads ;
       memory = int_of_string memory ;
       outdir;
     }
@@ -404,17 +404,34 @@ end
 
 (* RUN *)
 
-let rna_conf_file = Sys.argv.(1)
-let species_tree_file = Sys.argv.(2)
-let alignments_dir = Sys.argv.(3)
-let seq2sp_dir =  Sys.argv.(4)
-let threads =  Sys.argv.(5)
-let memory =  Sys.argv.(6)
-let outdir =  Sys.argv.(7)
+let rna_conf_file = Sys.argv.(0)
+let species_tree_file = Sys.argv.(0)
+let alignments_dir = Sys.argv.(0)
+let seq2sp_dir =  Sys.argv.(0)
+let threads =  Sys.argv.(0)
+let memory =  Sys.argv.(0)
+let outdir =  Sys.argv.(0)
 
 
-let configuration = load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir threads memory outdir
 
-let target_amalgam = Amalgam.main configuration
+let main config_file outdir np () =
+  let np = Option.value ~default:1 np in
+  let configuration = load_configuration config_file species_tree_file alignments_dir seq2sp_dir np memory outdir in
+  let target_amalgam = Amalgam.main configuration in
+  Bistro_app.local ~np:configuration.threads  ~mem:( 1024 * configuration.memory) target_amalgam ~outdir
 
-let _ = Bistro_app.local ~np:configuration.threads  ~mem:( 1024 * configuration.memory) target_amalgam ~outdir
+
+let spec =
+  let open Command.Spec in
+  empty
+  +> flag "--config" (required file)   ~doc:"PATH Configuration file"
+  +> flag "--outdir" (required string) ~doc:"PATH Destination directory"
+  +> flag "--np"     (optional int)    ~doc:"INT Number of CPUs"
+
+let command =
+  Command.basic
+    ~summary:"Amalgam"
+    spec
+    main
+
+let () = Command.run ~version:"0.1" command
