@@ -92,6 +92,7 @@ ENV PATH /opt/phylomerge:$PATH
 
 
 #### install amalgam
+RUN sleep 1
 RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
 WORKDIR /usr/local/amalgam/
 RUN make
