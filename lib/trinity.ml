@@ -50,9 +50,7 @@ let config_paired_or_single = function
 
 let read_normalization
     seq_type
-    memmory
     max_cov
-    nb_cpu
     ~threads
     ?(memory = 1)
     fastq : fasta workflow =
