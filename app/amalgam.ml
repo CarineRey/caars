@@ -375,27 +375,27 @@ let main configuration =
 
     let open Bistro_app in
     List.concat [
-      [ [ configuration.outdir ; "configuration" ] %>  configuration_dir ] ;
+      [ [ "configuration" ] %>  configuration_dir ] ;
       List.map norm_fasta ~f:(fun (s,norm_fasta) ->
-        [ configuration.outdir ; "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
+        [ "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
         );
       List.map trinity_assemblies ~f:(fun (s,trinity_assemblies) ->
-        [ configuration.outdir ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assemblies
+        [ "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assemblies
         );
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
-        [ configuration.outdir ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species  ] %> trinity_annotated_fams
+        [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species  ] %> trinity_annotated_fams
         );
       List.map blast_dbs ~f:(fun (s,blast_db) ->
-        [ configuration.outdir ; "blast_db" ; s.id ^ "_"^ s.species ] %> blast_db
+        [ "blast_db" ; s.id ^ "_"^ s.species ] %> blast_db
         );
       List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-        [ configuration.outdir ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+        [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
         );
-     [ [configuration.outdir ; "apytram_results" ] %> apytram_results_dir] ;
+     [ ["apytram_results" ] %> apytram_results_dir] ;
 
-     [ [configuration.outdir ; "merged_families_dir" ] %> merged_families_dirs] ;
+     [ ["merged_families_dir" ] %> merged_families_dirs] ;
 
-     [ [configuration.outdir ; "phyldog" ] %> phyldog] ;
+     [ ["phyldog" ] %> phyldog] ;
 
     ]
 
@@ -419,8 +419,8 @@ let spec =
   +> flag "--species-tree"    (required file)   ~doc:"PATH Species tree file in nw format containing all species."
   +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
   +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
-  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs."
-  +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use."
+  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs. (Default:1)"
+  +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
 
 let command =
   Command.basic
