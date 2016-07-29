@@ -43,29 +43,29 @@ type phylotree
 
 let phyldog
     ?datatype
-	?dataformat
-	?treefile
-	?topospecies
-	?dlopt
-	?equgenomes
-	?topogene
-	?timelimit
+    ?dataformat
+    ?treefile
+    ?topospecies
+    ?dlopt
+    ?equgenomes
+    ?topogene
+    ?timelimit
     ?(memory = 1)
-	~threads
-	~linkdir
+    ~threads
+    ~linkdir
     ~treedir
-	(seqdir: fasta directory workflow)
-	: phylotree directory workflow =
+    (seqdir: fasta directory workflow)
+    : phylotree directory workflow =
 
-	let config_dir = dest // "tmp/Configuration" in
-	let results_species = dest // "tmp/Species_tree/" in
-	let results_genes = dest // "tmp/Gene_trees/" in
-	workflow ~version:4 ~np:threads ~mem:(1024 * memory) [
-	mkdir_p config_dir;
-	mkdir_p results_species;
-	mkdir_p results_genes;
-	(* Preparing phyldog configuration files*)
-	cmd "PhyldogPrepData.py" [
+    let config_dir = dest // "tmp/Configuration" in
+    let results_species = dest // "tmp/Species_tree/" in
+    let results_genes = dest // "tmp/Gene_trees/" in
+    workflow ~version:4 ~np:threads ~mem:(1024 * memory) [
+    mkdir_p config_dir;
+    mkdir_p results_species;
+    mkdir_p results_genes;
+    (* Preparing phyldog configuration files*)
+    cmd "PhyldogPrepData.py" [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
               option (opt "-species_tree_file" string) treefile ;
@@ -79,12 +79,12 @@ let phyldog
               opt "-starting_tree_dir" dep treedir;
               opt "-species_tree_resdir" ident results_species;
               opt "-gene_trees_resdir" ident results_genes;
-	  		  opt "-optdir" seq [ ident config_dir ] ;
-	  		  ];
-	 (* Run phyldog *)
+              opt "-optdir" seq [ ident config_dir ] ;
+              ];
+    (* Run phyldog *)
     cmd "mpirun" [
-	  	    opt "-np" ident np ;
-	  	    string "phyldog";
-	  	    seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
-	        ];
-	]
+            opt "-np" ident np ;
+            string "phyldog";
+            seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
+            ];
+    ]
