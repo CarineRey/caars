@@ -34,13 +34,6 @@ let trinity_fasta
 	]
     / selector [ "trinity.Trinity.fasta" ]
 
-
-(*let fastq2fasta (fastq : _ fastq workflow ) : fasta workflow =
-       workflow [
-            cmd "awk" ~stdout:dest [ string {|"NR%4==1||NR%4==2"|} ; dep fastq ; string {| | tr @ ">" |}]
-    ]
-*)
-
 let config_paired_or_single = function
   | Single_end (w, _ ) ->
         seq ~sep: " " [ string "--single" ; dep w ]
