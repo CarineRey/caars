@@ -48,12 +48,19 @@ let config_paired_or_single = function
        seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
 
 
-let read_normalization seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
+let read_normalization
+    seq_type
+    memmory
+    max_cov
+    nb_cpu
+    ~threads
+    ?(memory = 1)
+    fastq : fasta workflow =
         let tmp_output = match fastq with
                       | Single_end _ -> "tmp_normalized_reads/single.fa"
                       | Paired_end _ -> "tmp_normalized_reads/both.fa"
                       in
-	workflow ~version:2 ~np:8 ~mem:(99 * 1024) [script "sh" [%bistro{|
+	workflow ~version:2 ~np:threads ~mem:(1024 * memory) [script "sh" [%bistro{|
 	TRINITY_PATH=`which Trinity`
 	TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
 	READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
