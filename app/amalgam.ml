@@ -182,7 +182,7 @@ let norm_fasta { all_ref_samples ; threads ; memory } =
     let seq_type = "fq" in
     let max_cov = 50 in
     let fastq = sample_fastq_map input s.sample_fastq in
-    (s, Trinity.read_normalization seq_type memory max_cov threads fastq)
+    (s, Trinity.read_normalization seq_type max_cov ~np:configuration.threads  ~memory:configuration.memory fastq )
   )
 
 
