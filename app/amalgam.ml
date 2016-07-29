@@ -353,8 +353,7 @@ let main configuration =
     let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 
     let apytram_annotated_ref_fams =
-        let div a b = Int.of_float ( (Float.of_int a) *. ( (Float.of_int b) ** -1.) ) in
-        let memory = div configuration.memory configuration.threads in  (* Voir avec Philippe pour utiliser le signe de division *)
+        let memory = Pervasives.(configuration.memory / configuration.threads) in
         let pairs = List.cartesian_product configuration.apytram_samples configuration.families in
         List.map pairs ~f:(fun (s, fam) ->
           let query = configuration_dir / ref_fams s.ref_species fam in
