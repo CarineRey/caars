@@ -45,7 +45,7 @@ let config_paired_or_single = function
   | Single_end (w, _ ) ->
         seq ~sep: " " [ string "--single" ; dep w ]
   | Paired_end (lw, rw , _) ->
-       seq ~sep: " " [ string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
+       seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
 
 
 let read_normalization seq_type memmory max_cov nb_cpu fastq  : fasta workflow =
