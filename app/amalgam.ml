@@ -201,7 +201,7 @@ let dbtype = "nucl"
 let blast_dbs_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s,norm_fasta) ->
     if s.run_apytram then
-      Some (s, BlastPlus.makeblastdb ~parse_seqids ~dbtype  s.species norm_fasta)
+      Some (s, BlastPlus.makeblastdb ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) norm_fasta)
     else
       None
     )
@@ -386,7 +386,7 @@ let main configuration =
         [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species  ] %> trinity_annotated_fams
         );
       List.map blast_dbs ~f:(fun (s,blast_db) ->
-        [ "blast_db" ; s.id ^ "_"^ s.species ] %> blast_db
+        [ "blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
         );
       List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
         [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
