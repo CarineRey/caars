@@ -131,8 +131,8 @@ FastaPath2SpPerFam_dic = {}
 ApytramPrefix = "apytram"
 NbFigures = 10
 for line in ConfigFile:
-    (Species, Family, ApytramDir) = line.strip().split("\t")
-    InFastaFileName = "%s/%s.%s.fasta" %(ApytramDir,ApytramPrefix,Family)
+    (Species, RefSpecies, Family, ApytramDir) = line.strip().split("\t")
+    InFastaFileName = "%s/%s.%s.%s.fasta" %(ApytramDir,ApytramPrefix,RefSpecies,Family)
     if os.path.isfile(InFastaFileName):
 		FastaPath2SpPerFam_dic.setdefault(Family,{})
 		FastaPath2SpPerFam_dic[Family][InFastaFileName] = Species
