@@ -356,6 +356,32 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let memory = configuration.memory in
     Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
 
+
+let output_of_phyldog phyldog merged_families =
+    let extension_list = [(".fa","Alignments");(".sp2seq.txt","Sp2Seq_link")] in
+    workflow ~version:1 [
+      mkdir_p (dest // "Alignments");
+      mkdir_p (dest // "Sp2Seq_link");
+      mkdir_p (dest // "Gene_trees");
+      let config = Bistro.Expr.(
+        List.map extension_list ~f:(fun (ext,dir) ->
+            List.map  merged_families ~f:(fun (f, w) ->
+                let input = w / selector [ f ^ ext ] in
+                let output = dest // dir // (f ^ ext)  in
+                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+              )
+            |> seq ~sep:"\n"
+          )
+        |> seq ~sep:"\n"
+      )
+    in
+    script "bash" config
+    ]
+
+
+
+
+
 let main configuration =
     let configuration_dir = parse_input configuration in
 
@@ -387,6 +413,8 @@ let main configuration =
 
     let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
+    let output = output_of_phyldog phyldog merged_families in
+
     let open Bistro_app in
     List.concat [
       [ [ "configuration" ] %>  configuration_dir ] ;
@@ -413,6 +441,8 @@ let main configuration =
      [ ["merged_families_dir" ] %> merged_families_dirs] ;
 
      [ ["phyldog" ] %> phyldog] ;
+
+     [ [ "output" ] %> output ] ;
 
     ]
 
