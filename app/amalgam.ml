@@ -284,8 +284,6 @@ let seq_integrator
           [ dep dir ; string ("/apytram." ^ family ^ "." ^ extension) ; string ","]
       in
 
-
-
       let trinity_fasta_list  =  get_trinity_file_list "fa" trinity_fam_results_dirs in
       let trinity_sp2seq_list  =  get_trinity_file_list "sp2seq.txt" trinity_fam_results_dirs in
 
