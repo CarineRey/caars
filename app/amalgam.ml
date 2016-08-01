@@ -379,9 +379,9 @@ let output_of_phyldog phyldog merged_families families =
     script "bash" config;
     let (ext,dir) = (".ReconciledTree","Gene_trees/") in
     let config = Bistro.Expr.(
-        List.map  families ~f:(fun f ->
+        List.map families ~f:(fun f ->
                 let input = phyldog / selector [ dir ^ f ^ ext ] in
-                let output = dest // dir // (f ^ ext)  in
+                let output = dest // dir // (f ^ ".tree")  in
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
               )
             |> seq ~sep:"\n"
