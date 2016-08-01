@@ -92,6 +92,7 @@ let apytram
         option (flag string "--plot") plot ;
         option (flag string "--plot_ali") plot_ali ;
         option (flag string "--no_best_file") no_best_file ;
+	option (flag string "--only_best_file") only_best_file ;
         (*option (opt "-memory" ident) memory ;*)
         (*opt "-memory" int 2 ;*)
         opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;
