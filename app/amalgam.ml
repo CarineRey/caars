@@ -365,28 +365,26 @@ let output_of_phyldog phyldog merged_families families =
       mkdir_p (dest // "Gene_trees");
       let extension_list = [(".fa","Alignments");(".sp2seq.txt","Sp2Seq_link")] in
       let config = Bistro.Expr.(
-        List.map extension_list ~f:(fun (ext,dir) ->
-            List.map  merged_families ~f:(fun (f, w) ->
-                let input = w / selector [ f ^ ext ] in
-                let output = dest // dir // (f ^ ext)  in
-                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-              )
-            |> seq ~sep:"\n"
-          )
-        |> seq ~sep:"\n"
+        seq ~sep:"\n" [
+          List.map extension_list ~f:(fun (ext,dir) ->
+                List.map  merged_families ~f:(fun (f, w) ->
+                  let input = w / selector [ f ^ ext ] in
+                  let output = dest // dir // (f ^ ext)  in
+                  seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                  )
+                  |> seq ~sep:"\n"
+            )
+            |> seq ~sep:"\n" ;
+          let (ext,dir) = (".ReconciledTree","Gene_trees/") in
+          List.map families ~f:(fun f ->
+                 let input = phyldog / selector [ dir ^ f ^ ext ] in
+                 let output = dest // dir // (f ^ ".tree")  in
+                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                 )
+                 |> seq ~sep:"\n";
+        ]
       )
-    in
-    script "bash" config;
-    let (ext,dir) = (".ReconciledTree","Gene_trees/") in
-    let config = Bistro.Expr.(
-        List.map families ~f:(fun f ->
-                let input = phyldog / selector [ dir ^ f ^ ext ] in
-                let output = dest // dir // (f ^ ".tree")  in
-                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-              )
-            |> seq ~sep:"\n"
-        )
-    in
+      in
     script "bash" config;
     ]
 
