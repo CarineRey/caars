@@ -100,6 +100,6 @@ let apytram
         opt "-dt" string (string_of_db_type db_type);
         opt "-out" seq [ident dest ; string "/apytram"];
         opt "-log" seq [ident dest ; string "/apytram.log"];
-        opt "-tmp" ident  tmp ;
+        opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;
         ]
     ]
