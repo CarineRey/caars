@@ -49,6 +49,7 @@ type rna_sample = {
   ref_species : string ;
   sample_fastq : string sample_fastq ;
   run_trinity : bool ;
+  run_transdecoder : bool ;
   path_assembly : string ;
   run_apytram : bool ;
 }
@@ -85,6 +86,7 @@ let parse_orientation = function
 
 let parse_line_fields_of_rna_conf_file = function
   | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
+     let run_transdecoder = true in
      let run_trinity = match run_trinity with
        | "yes" | "Yes" | "y" | "Y" -> true
        | "no" | "No" | "n" | "N" -> false
@@ -104,7 +106,7 @@ let parse_line_fields_of_rna_conf_file = function
        | ( Some  _ , None, None, Left o ) -> Single_end (path_fastq_single, o)
        | _ -> failwith (path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)(*{| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}*)
      in
-     { id ; species ; ref_species ; sample_fastq ; run_trinity ; path_assembly ; run_apytram }
+     { id ; species ; ref_species ; sample_fastq ; run_trinity ; run_transdecoder ; path_assembly ; run_apytram }
   | _ -> failwith "Syntax error in configuration file"
 
 let parse_rna_conf_file path =
@@ -195,6 +197,14 @@ let trinity_assemblies_of_norm_fasta norm_fasta memory threads =
       Some (s, Trinity.trinity_fasta ~is_paired ~full_cleanup:true ~memory ~threads norm_fasta)
     else
       None
+    )
+
+let transdecoder_orfs_of_trinity_assemblies trinity_assemblies memory threads =
+  List.filter_map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+  if s.run_transdecoder then
+      Some (s, Transdecoder.transdecoder ~only_best_orf:true ~memory ~threads trinity_assembly)
+    else
+      Some (s, trinity_assembly)
     )
 
 let parse_seqids = true
@@ -348,9 +358,12 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
 
 let main configuration =
     let configuration_dir = parse_input configuration in
+
     let norm_fasta = norm_fasta configuration in
     let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory configuration.threads in
-    let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir trinity_assemblies in
+    let transdecoder_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration.memory configuration.threads in
+
+    let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir transdecoder_orfs in
 
     let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 
@@ -380,8 +393,11 @@ let main configuration =
       List.map norm_fasta ~f:(fun (s,norm_fasta) ->
         [ "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
         );
-      List.map trinity_assemblies ~f:(fun (s,trinity_assemblies) ->
-        [ "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assemblies
+      List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+        [ "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+        );
+      List.map transdecoder_orfs ~f:(fun (s,transdecoder_orf) ->
+        [ "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> transdecoder_orf
         );
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
         [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species  ] %> trinity_annotated_fams
