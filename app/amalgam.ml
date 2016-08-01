@@ -352,7 +352,8 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let treedir = merged_families_dirs / selector [ "Merged_tree" ] in
     let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in
     let treefile = configuration.species_tree_file in
-    let threads = configuration.threads in
+    let threads_max = (List.length configuration.families) + 1 in
+    let threads = Pervasives.min threads_max configuration.threads in
     let memory = configuration.memory in
     Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
 
