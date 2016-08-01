@@ -57,9 +57,9 @@ let phyldog
     (seqdir: fasta directory workflow)
     : phylotree directory workflow =
 
-    let config_dir = dest // "tmp/Configuration" in
-    let results_species = dest // "tmp/Species_tree/" in
-    let results_genes = dest // "tmp/Gene_trees/" in
+    let config_dir = dest // "Configuration" in
+    let results_species = dest // "Species_tree/" in
+    let results_genes = dest // "Gene_trees/" in
     workflow ~version:4 ~np:threads ~mem:(1024 * memory) [
     mkdir_p config_dir;
     mkdir_p results_species;
