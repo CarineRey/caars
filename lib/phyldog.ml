@@ -64,6 +64,7 @@ let phyldog
     mkdir_p config_dir;
     mkdir_p results_species;
     mkdir_p results_genes;
+    cd tmp;
     (* Preparing phyldog configuration files*)
     cmd "PhyldogPrepData.py" [
               option (opt "-datatype" string) datatype ;
