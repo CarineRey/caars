@@ -133,6 +133,8 @@ let load_configuration rna_conf_file species_tree_file alignments_dir seq2sp_dir
   let id_list = List.map config_rna_seq ~f:(fun s -> s.id) in
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
+  else if Filename.is_relative species_tree_file then
+    failwith {|amalgam needs the absolute path of the species tree.|}
   else
     {
       config_rna_seq;
@@ -415,7 +417,7 @@ let spec =
   empty
   +> flag "--config"          (required file)   ~doc:"PATH Configuration file."
   +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
-  +> flag "--species-tree"    (required file)   ~doc:"PATH Species tree file in nw format containing all species."
+  +> flag "--species-tree"    (required file)   ~doc:"ABSOLUTE PATH Species tree file in nw format containing all species. Warning absolute path is required."
   +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
   +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs. (Default:1)"
