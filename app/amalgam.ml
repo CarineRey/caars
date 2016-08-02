@@ -202,9 +202,9 @@ let trinity_assemblies_of_norm_fasta norm_fasta memory threads =
 let transdecoder_orfs_of_trinity_assemblies trinity_assemblies memory threads =
   List.filter_map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
   if s.run_transdecoder then
-      let pep_min_lenght = 70 in
-      let retain_long_orfs = 210 in
-      Some (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_lenght ~only_best_orf:true ~memory ~threads trinity_assembly)
+      let pep_min_length = 50 in
+      let retain_long_orfs = 150 in
+      Some (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~memory ~threads trinity_assembly)
     else
       Some (s, trinity_assembly)
     )
