@@ -266,14 +266,12 @@ if StartingFastaFiles and Sp2SeqFiles:
         logger.error("%s or %s is not a file" %(StartingAlignment,StartingFasta))
         end(1)
 
-    #Remove _R_ add by mafft adjustdirection option
-    #os.system("sed -i s/_R_//g %s" %MafftProcess.OutputFile)
-
     ### Built a tree with the global alignment
     logger.info("Built a tree with the global alignment")
     FasttreeProcess = PhyloPrograms.Fasttree(MafftProcess.OutputFile)
     FasttreeProcess.Nt = True
     FasttreeProcess.Gtr = True
+    FasttreeProcess.Gamma = True
     FasttreeProcess.OutputTree = "%s/StartTree.tree" %TmpDirName
     if os.path.isfile(MafftProcess.OutputFile):
         FasttreeProcess.get_output()
