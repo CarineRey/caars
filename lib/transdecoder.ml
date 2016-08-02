@@ -41,7 +41,7 @@ open Bistro_bioinfo.Std
 
 let transdecoder
   ?only_best_orf
-  ?pep_min_lenght
+  ?pep_min_length
   ?retain_long_orfs
   ~threads
   ?(memory = 1)
@@ -51,7 +51,7 @@ let transdecoder
         cd tmp;
         cmd "TransDecoder.LongOrfs" [
           opt "-t" dep fasta;
-          option (opt "-m" int ) pep_min_lenght ;
+          option (opt "-m" int ) pep_min_length ;
           ];
         cmd "TransDecoder.Predict " [
           opt "-t" dep fasta ;
