@@ -410,7 +410,8 @@ let main configuration =
           let blast_db = List.Assoc.find_exn blast_dbs s in
           let db_type = sample_fastq_orientation s.sample_fastq in
           (s, fam, Apytram.apytram ~no_best_file:true ~plot:false ~i:5 ~memory ~query db_type blast_db)
-          ) in
+          )
+        in
 
 
     let apytram_results_dir = parse_apytram_results apytram_annotated_ref_fams in
@@ -447,7 +448,7 @@ let main configuration =
         );
      [ ["apytram_results" ] %> apytram_results_dir] ;
 
-       List.map merged_families ~f:(fun (fam, merged_family) ->
+      List.map merged_families ~f:(fun (fam, merged_family) ->
         [ "merged_families" ; fam  ] %> merged_family
         );
 
