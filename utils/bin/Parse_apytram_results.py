@@ -124,19 +124,19 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
 
 
 ### Read the config file:
-## Sp\tFam\tdir_path
+## Sp\tID\tRefSPecies\tFam\tdir_path
 ConfigFile = open(ConfigFileName,"r")
 SeqId_dic = {}
 FastaPath2SpPerFam_dic = {}
 ApytramPrefix = "apytram"
 NbFigures = 10
 for line in ConfigFile:
-    (Species, RefSpecies, Family, ApytramDir) = line.strip().split("\t")
+    (Species, SpeciesId, RefSpecies, Family, ApytramDir) = line.strip().split("\t")
     InFastaFileName = "%s/%s.%s.%s.fasta" %(ApytramDir,ApytramPrefix,RefSpecies,Family)
     if os.path.isfile(InFastaFileName):
         FastaPath2SpPerFam_dic.setdefault(Family,{})
-        FastaPath2SpPerFam_dic[Family][InFastaFileName] = Species
-        SeqId_dic.setdefault(Species, {"SeqPrefix" : "AP%s0" %(Species[0:3].upper()),
+        FastaPath2SpPerFam_dic[Family][InFastaFileName] = SpeciesId
+        SeqId_dic.setdefault(SpeciesId, {"SeqPrefix" : "AP%s0" %(SpeciesId),
                                        "SeqNb" : 1, "NbFigures" : NbFigures})
 
 for Family in FastaPath2SpPerFam_dic.keys():
