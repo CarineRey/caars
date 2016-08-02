@@ -49,6 +49,7 @@ let transdecoder
   workflow ~np:threads ~mem:(1024 * memory) [
         mkdir_p tmp;
         cd tmp;
+        cmd "touch" [ string "tmp" ];
         cmd "TransDecoder.LongOrfs" [
           opt "-t" dep fasta;
           option (opt "-m" int ) pep_min_length ;
@@ -58,5 +59,6 @@ let transdecoder
           option (flag string "--single_best_orf") only_best_orf ;
           option (opt "--retain_long_orfs" int ) retain_long_orfs ;
           opt "--cpu" ident np ; ];
-        cmd "mv" [ string "*.cds" ; ident dest ];
+        cmd "mv" [ string "*.cds" ; string "tmp" ];
+        cmd "mv" [ string "tmp" ; ident dest ];
          ]
