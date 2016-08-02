@@ -4,22 +4,22 @@
 # File: SeqIntegrator.py
 # Created by: Carine Rey
 # Created on: March 2016
-# 
-# 
+#
+#
 # Copyright 2016 Carine Rey
-# This software is a computer program whose purpose is to assembly 
+# This software is a computer program whose purpose is to assembly
 # sequences from RNA-Seq data (paired-end or single-end) using one or
-# more reference homologous sequences. 
+# more reference homologous sequences.
 # This software is governed by the CeCILL license under French law and
-# abiding by the rules of distribution of free software.  You can  use, 
+# abiding by the rules of distribution of free software.  You can  use,
 # modify and/ or redistribute the software under the terms of the CeCILL
 # license as circulated by CEA, CNRS and INRIA at the following URL
-# "http://www.cecill.info". 
+# "http://www.cecill.info".
 # As a counterpart to the access to the source code and  rights to copy,
 # modify and redistribute granted by the license, users are provided only
 # with a limited warranty  and the software's author,  the holder of the
 # economic rights,  and the successive licensors  have only  limited
-# liability. 
+# liability.
 # In this respect, the user's attention is drawn to the risks associated
 # with loading,  using,  modifying and/or developing or reproducing the
 # software by the user in light of its specific status of free software,
@@ -27,9 +27,9 @@
 # therefore means  that it is reserved for developers  and  experienced
 # professionals having in-depth computer knowledge. Users are therefore
 # encouraged to load and test the software's suitability as regards their
-# requirements in conditions enabling the security of their systems and/or 
-# data to be ensured and,  more generally, to use and operate it in the 
-# same conditions as regards security. 
+# requirements in conditions enabling the security of their systems and/or
+# data to be ensured and,  more generally, to use and operate it in the
+# same conditions as regards security.
 # The fact that you are presently reading this means that you have had
 # knowledge of the CeCILL license and that you accept its terms.
 
@@ -90,11 +90,11 @@ StartingAlignment = args.alignment
 SpToRefine = []
 if args.sptorefine:
     SpToRefine = args.sptorefine.split(",")
-	
+
 if args.fasta:
-	FastaFiles = args.fasta.split(",")
+    FastaFiles = args.fasta.split(",")
 else:
-	FastaFiles = []
+    FastaFiles = []
 Sp2SeqFiles = args.sp2seq.split(",")
 
 ### Set up the log directory
@@ -135,15 +135,15 @@ if args.tmp:
 else:
     TmpDirName = tempfile.mkdtemp(prefix='tmp_SeqIntegrator')
 
-def end(ReturnCode):       
-	### Remove tempdir if the option --tmp have not been use
-	if not args.tmp:
-		logger.debug("Remove the temporary directory")
-		#Remove the temporary directory :
-		if "tmp_SeqIntegrator" in TmpDirName:
-			shutil.rmtree(TmpDirName)
-	sys.exit(ReturnCode)
-	
+def end(ReturnCode):
+    ### Remove tempdir if the option --tmp have not been use
+    if not args.tmp:
+        logger.debug("Remove the temporary directory")
+        #Remove the temporary directory :
+        if "tmp_SeqIntegrator" in TmpDirName:
+            shutil.rmtree(TmpDirName)
+    sys.exit(ReturnCode)
+
 ### Set up the output directory
 if args.output_prefix:
     OutDirName = os.path.dirname(args.output_prefix)
@@ -164,22 +164,21 @@ if not os.path.isfile(StartingAlignment):
 
 StartingFastaFiles = []
 for f in FastaFiles:
-	if os.path.isfile(f):
-		StartingFastaFiles.append(f)
+    if os.path.isfile(f):
+        StartingFastaFiles.append(f)
 
-StartingSp2SeqFiles = []	
+StartingSp2SeqFiles = []
 for f in Sp2SeqFiles:
-	if os.path.isfile(f):
-		logger.debug(f)
-		StartingSp2SeqFiles.append(f) 
-        
+    if os.path.isfile(f):
+        logger.debug(f)
+        StartingSp2SeqFiles.append(f)
+
 ### A function to cat input files
 def cat(Files,OutputFile):
-    (out, err, Output) = ("","","") 
+    (out, err, Output) = ("","","")
     command = ["cat"]
-    logger.debug("totto")
     logger.debug(Files)
-   
+
     if type(Files) == type([]) and len(Files) == 1:
         Output = Files[0]
     else:
@@ -195,103 +194,103 @@ def cat(Files,OutputFile):
     return (out, err, Output)
 
 def mv (In,Out):
-    (out, err) = ("","") 
+    (out, err) = ("","")
     command = ["mv", In , Out]
-    
+
     logger.debug(" ".join(command))
     p = subprocess.Popen(command,
-					   stdout=subprocess.PIPE,
-					   stderr=subprocess.PIPE)
-    (out, err) = p.communicate()
-    if err:
-		logger.error(err)
-		
-    return (out, err)
-    
-def cp (In,Out):
-    (out, err) = ("","") 
-    command = ["cp", In , Out]
-   
-    logger.debug(" ".join(command))
-    p = subprocess.Popen(command,
-					   stdout=subprocess.PIPE,
-					   stderr=subprocess.PIPE)
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
     (out, err) = p.communicate()
     if err:
         logger.error(err)
-    
+
     return (out, err)
-    
+
+def cp (In,Out):
+    (out, err) = ("","")
+    command = ["cp", In , Out]
+
+    logger.debug(" ".join(command))
+    p = subprocess.Popen(command,
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
+    (out, err) = p.communicate()
+    if err:
+        logger.error(err)
+
+    return (out, err)
+
 if args.realign_ali:
-	### Realign the last alignment
-	InitialMafftProcess = Aligner.Mafft(StartingAlignment)
-	InitialMafftProcess.AutoOption = True
-	InitialMafftProcess.QuietOption = True
-	InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName,"RealignAli")
-		
-	if os.path.isfile(StartingAlignment):
-		(out,err) = InitialMafftProcess.launch()
-		StartingAlignment = InitialMafftProcess.OutputFile
-	else:
-		logger.error("%s is not a file." %(StartingAlignment))
-		end(1)
+    ### Realign the last alignment
+    InitialMafftProcess = Aligner.Mafft(StartingAlignment)
+    InitialMafftProcess.AutoOption = True
+    InitialMafftProcess.QuietOption = True
+    InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName,"RealignAli")
+
+    if os.path.isfile(StartingAlignment):
+        (out,err) = InitialMafftProcess.launch()
+        StartingAlignment = InitialMafftProcess.OutputFile
+    else:
+        logger.error("%s is not a file." %(StartingAlignment))
+        end(1)
 
 ### Concate all  sp2seq files
 logger.info("Concate all Sp2Seq files")
 Sp2Seq = "%s/StartingSp2Seq.txt" %(TmpDirName)
 (out, err, Sp2Seq) = cat(StartingSp2SeqFiles,Sp2Seq)
-		
+
 # Check if their are seqeunces to add
 if StartingFastaFiles and Sp2SeqFiles:
-	logger.info("Sequences to add")
-	logger.debug(StartingFastaFiles)
-	logger.debug(Sp2SeqFiles)
-	   
-	### Concate all fasta files
-	StartingFasta = "%s/StartingFasta.fa" %(TmpDirName)
-	logger.info("Concate all fasta files")
-	(out, err, StartingFasta) = cat(StartingFastaFiles,StartingFasta)
+    logger.info("Sequences to add")
+    logger.debug(StartingFastaFiles)
+    logger.debug(Sp2SeqFiles)
+
+    ### Concate all fasta files
+    StartingFasta = "%s/StartingFasta.fa" %(TmpDirName)
+    logger.info("Concate all fasta files")
+    (out, err, StartingFasta) = cat(StartingFastaFiles,StartingFasta)
 
 
-	### Add the fasta file to the existing alignment
-	logger.info("Add the fasta file to the existing alignment")
-	MafftProcess = Aligner.Mafft(StartingAlignment)
-	MafftProcess.AddOption = StartingFasta
-	MafftProcess.AdjustdirectionOption = False
-	MafftProcess.AutoOption = True
-	MafftProcess.QuietOption = True
-	MafftProcess.OutputFile = "%s/StartMafft.fa" %TmpDirName
-	if os.path.isfile(StartingAlignment) and os.path.isfile(StartingFasta):
-		(out,err) = MafftProcess.launch()
-	else:
-		logger.error("%s or %s is not a file" %(StartingAlignment,StartingFasta))
-		end(1)
+    ### Add the fasta file to the existing alignment
+    logger.info("Add the fasta file to the existing alignment")
+    MafftProcess = Aligner.Mafft(StartingAlignment)
+    MafftProcess.AddOption = StartingFasta
+    MafftProcess.AdjustdirectionOption = False
+    MafftProcess.AutoOption = True
+    MafftProcess.QuietOption = True
+    MafftProcess.OutputFile = "%s/StartMafft.fa" %TmpDirName
+    if os.path.isfile(StartingAlignment) and os.path.isfile(StartingFasta):
+        (out,err) = MafftProcess.launch()
+    else:
+        logger.error("%s or %s is not a file" %(StartingAlignment,StartingFasta))
+        end(1)
 
-	#Remove _R_ add by mafft adjustdirection option
-	#os.system("sed -i s/_R_//g %s" %MafftProcess.OutputFile)
+    #Remove _R_ add by mafft adjustdirection option
+    #os.system("sed -i s/_R_//g %s" %MafftProcess.OutputFile)
 
-	### Built a tree with the global alignment
-	logger.info("Built a tree with the global alignment")
-	FasttreeProcess = PhyloPrograms.Fasttree(MafftProcess.OutputFile)
-	FasttreeProcess.Nt = True
-	FasttreeProcess.Gtr = True
-	FasttreeProcess.OutputTree = "%s/StartTree.tree" %TmpDirName
-	if os.path.isfile(MafftProcess.OutputFile):
-		FasttreeProcess.get_output()
-	else:
-		logger.error("%s is not a file. There was an issue with the previous step." %(MafftProcess.OutputFile))
-		end(1)
+    ### Built a tree with the global alignment
+    logger.info("Built a tree with the global alignment")
+    FasttreeProcess = PhyloPrograms.Fasttree(MafftProcess.OutputFile)
+    FasttreeProcess.Nt = True
+    FasttreeProcess.Gtr = True
+    FasttreeProcess.OutputTree = "%s/StartTree.tree" %TmpDirName
+    if os.path.isfile(MafftProcess.OutputFile):
+        FasttreeProcess.get_output()
+    else:
+        logger.error("%s is not a file. There was an issue with the previous step." %(MafftProcess.OutputFile))
+        end(1)
 
-	### Use phylomerge to merge sequence from a same species
-	logger.info("Use phylomerge to merge sequence from a same species")
+    ### Use phylomerge to merge sequence from a same species
+    logger.info("Use phylomerge to merge sequence from a same species")
         FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
         PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, FasttreeProcess.OutputTree)
-        PhylomergeProcess.TaxonToSequence = Sp2Seq  
+        PhylomergeProcess.TaxonToSequence = Sp2Seq
         PhylomergeProcess.RearrangeTree = True
         PhylomergeProcess.BootstrapThreshold = 0.8
         PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
         PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
-	if SpToRefine:
+    if SpToRefine:
             logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
             SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
             SpToRefineFile = open(SpToRefineFilename,"w")
@@ -299,37 +298,37 @@ if StartingFastaFiles and Sp2SeqFiles:
             SpToRefineFile.close()
             PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
-	if os.path.isfile(MafftProcess.OutputFile) and \
-	   os.path.isfile(FasttreeProcess.OutputTree) and \
-	   os.path.isfile(PhylomergeProcess.TaxonToSequence) :
-	   PhylomergeProcess.launch()
-	else:
-		logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
-		 %(MafftProcess.OutputFile, FasttreeProcess.OutputTree,PhylomergeProcess.TaxonToSequence))
-		end(1)
+    if os.path.isfile(MafftProcess.OutputFile) and \
+       os.path.isfile(FasttreeProcess.OutputTree) and \
+       os.path.isfile(PhylomergeProcess.TaxonToSequence) :
+       PhylomergeProcess.launch()
+    else:
+        logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
+         %(MafftProcess.OutputFile, FasttreeProcess.OutputTree,PhylomergeProcess.TaxonToSequence))
+        end(1)
 
-	logger.info("Realign the merge alignment")
-	### Realign the last alignment
-	FinalMafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
-	FinalMafftProcess.AutoOption = True
-	FinalMafftProcess.QuietOption = True
-	FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
-	if os.path.isfile(FinalMafftProcess.InputFile):
-		(out,err) = FinalMafftProcess.launch()
-	else:
-		logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.InputFile))
-		end(1)
-	LastAli = FinalMafftProcess.OutputFile
-	
+    logger.info("Realign the merge alignment")
+    ### Realign the last alignment
+    FinalMafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
+    FinalMafftProcess.AutoOption = True
+    FinalMafftProcess.QuietOption = True
+    FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
+    if os.path.isfile(FinalMafftProcess.InputFile):
+        (out,err) = FinalMafftProcess.launch()
+    else:
+        logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.InputFile))
+        end(1)
+    LastAli = FinalMafftProcess.OutputFile
+
 else: #No sequences to add
-	logger.warning("No sequences to add, the input file will be the output file")
-	LastAli = "%s.fa" %OutPrefixName
-	FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
-	(out,err) = cp(Sp2Seq,FinalSp2Seq)
-	if args.realign_ali:
-		(out,err) = mv(StartingAlignment, LastAli)
-	else:
-		(out,err) = cp(StartingAlignment, LastAli)
+    logger.warning("No sequences to add, the input file will be the output file")
+    LastAli = "%s.fa" %OutPrefixName
+    FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+    (out,err) = cp(Sp2Seq,FinalSp2Seq)
+    if args.realign_ali:
+        (out,err) = mv(StartingAlignment, LastAli)
+    else:
+        (out,err) = cp(StartingAlignment, LastAli)
 
 ### Built a tree with the final alignment
 logger.info("Built a tree with the final alignment")
@@ -343,9 +342,7 @@ if os.path.isfile(LastAli):
 else:
     logger.error("%s is not a file. There was an issue with the previous step." %(LastAli))
     end(1)
-        
-logger.debug("--- %s seconds ---" % (time.time() - start_time))
 
-### TO DO Build the sp2seq link file ###
+logger.debug("--- %s seconds ---" % (time.time() - start_time))
 
 end(0)
