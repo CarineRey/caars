@@ -76,7 +76,7 @@ let apytram
       | 0 -> 1
       | _ -> memory
       in
-    workflow ~descr:"apytram.py" ~np:threads ~mem:(memory * 1024) [
+    workflow  ~version:2 ~descr:"apytram.py" ~np:threads ~mem:(memory * 1024) [
     cmd "apytram.py" [
         option (opt "-fq" string ) fastq ; (* prendre en compte des listes *)
         option (opt "-fa" string ) fasta ;
@@ -104,5 +104,7 @@ let apytram
         opt "-out" seq [ident dest ; string "/apytram"];
         opt "-log" seq [ident dest ; string "/apytram.log"];
         opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;
+        (*flag string "--keep_tmp" true;
+        opt "-tmp" ident  ( dest // "apytram_tmp" ) ;*)
         ]
     ]
