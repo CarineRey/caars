@@ -52,7 +52,7 @@ type 'a sample_fastq =
 
 let sample_fastq_map f = function
   | Single_end ( x , o ) ->  Single_end ( f x , o )
-  | Paired_end ( lx, rx, o ) -> Paired_end (f lx, f rx,	o)
+  | Paired_end ( lx, rx, o ) -> Paired_end (f lx, f rx, o)
 
 let sample_fastq_is_paired = function
   | Single_end _ ->  false

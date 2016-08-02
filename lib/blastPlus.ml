@@ -42,11 +42,11 @@ open Bistro_bioinfo.Std
 type blast_db = [`blast_db] directory
 
 let makeblastdb ?parse_seqids ~dbtype  dbname  (fasta : fasta workflow)  : blast_db workflow =
-	workflow ~np:1 [
-		mkdir_p dest;
-		cmd "makeblastdb" [ option (flag string "-parse_seqids") parse_seqids ;
-				    opt "-in" dep fasta;
-				    opt "-dbtype" string dbtype ;
-				    string "-out" ; seq ~sep:"/" [ dest ;string dbname; string "db" ] ] ;
-		 ]
+    workflow ~np:1 [
+        mkdir_p dest;
+        cmd "makeblastdb" [ option (flag string "-parse_seqids") parse_seqids ;
+                    opt "-in" dep fasta;
+                    opt "-dbtype" string dbtype ;
+                    string "-out" ; seq ~sep:"/" [ dest ;string dbname; string "db" ] ] ;
+         ]
    / selector [ dbname ]
