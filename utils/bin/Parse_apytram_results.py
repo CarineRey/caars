@@ -4,22 +4,22 @@
 # File: Parse_apytram_results.py
 # Created by: Carine Rey
 # Created on: April 2016
-# 
-# 
+#
+#
 # Copyright 2016 Carine Rey
-# This software is a computer program whose purpose is to assembly 
+# This software is a computer program whose purpose is to assembly
 # sequences from RNA-Seq data (paired-end or single-end) using one or
-# more reference homologous sequences. 
+# more reference homologous sequences.
 # This software is governed by the CeCILL license under French law and
-# abiding by the rules of distribution of free software.  You can  use, 
+# abiding by the rules of distribution of free software.  You can  use,
 # modify and/ or redistribute the software under the terms of the CeCILL
 # license as circulated by CEA, CNRS and INRIA at the following URL
-# "http://www.cecill.info". 
+# "http://www.cecill.info".
 # As a counterpart to the access to the source code and  rights to copy,
 # modify and redistribute granted by the license, users are provided only
 # with a limited warranty  and the software's author,  the holder of the
 # economic rights,  and the successive licensors  have only  limited
-# liability. 
+# liability.
 # In this respect, the user's attention is drawn to the risks associated
 # with loading,  using,  modifying and/or developing or reproducing the
 # software by the user in light of its specific status of free software,
@@ -27,9 +27,9 @@
 # therefore means  that it is reserved for developers  and  experienced
 # professionals having in-depth computer knowledge. Users are therefore
 # encouraged to load and test the software's suitability as regards their
-# requirements in conditions enabling the security of their systems and/or 
-# data to be ensured and,  more generally, to use and operate it in the 
-# same conditions as regards security. 
+# requirements in conditions enabling the security of their systems and/or
+# data to be ensured and,  more generally, to use and operate it in the
+# same conditions as regards security.
 # The fact that you are presently reading this means that you have had
 # knowledge of the CeCILL license and that you accept its terms.
 
@@ -92,29 +92,29 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
     Build also a Sp2Seq lin file"""
     String_list = []
     SeqName_list = []
-    
+
     for (InFastaFileName, Species) in FastaPath2Sp_dic.items():
-		InFile = open(InFastaFileName,"r") 
-		for line in InFile:
-			if re.match(">",line):
-				# This is a new sequence
-				SeqName = "%s%s%s" %(SeqId_dic[Species]["SeqPrefix"],
-				                     string.zfill(SeqId_dic[Species]["SeqNb"],
-				                                  SeqId_dic[Species]["NbFigures"]
-				                                  ),
-				                     "_%s" %(Family))
-				SeqId_dic[Species]["SeqNb"] += 1
-				SeqName_list.append(SeqName)
-				String_list.append( ">%s\n" %(SeqName))
-			else:
-				String_list.append(line)
-		InFile.close()
-    
+        InFile = open(InFastaFileName,"r")
+        for line in InFile:
+            if re.match(">",line):
+                # This is a new sequence
+                SeqName = "%s%s%s" %(SeqId_dic[Species]["SeqPrefix"],
+                                     string.zfill(SeqId_dic[Species]["SeqNb"],
+                                                  SeqId_dic[Species]["NbFigures"]
+                                                  ),
+                                     "_%s" %(Family))
+                SeqId_dic[Species]["SeqNb"] += 1
+                SeqName_list.append(SeqName)
+                String_list.append( ">%s\n" %(SeqName))
+            else:
+                String_list.append(line)
+        InFile.close()
+
     # Write all sequences in the output fasta file
     OutFile = open(OutFastaFileName,"w")
     OutFile.write("".join(String_list))
     OutFile.close()
-    
+
     #Build and write the Sp2SeqFile
     Sp2SeqFile = open(Sp2SeqFileName,"w")
     Sp2Seq_String = "%s:" %(Species) + ("\n%s:" %(Species)).join(SeqName_list)
@@ -134,20 +134,20 @@ for line in ConfigFile:
     (Species, RefSpecies, Family, ApytramDir) = line.strip().split("\t")
     InFastaFileName = "%s/%s.%s.%s.fasta" %(ApytramDir,ApytramPrefix,RefSpecies,Family)
     if os.path.isfile(InFastaFileName):
-		FastaPath2SpPerFam_dic.setdefault(Family,{})
-		FastaPath2SpPerFam_dic[Family][InFastaFileName] = Species
-		SeqId_dic.setdefault(Species, {"SeqPrefix" : "AP%s0" %(Species[0:3].upper()),
-									   "SeqNb" : 1, "NbFigures" : NbFigures})
+        FastaPath2SpPerFam_dic.setdefault(Family,{})
+        FastaPath2SpPerFam_dic[Family][InFastaFileName] = Species
+        SeqId_dic.setdefault(Species, {"SeqPrefix" : "AP%s0" %(Species[0:3].upper()),
+                                       "SeqNb" : 1, "NbFigures" : NbFigures})
 
 for Family in FastaPath2SpPerFam_dic.keys():
-	OutFastaFileName = "%s/apytram.%s.fa" %(OutDirName,Family)
-	Sp2SeqFileName = "%s/apytram.%s.sp2seq.txt" %(OutDirName,Family)
-	SeqId_dic = read_fasta_from_apytram(FastaPath2SpPerFam_dic[Family],
+    OutFastaFileName = "%s/apytram.%s.fa" %(OutDirName,Family)
+    Sp2SeqFileName = "%s/apytram.%s.sp2seq.txt" %(OutDirName,Family)
+    SeqId_dic = read_fasta_from_apytram(FastaPath2SpPerFam_dic[Family],
                             OutFastaFileName,
                             Sp2SeqFileName,
                             SeqId_dic)
-                            
+
 sys.exit(0)
 
-    
-    
+
+
