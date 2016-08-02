@@ -164,12 +164,12 @@ if not os.path.isfile(StartingAlignment):
 
 StartingFastaFiles = []
 for f in FastaFiles:
-    if os.path.isfile(f):
+    if os.path.isfile(f) and os.path.getsize(f) > 0:
         StartingFastaFiles.append(f)
 
 StartingSp2SeqFiles = []
 for f in Sp2SeqFiles:
-    if os.path.isfile(f):
+    if os.path.isfile(f) and os.path.getsize(f) > 0:
         logger.debug(f)
         StartingSp2SeqFiles.append(f)
 
