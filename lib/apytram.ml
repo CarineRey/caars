@@ -76,7 +76,7 @@ let apytram
       | 0 -> 1
       | _ -> memory
       in
-    workflow ~descr:"apytram.py" ~np:threads ~mem:(memory * 1024) [ (* add memory*)
+    workflow ~descr:"apytram.py" ~np:threads ~mem:(memory * 1024) [
     cmd "apytram.py" [
         option (opt "-fq" string ) fastq ; (* prendre en compte des listes *)
         option (opt "-fa" string ) fasta ;
@@ -94,7 +94,7 @@ let apytram
         option (flag string "--plot_ali") plot_ali ;
         option (flag string "--no_best_file") no_best_file ;
         option (flag string "--write_even_empty") write_even_empty ;
-		option (flag string "--only_best_file") only_best_file ;
+        option (flag string "--only_best_file") only_best_file ;
         (*option (opt "-memory" ident) memory ;*)
         (*opt "-memory" int 2 ;*)
         opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;
