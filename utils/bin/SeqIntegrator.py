@@ -281,20 +281,20 @@ if StartingFastaFiles and Sp2SeqFiles:
 
     ### Use phylomerge to merge sequence from a same species
     logger.info("Use phylomerge to merge sequence from a same species")
-        FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
-        PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, FasttreeProcess.OutputTree)
-        PhylomergeProcess.TaxonToSequence = Sp2Seq
-        PhylomergeProcess.RearrangeTree = True
-        PhylomergeProcess.BootstrapThreshold = 0.8
-        PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
-        PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
+    FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+    PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, FasttreeProcess.OutputTree)
+    PhylomergeProcess.TaxonToSequence = Sp2Seq
+    PhylomergeProcess.RearrangeTree = True
+    PhylomergeProcess.BootstrapThreshold = 0.8
+    PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
+    PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
     if SpToRefine:
-            logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
-            SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
-            SpToRefineFile = open(SpToRefineFilename,"w")
-            SpToRefineFile.write("\n".join(SpToRefine)+"\n")
-            SpToRefineFile.close()
-            PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
+        logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
+        SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
+        SpToRefineFile = open(SpToRefineFilename,"w")
+        SpToRefineFile.write("\n".join(SpToRefine)+"\n")
+        SpToRefineFile.close()
+        PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
     if os.path.isfile(MafftProcess.OutputFile) and \
        os.path.isfile(FasttreeProcess.OutputTree) and \
