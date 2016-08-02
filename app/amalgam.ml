@@ -179,8 +179,6 @@ let ref_fams species family =
 let ali_species2seq_links family =
     selector ["Alignments_Species2Sequences" ; "alignments." ^  family ^ ".sp2seq.txt" ]
 
-
-
 let norm_fasta { all_ref_samples ; threads ; memory } =
   List.map all_ref_samples ~f:(fun s ->
     let seq_type = "fq" in
@@ -248,11 +246,21 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir   =
       (s, r)
   )
 
+let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams memory =
+    List.map apytram_annotated_ref_fams ~f:(fun (s, f, apytram_result_fasta) ->
+      if s.run_transdecoder then
+        let pep_min_length = 20 in
+        let retain_long_orfs = 150 in
+        let filtered_orf = Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~threads:1 ~memory apytram_result_fasta in
+        (s, f, filtered_orf)
+      else
+        (s, f, apytram_result_fasta)
+    )
+
 
 let parse_apytram_results apytram_annotated_ref_fams =
   let config = Bistro.Expr.(
       List.map apytram_annotated_ref_fams ~f:(fun (s, f, w) ->
-        let apytram_filename =  "apytram." ^ s.ref_species ^ "." ^ f ^ ".fasta" in 
         seq ~sep:"\t" [ string s.species ; string s.id ; string f ; dep w ]
       )
       |> seq ~sep:"\n"
@@ -295,7 +303,7 @@ let seq_integrator
 
       let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
       let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
-      
+
       let tmp_merge = dest // "tmp" in
 
        workflow ~version:11 [
@@ -393,6 +401,8 @@ let output_of_phyldog phyldog merged_families families =
     ]
 
 let main configuration =
+    let divided_memory = Pervasives.(configuration.memory / configuration.threads) in
+
     let configuration_dir = parse_input configuration in
 
     let norm_fasta = norm_fasta configuration in
@@ -404,21 +414,20 @@ let main configuration =
     let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 
     let apytram_annotated_ref_fams =
-        let memory = Pervasives.(configuration.memory / configuration.threads) in
         let pairs = List.cartesian_product configuration.apytram_samples configuration.families in
         List.map pairs ~f:(fun (s, fam) ->
           let query = configuration_dir / ref_fams s.ref_species fam in
           let blast_db = List.Assoc.find_exn blast_dbs s in
           let db_type = sample_fastq_orientation s.sample_fastq in
-          let w = Apytram.apytram ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~memory ~query db_type blast_db in 
-          let apytram_filename = "apytram." ^ s.ref_species ^ "." ^ fam ^ ".fasta" in 
+          let w = Apytram.apytram ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~memory:divided_memory ~query db_type blast_db in
+          let apytram_filename = "apytram." ^ s.ref_species ^ "." ^ fam ^ ".fasta" in
           (s, fam, w / selector [ apytram_filename ] )
           )
         in
 
+    let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams divided_memory in
 
-    let apytram_results_dir = parse_apytram_results apytram_annotated_ref_fams in
-
+    let apytram_results_dir = parse_apytram_results apytram_orfs_ref_fams in
 
     let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
 
