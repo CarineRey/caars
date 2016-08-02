@@ -252,7 +252,8 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir   =
 let parse_apytram_results apytram_annotated_ref_fams =
   let config = Bistro.Expr.(
       List.map apytram_annotated_ref_fams ~f:(fun (s, f, w) ->
-        seq ~sep:"\t" [ string s.species ; string s.id ; string s.ref_species ; string f ; dep w ]
+        let apytram_filename =  "apytram." ^ s.ref_species ^ "." ^ f ^ ".fasta" in 
+        seq ~sep:"\t" [ string s.species ; string s.id ;  dep w ; string apytram_filename ;]
       )
       |> seq ~sep:"\n"
     )

@@ -93,23 +93,24 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
     String_list = []
     SeqName_list = []
 
-    for (InFastaFileName, Species) in FastaPath2Sp_dic.items():
+    for (InFastaFileName, SpeciesId) in FastaPath2Sp_dic.items():
         InFile = open(InFastaFileName,"r")
         for line in InFile:
             if re.match(">",line):
                 # This is a new sequence
-                SeqName = "%s%s%s" %(SeqId_dic[Species]["SeqPrefix"],
-                                     string.zfill(SeqId_dic[Species]["SeqNb"],
-                                                  SeqId_dic[Species]["NbFigures"]
+                SeqName = "%s%s%s" %(SeqId_dic[SpeciesId]["SeqPrefix"],
+                                     string.zfill(SeqId_dic[SpeciesId]["SeqNb"],
+                                                  SeqId_dic[SpeciesId]["NbFigures"]
                                                   ),
                                      "_%s" %(Family))
-                SeqId_dic[Species]["SeqNb"] += 1
+                SeqId_dic[SpeciesId]["SeqNb"] += 1
                 SeqName_list.append(SeqName)
                 String_list.append( ">%s\n" %(SeqName))
             else:
                 String_list.append(line)
         InFile.close()
-
+    
+    Species = SeqId_dic[SpeciesId]["Species"]
     # Write all sequences in the output fasta file
     OutFile = open(OutFastaFileName,"w")
     OutFile.write("".join(String_list))
@@ -128,16 +129,18 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
 ConfigFile = open(ConfigFileName,"r")
 SeqId_dic = {}
 FastaPath2SpPerFam_dic = {}
-ApytramPrefix = "apytram"
 NbFigures = 10
 for line in ConfigFile:
-    (Species, SpeciesId, RefSpecies, Family, ApytramDir) = line.strip().split("\t")
-    InFastaFileName = "%s/%s.%s.%s.fasta" %(ApytramDir,ApytramPrefix,RefSpecies,Family)
+    (Species, SpeciesId, ApytramDir, ApytramFilename) = line.strip().split("\t")
+    InFastaFileName = "%s/%s.%s.%s.fasta" %(ApytramDir,ApytramFilename)
     if os.path.isfile(InFastaFileName):
         FastaPath2SpPerFam_dic.setdefault(Family,{})
         FastaPath2SpPerFam_dic[Family][InFastaFileName] = SpeciesId
         SeqId_dic.setdefault(SpeciesId, {"SeqPrefix" : "AP%s0" %(SpeciesId),
-                                       "SeqNb" : 1, "NbFigures" : NbFigures})
+                                         "Species" : Species,
+                                         "SeqNb" : 1,
+                                         "NbFigures" : NbFigures
+                                         })
 
 for Family in FastaPath2SpPerFam_dic.keys():
     OutFastaFileName = "%s/apytram.%s.fa" %(OutDirName,Family)
