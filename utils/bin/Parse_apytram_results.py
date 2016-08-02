@@ -131,8 +131,7 @@ SeqId_dic = {}
 FastaPath2SpPerFam_dic = {}
 NbFigures = 10
 for line in ConfigFile:
-    (Species, SpeciesId, Family, ApytramDir, ApytramFilename) = line.strip().split("\t")
-    InFastaFileName = "%s/%s" %(ApytramDir,ApytramFilename)
+    (Species, SpeciesId, Family, InFastaFileName) = line.strip().split("\t")
     if os.path.isfile(InFastaFileName):
         FastaPath2SpPerFam_dic.setdefault(Family,{})
         FastaPath2SpPerFam_dic[Family][InFastaFileName] = SpeciesId

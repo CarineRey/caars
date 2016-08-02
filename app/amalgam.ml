@@ -253,7 +253,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
   let config = Bistro.Expr.(
       List.map apytram_annotated_ref_fams ~f:(fun (s, f, w) ->
         let apytram_filename =  "apytram." ^ s.ref_species ^ "." ^ f ^ ".fasta" in 
-        seq ~sep:"\t" [ string s.species ; string s.id ; string f ; dep w ; string apytram_filename ;]
+        seq ~sep:"\t" [ string s.species ; string s.id ; string f ; dep w ]
       )
       |> seq ~sep:"\n"
     )
@@ -410,7 +410,9 @@ let main configuration =
           let query = configuration_dir / ref_fams s.ref_species fam in
           let blast_db = List.Assoc.find_exn blast_dbs s in
           let db_type = sample_fastq_orientation s.sample_fastq in
-          (s, fam, Apytram.apytram ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~memory ~query db_type blast_db)
+          let w = Apytram.apytram ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~memory ~query db_type blast_db in 
+          let apytram_filename = "apytram." ^ s.ref_species ^ "." ^ fam ^ ".fasta" in 
+          (s, fam, w / selector [ apytram_filename ] )
           )
         in
 
