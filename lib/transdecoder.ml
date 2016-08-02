@@ -41,16 +41,22 @@ open Bistro_bioinfo.Std
 
 let transdecoder
   ?only_best_orf
+  ?pep_min_lenght
+  ?retain_long_orfs
   ~threads
   ?(memory = 1)
   (fasta: fasta workflow) : fasta workflow =
   workflow ~np:threads ~mem:(1024 * memory) [
 		mkdir_p tmp;
 		cd tmp;
-		cmd "TransDecoder.LongOrfs" [ opt "-t" dep fasta ];
+		cmd "TransDecoder.LongOrfs" [
+		  opt "-t" dep fasta;
+		  option (opt "-m" int ) pep_min_lenght ;
+		  ];
 		cmd "TransDecoder.Predict " [
 		  opt "-t" dep fasta ;
 		  option (flag string "--single_best_orf") only_best_orf ;
+		  option (opt "--retain_long_orfs" int ) retain_long_orfs ;
 		  opt "--cpu" ident np ; ];
 		cmd "mv" [ string "*.cds" ; ident dest ];
 		 ]
