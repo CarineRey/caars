@@ -294,10 +294,13 @@ let seq_integrator
 
       let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
       let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
+      
+      let tmp_merge = dest // "tmp" in
 
        workflow ~version:11 [
+            mkdir_p tmp_merge ;
             cmd "SeqIntegrator.py"  [
-              opt "-tmp" ident tmp;
+              opt "-tmp" ident tmp_merge;
               opt "-ali" string alignment ;
               opt "-fa" (seq ~sep:"") fasta;
               opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
@@ -443,6 +446,10 @@ let main configuration =
         [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
         );
      [ ["apytram_results" ] %> apytram_results_dir] ;
+
+       List.map merged_families ~f:(fun (fam, merged_family) ->
+        [ "merged_families" ; fam  ] %> merged_family
+        );
 
      [ ["merged_families_dir" ] %> merged_families_dirs] ;
 
