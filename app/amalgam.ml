@@ -181,7 +181,7 @@ let ali_species2seq_links family =
 
 
 
-let norm_fasta { all_ref_samples ; threads ; memory } =
+let normalize_fastq { all_ref_samples ; threads ; memory } =
   List.map all_ref_samples ~f:(fun s ->
     let seq_type = "fq" in
     let max_cov = 50 in
@@ -189,6 +189,10 @@ let norm_fasta { all_ref_samples ; threads ; memory } =
     (s, Trinity.read_normalization seq_type max_cov ~threads ~memory fastq )
   )
 
+let norm_fasta_to_norm_fastq norm_fastq { threads ; memory } =
+  List.map norm_fastq ~f:(fun (s,fastq) ->
+    (s, Trinity.fastool fastq )
+  )
 
 let trinity_assemblies_of_norm_fasta norm_fasta memory threads =
   List.filter_map norm_fasta ~f:(fun (s,norm_fasta) ->
@@ -395,7 +399,9 @@ let output_of_phyldog phyldog merged_families families =
 let main configuration =
     let configuration_dir = parse_input configuration in
 
-    let norm_fasta = norm_fasta configuration in
+    let norm_fastq = normalize_fastq configuration in
+
+    let norm_fasta = norm_fasta_to_norm_fastq norm_fastq configuration in
     let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory configuration.threads in
     let transdecoder_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration.memory configuration.threads in
 
@@ -431,6 +437,9 @@ let main configuration =
     let open Bistro_app in
     List.concat [
       [ [ "configuration" ] %>  configuration_dir ] ;
+      List.map norm_fastq ~f:(fun (s,norm_fastq) ->
+        [ "norm_fastq" ; s.id ^ "_" ^ s.species ^ ".fq" ] %> norm_fastq
+        );
       List.map norm_fasta ~f:(fun (s,norm_fasta) ->
         [ "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
         );
