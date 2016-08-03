@@ -102,11 +102,19 @@ let parse_line_fields_of_rna_conf_file = function
                              parse_fastq_path path_fastq_left,
                              parse_fastq_path path_fastq_right,
                              parse_orientation orientation) with
-       | ( None, Some  _, Some _, Right o ) -> Paired_end (path_fastq_left, path_fastq_right, o)
-       | ( Some  _ , None, None, Left o ) -> Single_end (path_fastq_single, o)
+       | ( None, Some  _, Some _, Right o ) -> Fastq_Paired_end (path_fastq_left, path_fastq_right, o)
+       | ( Some  _ , None, None, Left o ) -> Fastq_Single_end (path_fastq_single, o)
        | _ -> failwith (path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)(*{| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}*)
      in
-     { id ; species ; ref_species ; sample_fastq ; run_trinity ; run_transdecoder ; path_assembly ; run_apytram }
+     { id ;
+       species ;
+       ref_species ;
+       sample_fastq ;
+       run_trinity ;
+       run_transdecoder ;
+       path_assembly ;
+       run_apytram
+     }
   | _ -> failwith "Syntax error in configuration file"
 
 let parse_rna_conf_file path =
@@ -179,18 +187,25 @@ let ref_fams species family =
 let ali_species2seq_links family =
     selector ["Alignments_Species2Sequences" ; "alignments." ^  family ^ ".sp2seq.txt" ]
 
-let normalize_fastq { all_ref_samples ; threads ; memory } =
-  List.map all_ref_samples ~f:(fun s ->
-    let seq_type = "fq" in
-    let max_cov = 50 in
-    let fastq = sample_fastq_map input s.sample_fastq in
-    (s, Trinity.read_normalization seq_type max_cov ~threads ~memory fastq )
+
+let fastq_to_fasta_convertion {all_ref_samples} configuration_dir =
+    List.map all_ref_samples ~f:(fun s ->
+    let sample_fastq = sample_fastq_map input s.sample_fastq in
+    let sample_fastq_to_sample_fasta = function
+        | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool w , o )
+        | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool lw, Trinity.fastool rw , o)
+    in
+
+    let sample_fasta = sample_fastq_to_sample_fasta sample_fastq in
+    (s,sample_fasta)
   )
 
-let norm_fasta_to_norm_fastq norm_fastq { threads ; memory } =
-  List.map norm_fastq ~f:(fun (s,fastq) ->
-    (s, Trinity.fastool fastq )
+let normalize_fasta fasta_reads {threads ; memory } =
+  List.map fasta_reads ~f:(fun (s,fasta_sample) ->
+    let max_cov = 50 in
+    (s, Trinity.fasta_read_normalization  max_cov ~threads ~memory fasta_sample )
   )
+
 
 let trinity_assemblies_of_norm_fasta norm_fasta memory threads =
   List.filter_map norm_fasta ~f:(fun (s,norm_fasta) ->
@@ -409,9 +424,10 @@ let main configuration =
 
     let configuration_dir = parse_input configuration in
 
-    let norm_fastq = normalize_fastq configuration in
+    let fasta_reads = fastq_to_fasta_convertion configuration configuration_dir in
 
-    let norm_fasta = norm_fasta_to_norm_fastq norm_fastq configuration in
+    let norm_fasta = normalize_fasta fasta_reads configuration in
+
     let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory configuration.threads in
     let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration.memory configuration.threads in
 
@@ -443,12 +459,21 @@ let main configuration =
 
     let output = output_of_phyldog phyldog merged_families configuration.families in
 
+
+
     let open Bistro_app in
+
     List.concat [
       [ [ "configuration" ] %>  configuration_dir ] ;
-      List.map norm_fastq ~f:(fun (s,norm_fastq) ->
-        [ "norm_fastq" ; s.id ^ "_" ^ s.species ^ ".fq" ] %> norm_fastq
-        );
+
+      let target_to_sample_fasta s = function
+          | Fasta_Single_end (w, _ ) -> [[ "raw_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
+          | Fasta_Paired_end (lw, rw , _) -> [[ "raw_fasta" ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ "raw_fasta" ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> lw]
+      in
+
+      List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s sample_fasta)
+        ;
+
       List.map norm_fasta ~f:(fun (s,norm_fasta) ->
         [ "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
         );

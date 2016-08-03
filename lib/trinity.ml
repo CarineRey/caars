@@ -68,15 +68,14 @@ let trinity_fasta
     ]
     / selector [ "trinity.Trinity.fasta" ]
 
-let config_paired_or_single = function
-  | Single_end (w, _ ) ->
+let config_fastq_paired_or_single = function
+  | Fastq_Single_end (w, _ ) ->
         seq ~sep: " " [ string "--single" ; dep w ]
-  | Paired_end (lw, rw , _) ->
+  | Fastq_Paired_end (lw, rw , _) ->
        seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
 
 
-let read_normalization
-    seq_type
+let fastq_read_normalization
     max_cov
     ~threads
     ?(memory = 1)
@@ -87,11 +86,33 @@ let read_normalization
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-    $READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
+    $READ_NORMALISATION_PATH  {{ config_fastq_paired_or_single fastq }} --seqType "fq" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
     cat *norm.fq > {{ ident dest }}
     |}]
     ]
 
+let config_fasta_paired_or_single = function
+  | Fasta_Single_end (w, _ ) ->
+        seq ~sep: " " [ string "--single" ; dep w ]
+  | Fasta_Paired_end (lw, rw , _) ->
+       seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
+
+let fasta_read_normalization
+    max_cov
+    ~threads
+    ?(memory = 1)
+    (fasta : fasta workflow sample_fasta)
+    : fasta workflow =
+    workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
+    cd tmp;
+    script "sh" [%bistro{|
+    TRINITY_PATH=`which Trinity`
+    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
+    READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
+    $READ_NORMALISATION_PATH  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
+    cat *norm.fq > {{ ident dest }}
+    |}]
+    ]
 
 
 let fastool (fastq : _ fastq workflow) :  fasta workflow =
@@ -100,4 +121,5 @@ let fastool (fastq : _ fastq workflow) :  fasta workflow =
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     FASTOOL_PATH=$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool
     $FASTOOL_PATH --illumina-trinity --to-fasta  {{ dep fastq }} > {{ ident dest }}
-    |} ]]
+    |} ]
+    ]

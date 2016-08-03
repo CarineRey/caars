@@ -47,17 +47,36 @@ type orientation_paired =
   | UP
 
 type 'a sample_fastq =
-  | Single_end of 'a * orientation_single
-  | Paired_end of 'a * 'a * orientation_paired
+  | Fastq_Single_end of 'a * orientation_single
+  | Fastq_Paired_end of 'a * 'a * orientation_paired
+
+type 'a sample_fasta =
+  | Fasta_Single_end of 'a * orientation_single
+  | Fasta_Paired_end of 'a * 'a * orientation_paired
 
 let sample_fastq_map f = function
-  | Single_end ( x , o ) ->  Single_end ( f x , o )
-  | Paired_end ( lx, rx, o ) -> Paired_end (f lx, f rx, o)
+  | Fastq_Single_end ( x , o ) ->  Fastq_Single_end ( f x , o )
+  | Fastq_Paired_end ( lx, rx, o ) -> Fastq_Paired_end (f lx, f rx, o)
 
-let sample_fastq_is_paired = function
-  | Single_end _ ->  false
-  | Paired_end _ -> true
+let sample_fasta_is_paired = function
+  | Fasta_Single_end _ ->  false
+  | Fasta_Paired_end _ -> true
 
 let sample_fastq_orientation = function
-  | Single_end ( x , o ) ->  Left o
-  | Paired_end ( lx, rx, o ) -> Right o
+  | Fastq_Single_end ( x , o ) ->  Left o
+  | Fastq_Paired_end ( lx, rx, o ) -> Right o
+
+let sample_fasta_map f = function
+  | Fasta_Single_end ( x , o ) ->  Fasta_Single_end ( f x , o )
+  | Fasta_Paired_end ( lx, rx, o ) -> Fasta_Paired_end (f lx, f rx, o)
+
+let sample_fastq_is_paired = function
+  | Fastq_Single_end _ ->  false
+  | Fastq_Paired_end _ -> true
+
+let sample_fasta_orientation = function
+  | Fasta_Single_end ( x , o ) ->  Left o
+  | Fasta_Paired_end ( lx, rx, o ) -> Right o
+
+
+
