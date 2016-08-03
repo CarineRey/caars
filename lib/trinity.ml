@@ -74,29 +74,43 @@ let config_fastq_paired_or_single = function
   | Fastq_Paired_end (lw, rw , _) ->
        seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
 
+let config_output_fastq_paired_or_single = function
+  | Fastq_Single_end (w, _ ) ->
+       seq ~sep: "\n" [  string "singlelink=`readlink single.norm.fq`";
+                         seq ~sep: " " [string "mv $singlelink";  dest // "single.norm.fq" ];
+                      ]
+  | Fastq_Paired_end (lw, rw , _) ->
+       seq ~sep: "\n" [  string "leftlink=`readlink left.norm.fq`";
+                         seq ~sep: " " [string "mv $leftlink";  dest // "left.norm.fq" ];
+                         string "rightlink=`readlink right.norm.fq`";
+                         seq ~sep: " " [string "mv $rightlink";  dest // "right.norm.fq" ];
+                      ]
 
 let fastq_read_normalization
     max_cov
     ~threads
     ?(memory = 1)
-    fastq : _ fastq workflow =
+    fastq : _ fastq directory workflow =
     workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
+    mkdir_p dest;
+    mkdir_p tmp;
     cd tmp;
     script "sh" [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
     $READ_NORMALISATION_PATH  {{ config_fastq_paired_or_single fastq }} --seqType "fq" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
-    cat *norm.fq > {{ ident dest }}
+
+    {{ config_output_fastq_paired_or_single fastq }}
+
     |}]
     ]
-
 let config_fasta_paired_or_single = function
   | Fasta_Single_end (w, _ ) ->
         seq ~sep: " " [ string "--single" ; dep w ]
   | Fasta_Paired_end (lw, rw , _) ->
        seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
-       
+
 let config_output_fasta_paired_or_single = function
   | Fasta_Single_end (w, _ ) ->
        seq ~sep: "\n" [  string "singlelink=`readlink single.norm.fa`";
@@ -117,13 +131,13 @@ let fasta_read_normalization
     : fasta workflow =
     workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
-    mkdir_p (dest // "tmp") ;
-    cd (dest // "tmp");
+    mkdir_p tmp ;
+    cd tmp;
     script "sh" [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-    $READ_NORMALISATION_PATH  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident (dest // "tmp") }}
+    $READ_NORMALISATION_PATH  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
 
     {{ config_output_fasta_paired_or_single fasta }}
   
