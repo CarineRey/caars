@@ -482,47 +482,50 @@ let main configuration =
 
     let open Bistro_app in
 
+    let target_to_sample_fasta s d = function
+          | Fasta_Single_end (w, _ ) -> [[ d ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
+          | Fasta_Paired_end (lw, rw , _) -> [[ d ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ d ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> lw]
+     in
+
     List.concat [
-      [ [ "configuration" ] %>  configuration_dir ] ;
-
-      let target_to_sample_fasta s = function
-          | Fasta_Single_end (w, _ ) -> [[ "raw_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
-          | Fasta_Paired_end (lw, rw , _) -> [[ "raw_fasta" ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ "raw_fasta" ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> lw]
-      in
-
-      List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s sample_fasta)
+      [[ "configuration" ] %>  configuration_dir ]
         ;
-
-      List.map norm_fasta ~f:(fun (s,norm_fasta) ->
-        [ "norm_fasta" ; s.id ^ "_" ^ s.species ^ ".fa" ] %> norm_fasta
-        );
+      List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "raw_fasta" sample_fasta))
+        ;
+      List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "norm_fasta" norm_fasta))
+        ;
       List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
         [ "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
-        );
+        )
+        ;
       List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
         [ "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
-        );
+        )
+        ;
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
         [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species  ] %> trinity_annotated_fams
-        );
+        )
+        ;
       List.map blast_dbs ~f:(fun (s,blast_db) ->
         [ "blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
-        );
+        )
+        ;
       List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
         [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
-        );
-     [ ["apytram_results" ] %> apytram_results_dir] ;
-
+        )
+        ;
+      [["apytram_results" ] %> apytram_results_dir]
+        ;
       List.map merged_families ~f:(fun (fam, merged_family) ->
         [ "merged_families" ; fam  ] %> merged_family
-        );
-
-     [ ["merged_families_dir" ] %> merged_families_dirs] ;
-
-     [ ["phyldog" ] %> phyldog] ;
-
-     [ [ "output" ] %> output ] ;
-
+        )
+        ;
+      [["merged_families_dir" ] %> merged_families_dirs]
+        ;
+      [["phyldog" ] %> phyldog]
+        ;
+      [[ "output" ] %> output ]
+        ;
     ]
 
 
