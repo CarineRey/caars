@@ -128,7 +128,7 @@ let fasta_read_normalization
     ~threads
     ?(memory = 1)
     (fasta : fasta workflow sample_fasta)
-    : fasta workflow =
+    : fasta directory workflow =
     workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp ;
@@ -140,7 +140,7 @@ let fasta_read_normalization
     $READ_NORMALISATION_PATH  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
 
     {{ config_output_fasta_paired_or_single fasta }}
-  
+
     |}]
     ]
 
