@@ -80,7 +80,7 @@ let read_normalization
     max_cov
     ~threads
     ?(memory = 1)
-    fastq : fastq workflow =
+    fastq : _ fastq workflow =
     workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
     cd tmp;
     script "sh" [%bistro{|
