@@ -47,13 +47,14 @@ let transdecoder
   ?(memory = 1)
   (fasta: fasta workflow) : fasta workflow =
   workflow ~np:threads ~mem:(1024 * memory) [
-        mkdir_p tmp;
-        cd tmp;
+        mkdir_p dest;
+        cd dest;
         script "sh" [%bistro{|
         touch tmp
         TransDecoder.LongOrfs -t {{ dep fasta }} {{ option (opt "-m" int ) pep_min_length }}
         TransDecoder.Predict  -t {{ dep fasta }} --cpu {{ ident np }} {{ option (opt "-m" int ) pep_min_length }}
-        mv *cds tmp
-        mv tmp {{ ident dest }}
+        mv *.cds tmp
+        mv tmp orfs.cds
         |}]
         ]
+        / selector [ "orfs.cds" ]
