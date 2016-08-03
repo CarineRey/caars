@@ -333,6 +333,7 @@ logger.info("Built a tree with the final alignment")
 FinalFasttreeProcess = PhyloPrograms.Fasttree(LastAli)
 FinalFasttreeProcess.Nt = True
 FinalFasttreeProcess.Gtr = True
+FinalFasttreeProcess.Gamma = True
 FinalFasttreeProcess.OutputTree = "%s.tree" %OutPrefixName
 
 if os.path.isfile(LastAli):
