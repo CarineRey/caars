@@ -80,18 +80,17 @@ let read_normalization
     max_cov
     ~threads
     ?(memory = 1)
-    fastq : fasta workflow =
-        let tmp_output = match fastq with
-                      | Single_end _ -> "tmp_normalized_reads/single.fa"
-                      | Paired_end _ -> "tmp_normalized_reads/both.fa"
-                      in
-    workflow ~version:2 ~np:threads ~mem:(1024 * memory) [script "sh" [%bistro{|
+    fastq : fastq workflow =
+    workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
+    cd tmp;
+    script "sh" [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-    $READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov}} --CPU {{ident np}} --output {{ ident tmp }} --no_cleanup
-    mv {{tmp // tmp_output}} {{ident dest}};
-    |}]]
+    $READ_NORMALISATION_PATH  {{ config_paired_or_single fastq }} --seqType {{ string seq_type }} --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
+    cat *norm.fq > {{ ident dest }}
+    |}]
+    ]
 
 
 
