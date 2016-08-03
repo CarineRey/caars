@@ -514,6 +514,10 @@ let main configuration =
         [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
         )
         ;
+      List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
+        [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+        )
+        ;
       [["apytram_results" ] %> apytram_results_dir]
         ;
       List.map merged_families ~f:(fun (fam, merged_family) ->
