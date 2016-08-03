@@ -42,20 +42,36 @@ open Commons
 let ( % ) f g = fun x -> g (f x)
 
 
+
+let single_stranded_or_unstranded = function
+  | F -> string "--SS_lib_type F"
+  | R -> string "--SS_lib_type R"
+  | US -> string ""
+
+let paired_stranded_or_unstranded = function
+  | RF -> string "--SS_lib_type RF"
+  | FR -> string "--SS_lib_type RR"
+  | UP -> string ""
+
+let config_trinity_fasta_paired_or_single = function
+  | Fasta_Single_end (w, o ) ->
+        seq ~sep: " " [ string "--single" ; dep w ; single_stranded_or_unstranded o ]
+  | Fasta_Paired_end (lw, rw , o) ->
+       seq ~sep: " " [ string "--left" ; dep lw ; string "--right" ; dep rw ; paired_stranded_or_unstranded o]
+
 let trinity_fasta
     ?full_cleanup
     ~threads
     ?(memory = 1)
-    ~is_paired
-    (fasta: fasta workflow) : fasta workflow =
+    (sample_fasta : fasta workflow sample_fasta)
+     : fasta workflow =
     workflow  ~np:threads ~mem:(1024 * memory) [
         mkdir_p dest;
         cmd "Trinity" [
             opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
-                    opt "--CPU" ident np ;
-                    option (flag string "--full_cleanup") full_cleanup ;
-                    opt "-single" dep fasta;
-                    flag string "--run_as_paired" is_paired;
+            opt "--CPU" ident np ;
+            option (flag string "--full_cleanup") full_cleanup ;
+            config_trinity_fasta_paired_or_single sample_fasta;
             string "--seqType fa" ;
             opt "--output" seq [ ident dest ; string "/trinity"] ;
         ];
@@ -64,7 +80,7 @@ let trinity_fasta
                      string {|"s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/"|};
                      string "-i";
                      seq [ident dest; string "/trinity.Trinity.fasta";];
-                     ];
+        ];
     ]
     / selector [ "trinity.Trinity.fasta" ]
 
@@ -90,7 +106,8 @@ let fastq_read_normalization
     max_cov
     ~threads
     ?(memory = 1)
-    fastq : _ fastq directory workflow =
+    (fastq : _ fastq workflow sample_fastq)
+    : _ fastq directory workflow =
     workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp;
