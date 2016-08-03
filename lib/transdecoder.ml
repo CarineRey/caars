@@ -49,16 +49,11 @@ let transdecoder
   workflow ~np:threads ~mem:(1024 * memory) [
         mkdir_p tmp;
         cd tmp;
-        cmd "touch" [ string "tmp" ];
-        cmd "TransDecoder.LongOrfs" [
-          opt "-t" dep fasta;
-          option (opt "-m" int ) pep_min_length ;
-          ];
-        cmd "TransDecoder.Predict " [
-          opt "-t" dep fasta ;
-          option (flag string "--single_best_orf") only_best_orf ;
-          option (opt "--retain_long_orfs" int ) retain_long_orfs ;
-          opt "--cpu" ident np ; ];
-        cmd "mv" [ string "*.cds" ; string "tmp" ];
-        cmd "mv" [ string "tmp" ; ident dest ];
-         ]
+        script "sh" [%bistro{|
+        touch tmp
+        TransDecoder.LongOrfs -t {{ dep fasta }} {{ option (opt "-m" int ) pep_min_length }}
+        TransDecoder.Predict  -t {{ dep fasta }} --cpu {{ ident np }} {{ option (opt "-m" int ) pep_min_length }}
+        mv *cds tmp
+        mv tmp {{ ident dest }}
+        |}]
+        ]
