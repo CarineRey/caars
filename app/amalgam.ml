@@ -203,36 +203,54 @@ let fastq_to_fasta_convertion {all_ref_samples} configuration_dir =
 let normalize_fasta fasta_reads {threads ; memory } =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
     let max_cov = 50 in
-    (s, Trinity.fasta_read_normalization  max_cov ~threads ~memory fasta_sample )
+    let normalization_dir = Trinity.fasta_read_normalization max_cov ~threads ~memory fasta_sample in
+
+    let norm_fasta_sample_to_normalization_dir normalization_dir = function
+        | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
+        | Fasta_Paired_end (lw, rw , o) -> Fasta_Paired_end ( normalization_dir / selector ["left.norm.fa"] , normalization_dir / selector ["right.norm.fa"], o )
+    in
+    (s, norm_fasta_sample_to_normalization_dir normalization_dir fasta_sample )
   )
 
 
-let trinity_assemblies_of_norm_fasta norm_fasta memory threads =
-  List.filter_map norm_fasta ~f:(fun (s,norm_fasta) ->
-    let is_paired = sample_fastq_is_paired s.sample_fastq in
+let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads } =
+  List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
     if s.run_trinity then
-      Some (s, Trinity.trinity_fasta ~is_paired ~full_cleanup:true ~memory ~threads norm_fasta)
+      Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
     else
       None
     )
 
-let transdecoder_orfs_of_trinity_assemblies trinity_assemblies memory threads =
-  List.filter_map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-  if s.run_transdecoder then
+let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; threads } =
+  List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+  if s.run_transdecoder  then
       let pep_min_length = 50 in
       let retain_long_orfs = 150 in
-      Some (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~memory ~threads trinity_assembly)
+      (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~memory ~threads trinity_assembly)
     else
-      Some (s, trinity_assembly)
+      (s, trinity_assembly)
     )
+
+let concat = function
+  | [] -> raise (Invalid_argument "fastX concat: empty list")
+  | x :: [] -> x
+  | fXs ->
+    workflow ~descr:"fastX.concat" [
+      cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
+    ]
 
 let parse_seqids = true
 let dbtype = "nucl"
 
 let blast_dbs_of_norm_fasta norm_fasta =
-  List.filter_map norm_fasta ~f:(fun (s,norm_fasta) ->
+  List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
     if s.run_apytram then
-      Some (s, BlastPlus.makeblastdb ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) norm_fasta)
+      let fasta_to_norm_fasta_sample = function
+        | Fasta_Single_end (w, _ ) -> w
+        | Fasta_Paired_end (lw, rw , _) -> concat [ lw ; rw ]
+      in
+      let fasta = fasta_to_norm_fasta_sample norm_fasta in
+      Some (s, BlastPlus.makeblastdb ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta)
     else
       None
     )
@@ -428,8 +446,9 @@ let main configuration =
 
     let norm_fasta = normalize_fasta fasta_reads configuration in
 
-    let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration.memory configuration.threads in
-    let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration.memory configuration.threads in
+    let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration in
+
+    let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration in
 
     let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir trinity_orfs in
 
