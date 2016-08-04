@@ -262,6 +262,7 @@ let seq_dispatcher ?s2s_tab_by_family query query_species query_id ref_transcrip
             cmd "SeqDispatcher.py"  [
               option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
               opt "-tmp" ident tmp ;
+              opt "-log" seq [ dest ; string ("/SeqDispatcher." ^ query_id ^ "." ^ query_species ^ ".log" )] ;
               opt "-q" dep query ;
               opt "-qs" string query_species ;
               opt "-qid" string query_id ;
@@ -313,6 +314,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
 
 let seq_integrator
       ?realign_ali
+      ?resolve_polytomy
       ?log
       ?(species_to_refine_list = [])
       ~family
@@ -349,9 +351,11 @@ let seq_integrator
             mkdir_p tmp_merge ;
             cmd "SeqIntegrator.py"  [
               opt "-tmp" ident tmp_merge;
+              opt "-log" seq [ tmp_merge ; string ("/SeqIntegrator." ^ family ^ ".log" )] ;
               opt "-ali" string alignment ;
               opt "-fa" (seq ~sep:"") fasta;
               option (flag string "--realign_ali") realign_ali;
+              option (flag string "--resolve_polytomy") resolve_polytomy;
               opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
               opt "-out" seq [ dest ; string "/" ; string family] ;
               opt "-sptorefine" (seq ~sep:",") (List.map species_to_refine_list ~f:(fun sp -> string sp) );
@@ -372,7 +376,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
     let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
     let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species)  in
 
-    (family, seq_integrator ~realign_ali:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
+    (family, seq_integrator ~realign_ali:true ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
     )
 
 

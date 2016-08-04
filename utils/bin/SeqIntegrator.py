@@ -355,10 +355,11 @@ if not os.path.isfile(FinalTreeFilename):
     logger.error("%s is not a file. There was an issue with the previous step." %(FinalTreeFilename))
     end(1)
 
-logger.info("Resolve polytomy")
-t = Tree(FinalTreeFilename)
-t.resolve_polytomy(recursive=True)
-t.write(format=0, outfile=FinalTreeFilename)
+if args.resolve_polytomy:
+    logger.info("Resolve polytomy")
+    t = Tree(FinalTreeFilename)
+    t.resolve_polytomy(recursive=True)
+    t.write(format=0, outfile=FinalTreeFilename)
 
 
 if not os.path.isfile(FinalTreeFilename):
