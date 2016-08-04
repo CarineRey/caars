@@ -349,6 +349,7 @@ let seq_integrator
               opt "-tmp" ident tmp_merge;
               opt "-ali" string alignment ;
               opt "-fa" (seq ~sep:"") fasta;
+              option (flag string "--realign_ali") realign_ali;
               opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
               opt "-out" seq [ dest ; string "/" ; string family] ;
               opt "-sptorefine" (seq ~sep:",") (List.map species_to_refine_list ~f:(fun sp -> string sp) );
@@ -369,7 +370,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
     let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
     let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species)  in
 
-    (family, seq_integrator ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
+    (family, seq_integrator ~realign_ali:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
     )
 
 
