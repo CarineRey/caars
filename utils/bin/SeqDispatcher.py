@@ -68,6 +68,8 @@ requiredOptions.add_argument('-q', '--query', type=str,
                              help='Query fasta file name.', required=True)
 requiredOptions.add_argument('-qs', '--query_species', type=str,
                              help='query species', required=True)
+requiredOptions.add_argument('-qid', '--query_id', type=str,
+                             help='query unique id', required=True)
 requiredOptions.add_argument('-t', '--ref_transcriptome', type=str,
                              help='Target fasta file name', required=True)
 requiredOptions.add_argument('-d', '--database', type=str,
@@ -116,6 +118,7 @@ args = parser.parse_args()
 ### Read arguments
 QueryFile = args.query
 SpeciesQuery = args.query_species
+SpeciesID = args.query_id
 TargetFile = args.ref_transcriptome
 Target2FamilyFilename = args.ref_transcriptome2family
 
@@ -374,7 +377,7 @@ else:
 ## Third step: For each family, write a fasta which contained all retained family
 logger.info("Write output files")
 OutputTableString = []
-SeqId_dic = {"SeqPrefix" : "TR%s0" %(SpeciesQuery[0:3].upper()),
+SeqId_dic = {"SeqPrefix" : "TR%s0" %(SpeciesID),
              "SeqNb" : 1, "NbFigures" : 10}
 
 for Family in HitDic.keys():
