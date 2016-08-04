@@ -226,13 +226,15 @@ def cp (In,Out):
     return (out, err)
 
 if args.realign_ali:
-    ### Realign the last alignment
+
+    ### Realign the input alignment
     InitialMafftProcess = Aligner.Mafft(StartingAlignment)
     InitialMafftProcess.AutoOption = True
     InitialMafftProcess.QuietOption = True
     InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName,"RealignAli")
 
     if os.path.isfile(StartingAlignment):
+        logger.info("Realign the input alignment")
         (out,err) = InitialMafftProcess.launch()
         StartingAlignment = InitialMafftProcess.OutputFile
     else:
