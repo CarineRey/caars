@@ -46,6 +46,8 @@ import subprocess
 import PhyloPrograms
 import Aligner
 
+from ete2 import Tree
+
 start_time = time.time()
 
 ### Option defining
@@ -73,7 +75,9 @@ Options = parser.add_argument_group('Options')
 Options.add_argument('-sptorefine',   type=str, default = "",
                     help = "A list of species names delimited by commas. These species will be concerned by merging. (default: All species will be concerned)")
 Options.add_argument('--realign_ali',  action='store_true', default = False,
-                    help = "A fasta file will be created at each iteration. (default: False)")
+                    help = "Realign the ali even if no sequences to add. (default: False)")
+Options.add_argument('--resolve_polytomy',  action='store_true', default = False,
+                    help = "resolve_polytomy. (default: False)")
 Options.add_argument('-tmp',  type=str,
                     help = "Directory to stock all intermediary files for the apytram run. (default: a directory in /tmp which will be removed at the end)",
                     default = "" )
@@ -341,6 +345,25 @@ if os.path.isfile(LastAli):
 else:
     logger.error("%s is not a file. There was an issue with the previous step." %(LastAli))
     end(1)
+
+### Resolve Polytomy
+FinalTreeFilename = FinalFasttreeProcess.OutputTree
+if not os.path.isfile(FinalTreeFilename):
+    FinalFasttreeProcess.get_output()
+    logger.error("%s is not a file. There was an issue with the previous step." %(FinalTreeFilename))
+    end(1)
+
+logger.info("Resolve polytomy")
+t = Tree(FinalTreeFilename)
+t.resolve_polytomy(recursive=True)
+t.write(format=0, outfile=FinalTreeFilename)
+
+
+if not os.path.isfile(FinalTreeFilename):
+    FinalFasttreeProcess.get_output()
+    logger.error("%s is not a file. There was an issue with the previous step." %(FinalTreeFilename))
+    end(1)
+
 
 logger.debug("--- %s seconds ---" % (time.time() - start_time))
 
