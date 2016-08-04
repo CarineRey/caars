@@ -93,7 +93,7 @@ args = parser.parse_args()
 StartingAlignment = args.alignment
 SpToRefine = []
 if args.sptorefine:
-    SpToRefine = args.sptorefine.split(",")
+    SpToRefine = set(args.sptorefine.split(","))
 
 if args.fasta:
     FastaFiles = args.fasta.split(",")
