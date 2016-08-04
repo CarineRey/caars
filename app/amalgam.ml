@@ -327,7 +327,7 @@ let seq_integrator
 
       let get_trinity_file_list extension dirs =
         List.map  dirs ~f:(fun (s,dir) ->
-            [ dep dir ; string ("/Trinity." ^ query_id ^ "." ^ s.species ^ "." ^ family ^ "." ^ extension) ; string ","]
+            [ dep dir ; string ("/Trinity." ^ s.id ^ "." ^ s.species ^ "." ^ family ^ "." ^ extension) ; string ","]
             )
         |> List.concat
         in
