@@ -285,6 +285,20 @@ if StartingFastaFiles and Sp2SeqFiles:
         logger.error("%s is not a file. There was an issue with the previous step." %(MafftProcess.OutputFile))
         end(1)
 
+    ### Resolve Polytomy
+    IntTreeFilename = FasttreeProcess.OutputTree
+    if not os.path.isfile(IntTreeFilename):
+        logger.error("%s is not a file. There was an issue with the previous step." %(FinalTreeFilename))
+        end(1)
+    if args.resolve_polytomy:
+        logger.info("Resolve polytomy")
+        t = Tree(IntTreeFilename)
+        t.resolve_polytomy(recursive=True)
+        t.write(format=0, outfile=IntTreeFilename)
+    if not os.path.isfile(IntTreeFilename):
+        logger.error("%s is not a file. There was an issue with the previous step." %(FinalTreeFilename))
+        end(1)
+
     ### Use phylomerge to merge sequence from a same species
     logger.info("Use phylomerge to merge sequence from a same species")
     FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
@@ -351,7 +365,6 @@ else:
 ### Resolve Polytomy
 FinalTreeFilename = FinalFasttreeProcess.OutputTree
 if not os.path.isfile(FinalTreeFilename):
-    FinalFasttreeProcess.get_output()
     logger.error("%s is not a file. There was an issue with the previous step." %(FinalTreeFilename))
     end(1)
 
