@@ -92,9 +92,10 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
     Build also a Sp2Seq lin file"""
     String_list = []
     SeqName_list = []
-
+    Sp2Seq_list = []
     for (InFastaFileName, SpeciesId) in FastaPath2Sp_dic.items():
         InFile = open(InFastaFileName,"r")
+        Species = SeqId_dic[SpeciesId]["Species"]
         for line in InFile:
             if re.match(">",line):
                 # This is a new sequence
@@ -105,22 +106,24 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
                                      "_%s" %(Family))
                 SeqId_dic[SpeciesId]["SeqNb"] += 1
                 SeqName_list.append(SeqName)
+                Sp2Seq_list.append("%s:%s" %(Species,SeqName))
                 String_list.append( ">%s\n" %(SeqName))
             else:
                 String_list.append(line)
         InFile.close()
-    
-    Species = SeqId_dic[SpeciesId]["Species"]
-    # Write all sequences in the output fasta file
-    OutFile = open(OutFastaFileName,"w")
-    OutFile.write("".join(String_list))
-    OutFile.close()
 
-    #Build and write the Sp2SeqFile
-    Sp2SeqFile = open(Sp2SeqFileName,"w")
-    Sp2Seq_String = "%s:" %(Species) + ("\n%s:" %(Species)).join(SeqName_list)
-    Sp2SeqFile.write(Sp2Seq_String)
-    Sp2SeqFile.close()
+    if SeqName_list:
+        # Write all sequences in the output fasta file
+        OutFile = open(OutFastaFileName,"w")
+        OutFile.write("".join(String_list))
+        OutFile.close()
+
+        #Build and write the Sp2SeqFile
+        Sp2SeqFile = open(Sp2SeqFileName,"w")
+        Sp2Seq_String = "\n".join(Sp2Seq_list)+"\n"
+        Sp2SeqFile.write(Sp2Seq_String)
+        Sp2SeqFile.close()
+
     return(SeqId_dic)
 
 
