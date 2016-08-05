@@ -346,7 +346,7 @@ if StartingFastaFiles and Sp2SeqFiles:
     Int1FasttreeProcess.Gamma = True
     Int1FasttreeProcess.OutputTree = "%s/Int1.tree" %TmpDirName
     if os.path.isfile(Int1Ali):
-        FasttreeProcess.get_output()
+        Int1FasttreeProcess.get_output()
     else:
         logger.error("%s is not a file. There was an issue with the previous step." %(Int1Ali))
         end(1)
