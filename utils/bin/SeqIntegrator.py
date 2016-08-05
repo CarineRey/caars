@@ -287,7 +287,7 @@ if StartingFastaFiles and Sp2SeqFiles:
 
     ### Resolve Polytomy
     StartTreeFilename = FasttreeProcess.OutputTree
-    if not os.path.isfile(IntTreeFilename):
+    if not os.path.isfile(StartTreeFilename):
         logger.error("%s is not a file. There was an issue with the previous step." %(StartTreeFilename))
         end(1)
     if args.resolve_polytomy:
