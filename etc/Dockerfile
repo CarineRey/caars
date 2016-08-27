@@ -58,7 +58,7 @@ RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.0.zip
 RUN unzip v3.0.0.zip  && rm v3.0.0.zip
 WORKDIR /opt/TransDecoder-3.0.0/
 RUN make
-ENV PATH /ifb/TransDecoder-3.0.0/:$PATH
+ENV PATH /opt/TransDecoder-3.0.0/:$PATH
 
 ##### install opam 
 RUN apt-get update && apt-get install -y \
