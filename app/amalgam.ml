@@ -92,6 +92,10 @@ let parse_line_fields_of_rna_conf_file = function
        | "no" | "No" | "n" | "N" -> false
        | _ -> failwith {| Syntax error in configuration file (run_trinity must be "yes" or "no" |}
      in
+     let path_assembly = match path_assembly with
+       | "-" -> "-"
+       | path -> path
+     in
      let run_apytram = match run_apytram with
        | "yes" | "Yes" | "y" | "Y" -> true
        | "no" | "No" | "n" | "N" -> false
@@ -216,7 +220,10 @@ let normalize_fasta fasta_reads {threads ; memory } =
 let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads } =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
     if s.run_trinity then
-      Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
+      if s.path_assembly <> "-" then
+        Some (s, input s.path_assembly)
+      else
+        Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
     else
       None
     )
