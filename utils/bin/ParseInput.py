@@ -121,6 +121,10 @@ for line in f:
     line_list = line.split("\t")
     if len(line_list) == 10:
         (rna_id, sp, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
+        if path_assembly != "-":
+            if not os.path.isfile(path_assembly):
+                logger.error("The given trinity assembly file %s does not exist for %s" %(path_assembly,rna_id))
+                sys.exit(1)
         if sp in All_Species and ref_species in All_Species:
             if run_apytram.strip() in ["y","yes","Y","Yes"]:
                 RefSpApytram.extend(ref_species.split(","))
