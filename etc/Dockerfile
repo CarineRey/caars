@@ -63,8 +63,7 @@ ENV PATH /opt/TransDecoder-3.0.0/:$PATH
 ##### install opam 
 RUN apt-get update && apt-get install -y \
     aspcud bzip2 curl wget git  curl make m4 unzip gcc \
-    pkg-config libncurses5-dev libgdbm-dev \
-    sudo
+    pkg-config libncurses5-dev libgdbm-dev
  
 RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /root/usr/bin 4.02.3
 ENV PATH /root/usr/bin/.opam/4.02.3/bin:$PATH
