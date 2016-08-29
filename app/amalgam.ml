@@ -116,7 +116,7 @@ let parse_line_fields_of_rna_conf_file = function
        | ( None    , None   , None  , None          , false, true ) -> Fastq_Single_end ("-", US)
        | ( None    , None   , None  , _             , true , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": You didn't give any RNA-seq data, but you ask to run apytram : it is impossible, apytram needs raw RNA-seq data.)|})
        | ( Some  _ , None   , None  , Some (Right o), _    , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": Incompatible choice. Path for a single-end data but an orientation for a paired-end data.|})
-       | ( Some  _ , None   , None  , Some (Left o) , _    , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": Incompatible choice. Paths for paired-end data but an orientation for a single-end data.|})
+       | ( None    , Some  _, Some _, Some (Left o) , _    , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": Incompatible choice. Paths for paired-end data but an orientation for a single-end data.|})
        | ( _       , _      , _     , None          , _    , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": No given orientation.|})
        | _ -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": Incompatible choices. path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|})(*(path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)*)
      in
