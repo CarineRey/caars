@@ -585,7 +585,7 @@ let main config_file outdir species_tree_file alignments_dir seq2sp_dir np memor
 let spec =
   let open Command.Spec in
   empty
-  +> flag "--sample_sheet"    (required file)   ~doc:"PATH sample sheet file."
+  +> flag "--sample-sheet"    (required file)   ~doc:"PATH sample sheet file."
   +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
   +> flag "--species-tree"    (required file)   ~doc:"ABSOLUTE PATH Species tree file in nw format containing all species. Warning absolute path is required."
   +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
