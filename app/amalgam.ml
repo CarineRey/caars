@@ -212,7 +212,6 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
         |(false,false,_)    -> false
     in
     if run_conversion then
-      let _ = printf "Warning: %s \n" s.id in
       let sample_fastq = sample_fastq_map input s.sample_fastq in
       let sample_fastq_to_sample_fasta = function
           | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool  ~dep_input w , o )
