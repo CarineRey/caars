@@ -76,7 +76,7 @@ let parse_fastq_path = function
   | "-" -> None
   | x -> Some x
 
-let parse_orientation = function
+let parse_orientation id = function
   | "F"  -> Some (Left F)
   | "R"  -> Some (Left R)
   | "US" -> Some (Left US)
@@ -84,7 +84,7 @@ let parse_orientation = function
   | "FR" -> Some (Right FR)
   | "UP" -> Some (Right UP)
   | "-"  -> None
-  | _ -> failwith {| Syntax error in configuration file (orientation must be in ["F","R","RF","FR","US","UP"] |}
+  | _    -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": orientation must be in ["F","R","RF","FR","US","UP"] |})
 
 let parse_line_fields_of_rna_conf_file = function
   | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
@@ -92,27 +92,33 @@ let parse_line_fields_of_rna_conf_file = function
      let run_trinity = match run_trinity with
        | "yes" | "Yes" | "y" | "Y" -> true
        | "no" | "No" | "n" | "N" -> false
-       | _ -> failwith {| Syntax error in configuration file (run_trinity must be "yes" or "no" |}
+       | _ -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": run_trinity must be "yes" or "no" |})
      in
      let (path_assembly,given_assembly) = match (path_assembly,run_trinity) with
        | ("-" ,_) -> ("-",false)
        | (path,true) -> (path,true)
-       | (path,false) -> failwith {| Syntax error in configuration file, you gave a trinity assembly path but run_trinity is false. It is incompatible.|}
+       | (path,false) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": you gave a trinity assembly path but run_trinity is false. It is incompatible.|})
      in
      let run_apytram = match run_apytram with
        | "yes" | "Yes" | "y" | "Y" -> true
        | "no" | "No" | "n" | "N" -> false
-       | _ -> failwith {| Syntax error in configuration file (run_apytram must be "yes" or "no" |}
+       | _ -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": run_apytram must be "yes" or "no" |})
      in
 
      let sample_fastq = match (parse_fastq_path path_fastq_single,
                              parse_fastq_path path_fastq_left,
                              parse_fastq_path path_fastq_right,
-                             parse_orientation orientation) with
-       | ( None    , Some  _, Some _, Some (Right o) ) -> Fastq_Paired_end (path_fastq_left, path_fastq_right, o)
-       | ( Some  _ , None   , None  , Some (Left o)  ) -> Fastq_Single_end (path_fastq_single, o)
-       | ( None    , None   , None  , None           ) -> Fastq_Single_end ("-", US)
-       | _ -> failwith (path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)(*{| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}*)
+                             parse_orientation id orientation,
+                             run_apytram,
+                             run_trinity) with
+       | ( None    , Some  _, Some _, Some (Right o), _    , _    ) -> Fastq_Paired_end (path_fastq_left, path_fastq_right, o)
+       | ( Some  _ , None   , None  , Some (Left o) , _    , _    ) -> Fastq_Single_end (path_fastq_single, o)
+       | ( None    , None   , None  , None          , false, true ) -> Fastq_Single_end ("-", US)
+       | ( None    , None   , None  , _             , true , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": You didn't give any RNA-seq data, but you ask to run apytram : it is impossible, apytram needs raw RNA-seq data.)|})
+       | ( Some  _ , None   , None  , Some (Right o), _    , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": Incompatible choice. Path for a single-end data but an orientation for a paired-end data.|})
+       | ( Some  _ , None   , None  , Some (Left o) , _    , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": Incompatible choice. Paths for paired-end data but an orientation for a single-end data.|})
+       | ( _       , _      , _     , None          , _    , _    ) -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": No given orientation.|})
+       | _ -> failwith ({| Syntax error in configuration file sample -> "|} ^ id ^ {|": Incompatible choices. path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|})(*(path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)*)
      in
      { id ;
        species ;
