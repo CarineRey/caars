@@ -196,15 +196,23 @@ let ali_species2seq_links family =
 
 
 let fastq_to_fasta_convertion {all_ref_samples} configuration_dir =
-    List.map all_ref_samples ~f:(fun s ->
-    let sample_fastq = sample_fastq_map input s.sample_fastq in
-    let sample_fastq_to_sample_fasta = function
-        | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool w , o )
-        | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool lw, Trinity.fastool rw , o)
+    List.filter_map all_ref_samples ~f:(fun s ->
+    let run_convertion = match (s.run_apytram,s.run_trinity, s.given_assembly) with
+        |(true,_,_)         -> true
+        |(false,true,true)  -> false
+        |(false,true,false) -> true
+        |(false,false,_)    -> false
     in
-
-    let sample_fasta = sample_fastq_to_sample_fasta sample_fastq in
-    (s,sample_fasta)
+    if run_convertion then
+      let sample_fastq = sample_fastq_map input s.sample_fastq in
+      let sample_fastq_to_sample_fasta = function
+          | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool w , o )
+          | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool lw, Trinity.fastool rw , o)
+      in
+      let sample_fasta = sample_fastq_to_sample_fasta sample_fastq in
+      Some (s,sample_fasta)
+   else
+      None
   )
 
 let normalize_fasta fasta_reads {threads ; memory } =
@@ -220,16 +228,21 @@ let normalize_fasta fasta_reads {threads ; memory } =
   )
 
 
-let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads } =
-  List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
-    if s.run_trinity then
-      if s.given_assembly then
-        Some (s, input s.path_assembly)
-      else
+let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_samples} =
+  List.concat [
+    List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
+      if s.run_trinity then
         Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
-    else
-      None
-    )
+      else
+        None
+      );
+    List.filter_map trinity_samples ~f:(fun s ->
+      if s.given_assembly then
+          Some (s, input s.path_assembly)
+      else
+          None
+      )
+      ]
 
 let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; threads } =
   List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
