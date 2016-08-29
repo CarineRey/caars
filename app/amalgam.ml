@@ -51,6 +51,7 @@ type rna_sample = {
   run_trinity : bool ;
   run_transdecoder : bool ;
   path_assembly : string ;
+  given_assembly : bool ;
   run_apytram : bool ;
 }
 
@@ -92,9 +93,10 @@ let parse_line_fields_of_rna_conf_file = function
        | "no" | "No" | "n" | "N" -> false
        | _ -> failwith {| Syntax error in configuration file (run_trinity must be "yes" or "no" |}
      in
-     let path_assembly = match path_assembly with
-       | "-" -> "-"
-       | path -> path
+     let (path_assembly,given_assembly) = match (path_assembly,run_trinity) with
+       | ("-" ,_) -> ("-",false)
+       | (path,true) -> (path,true)
+       | (path,false) -> failwith {| Syntax error in configuration file, you gave a trinity assembly path but run_trinity is false. It is incompatible.|}
      in
      let run_apytram = match run_apytram with
        | "yes" | "Yes" | "y" | "Y" -> true
@@ -117,6 +119,7 @@ let parse_line_fields_of_rna_conf_file = function
        run_trinity ;
        run_transdecoder ;
        path_assembly ;
+       given_assembly ;
        run_apytram
      }
   | _ -> failwith "Syntax error in configuration file"
@@ -220,7 +223,7 @@ let normalize_fasta fasta_reads {threads ; memory } =
 let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads } =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
     if s.run_trinity then
-      if s.path_assembly <> "-" then
+      if s.given_assembly then
         Some (s, input s.path_assembly)
       else
         Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
@@ -230,12 +233,12 @@ let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads } =
 
 let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; threads } =
   List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-  if s.run_transdecoder  then
-      let pep_min_length = 50 in
-      let retain_long_orfs = 150 in
-      (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~memory ~threads trinity_assembly)
-    else
-      (s, trinity_assembly)
+  match (s.run_transdecoder,s.given_assembly) with
+    | (true,false) -> let pep_min_length = 50 in
+                    let retain_long_orfs = 150 in
+                    (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~memory ~threads trinity_assembly)
+    | (false, _ ) -> (s, trinity_assembly)
+    | (true, true) -> (s, trinity_assembly)
     )
 
 let concat = function
