@@ -1,7 +1,6 @@
 FROM carinerey/apytram
 MAINTAINER Carine Rey carine.rey@ens-lyon.fr
 
-
 RUN apt-get clean && apt-get update
 
 #### install ete2
@@ -88,13 +87,16 @@ WORKDIR /opt/phylomerge
 RUN bash ./compile
 ENV PATH /opt/phylomerge:$PATH
 
-
 #### install amalgam
 RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
 WORKDIR /usr/local/amalgam/
 RUN make
 ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
 ENV PYTHONPATH /usr/local/amalgam/utils/lib
+
+#### install multi_species version of apytram
+WORKDIR /opt/apytram
+RUN git fetch origin && git checkout -b multi_species origin/multi_species
 
 #### build a working directory
 RUN mkdir -p /data
