@@ -23,8 +23,7 @@ RUN echo "deb http://biopp.univ-montp2.fr/repos/apt/ Trusty main" >> /etc/apt/so
     apt-get install -qy libbpp-phyl-dev 
 
 ##### install phyldog
-RUN apt-get install -y cmake \
-                       g++-4.9
+RUN apt-get install -y cmake g++-4.9
 
 RUN git clone git://pbil-dev.univ-lyon1.fr/phyldog /opt/phyldog && \
     mkdir /opt/phyldog/build && \
