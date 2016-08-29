@@ -163,8 +163,10 @@ let fasta_read_normalization
     ]
 
 
-let fastool (fastq : _ fastq workflow) :  fasta workflow =
-    workflow ~np:1 [script "sh" [%bistro {|
+let fastool ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
+    workflow ~np:1 [
+    cmd "ls" [ dep dep_input ];
+    script "sh" [%bistro {|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     FASTOOL_PATH=$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool

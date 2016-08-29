@@ -203,19 +203,19 @@ let ali_species2seq_links family =
     selector ["Alignments_Species2Sequences" ; "alignments." ^  family ^ ".sp2seq.txt" ]
 
 
-let fastq_to_fasta_convertion {all_ref_samples} configuration_dir =
+let fastq_to_fasta_conversion {all_ref_samples} dep_input =
     List.filter_map all_ref_samples ~f:(fun s ->
-    let run_convertion = match (s.run_apytram,s.run_trinity, s.given_assembly) with
+    let run_conversion = match (s.run_apytram,s.run_trinity, s.given_assembly) with
         |(true,_,_)         -> true
         |(false,true,true)  -> false
         |(false,true,false) -> true
         |(false,false,_)    -> false
     in
-    if run_convertion then
+    if run_conversion then
       let sample_fastq = sample_fastq_map input s.sample_fastq in
       let sample_fastq_to_sample_fasta = function
-          | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool w , o )
-          | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool lw, Trinity.fastool rw , o)
+          | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool  ~dep_input w , o )
+          | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool ~dep_input lw , Trinity.fastool ~dep_input rw , o)
       in
       let sample_fasta = sample_fastq_to_sample_fasta sample_fastq in
       Some (s,sample_fasta)
@@ -480,7 +480,7 @@ let main configuration =
 
     let configuration_dir = parse_input configuration in
 
-    let fasta_reads = fastq_to_fasta_convertion configuration configuration_dir in
+    let fasta_reads = fastq_to_fasta_conversion configuration configuration_dir in
 
     let norm_fasta = normalize_fasta fasta_reads configuration in
 
