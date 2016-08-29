@@ -239,10 +239,9 @@ let normalize_fasta fasta_reads {threads ; memory } =
 let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_samples} =
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
-      if s.run_trinity then
-        Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
-      else
-        None
+      match (s.run_trinity,s.given_assembly) with
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
       if s.given_assembly then
