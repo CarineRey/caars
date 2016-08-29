@@ -146,7 +146,7 @@ let families_of_alignments_dir alignments_dir =
     if Filename.check_suffix f ".fa" || Filename.check_suffix f ".fasta" then
       true
     else
-      (printf "Warning: %s is not a fasta file\n" f ; false)
+      (printf "Warning: %s is not a fasta file (extention must be .fa or .fasta)\n" f ; false)
     )
   |> Array.map ~f:(fun f -> fst (String.lsplit2_exn f ~on:'.')) (* Il y a obligatoirement un point dans le nom du fichier fasta *)
   |> Array.to_list
