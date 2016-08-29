@@ -77,12 +77,13 @@ let parse_fastq_path = function
   | x -> Some x
 
 let parse_orientation = function
-  | "F" -> Left F
-  | "R" -> Left R
-  | "US" -> Left US
-  | "RF" -> Right RF
-  | "FR" -> Right FR
-  | "UP" -> Right UP
+  | "F"  -> Some (Left F)
+  | "R"  -> Some (Left R)
+  | "US" -> Some (Left US)
+  | "RF" -> Some (Right RF)
+  | "FR" -> Some (Right FR)
+  | "UP" -> Some (Right UP)
+  | "-"  -> None
   | _ -> failwith {| Syntax error in configuration file (orientation must be in ["F","R","RF","FR","US","UP"] |}
 
 let parse_line_fields_of_rna_conf_file = function
@@ -108,9 +109,9 @@ let parse_line_fields_of_rna_conf_file = function
                              parse_fastq_path path_fastq_left,
                              parse_fastq_path path_fastq_right,
                              parse_orientation orientation) with
-       | ( None, Some  _, Some _, Right o ) -> Fastq_Paired_end (path_fastq_left, path_fastq_right, o)
-       | ( Some  _ , None, None, Left o ) -> Fastq_Single_end (path_fastq_single, o)
-       | ( None, None, None, _ ) -> Fastq_Single_end ("-", US)
+       | ( None    , Some  _, Some _, Some (Right o) ) -> Fastq_Paired_end (path_fastq_left, path_fastq_right, o)
+       | ( Some  _ , None   , None  , Some (Left o)  ) -> Fastq_Single_end (path_fastq_single, o)
+       | ( None    , None   , None  , None           ) -> Fastq_Single_end ("-", US)
        | _ -> failwith (path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)(*{| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}*)
      in
      { id ;
