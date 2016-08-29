@@ -110,6 +110,7 @@ let parse_line_fields_of_rna_conf_file = function
                              parse_orientation orientation) with
        | ( None, Some  _, Some _, Right o ) -> Fastq_Paired_end (path_fastq_left, path_fastq_right, o)
        | ( Some  _ , None, None, Left o ) -> Fastq_Single_end (path_fastq_single, o)
+       | ( None, None, None, _ ) -> Fastq_Single_end ("-", US)
        | _ -> failwith (path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)(*{| Syntax error in configuration file (path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|}*)
      in
      { id ;
