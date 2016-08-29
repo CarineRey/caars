@@ -83,7 +83,7 @@ let parse_orientation = function
   | "RF" -> Right RF
   | "FR" -> Right FR
   | "UP" -> Right UP
-  | _ -> failwith {| Syntax error in configuration file (orientation must be in ["F","F","RF","FR","US","UP"] |}
+  | _ -> failwith {| Syntax error in configuration file (orientation must be in ["F","R","RF","FR","US","UP"] |}
 
 let parse_line_fields_of_rna_conf_file = function
   | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
