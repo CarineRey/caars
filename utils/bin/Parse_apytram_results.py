@@ -70,12 +70,16 @@ if not os.path.isfile(ConfigFileName):
 ### Set up the output directory
 if OutDirName:
     if os.path.isdir(OutDirName):
-        logger.info("The output directory %s exists" %(OutDirName) )
+        logger.info("The output directory %s exists", OutDirName)
     elif os.path.isfile(OutDirName):
         logger.error("The second argument must be a directory")
         sys.exit(1)
-    elif OutDirName: # if OutDirName is not a empty string we create the directory
-        logger.info("The output directory %s does not exist, it will be created" %(OutDirName))
+    elif OutDirName:
+        # if OutDirName is not a empty string we create the directory
+        logger.info(
+        "The output directory %s does not exist, it will be created",
+        OutDirName
+        )
         os.makedirs(OutDirName)
 else:
     logger.error("The second argument must be a directory")
@@ -88,55 +92,57 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
                             Sp2SeqFileName,
                             SeqId_dic
                             ):
-    """Read a list of fasta and write a new fasta file with unique sequence names
+    """Read a list of fasta and write a new fasta file
+    with unique sequence names
     Build also a Sp2Seq lin file"""
     String_list = []
     SeqName_list = []
     Sp2Seq_list = []
     for (InFastaFileName, SpeciesId) in FastaPath2Sp_dic.items():
-        InFile = open(InFastaFileName,"r")
+        InFile = open(InFastaFileName, "r")
         Species = SeqId_dic[SpeciesId]["Species"]
         for line in InFile:
-            if re.match(">",line):
+            if re.match(">", line):
                 # This is a new sequence
-                SeqName = "%s%s%s" %(SeqId_dic[SpeciesId]["SeqPrefix"],
-                                     string.zfill(SeqId_dic[SpeciesId]["SeqNb"],
-                                                  SeqId_dic[SpeciesId]["NbFigures"]
-                                                  ),
-                                     "_%s" %(Family))
+                SeqName = "%s%s%s" \
+                        %(SeqId_dic[SpeciesId]["SeqPrefix"],
+                        string.zfill(SeqId_dic[SpeciesId]["SeqNb"],
+                        SeqId_dic[SpeciesId]["NbFigures"]
+                        ),
+                        "_%s" %(Family))
                 SeqId_dic[SpeciesId]["SeqNb"] += 1
                 SeqName_list.append(SeqName)
-                Sp2Seq_list.append("%s:%s" %(Species,SeqName))
-                String_list.append( ">%s\n" %(SeqName))
+                Sp2Seq_list.append("%s:%s" %(Species, SeqName))
+                String_list.append(">%s\n" %(SeqName))
             else:
                 String_list.append(line)
         InFile.close()
 
     if SeqName_list:
         # Write all sequences in the output fasta file
-        OutFile = open(OutFastaFileName,"w")
+        OutFile = open(OutFastaFileName, "w")
         OutFile.write("".join(String_list))
         OutFile.close()
 
         #Build and write the Sp2SeqFile
-        Sp2SeqFile = open(Sp2SeqFileName,"w")
+        Sp2SeqFile = open(Sp2SeqFileName, "w")
         Sp2Seq_String = "\n".join(Sp2Seq_list)+"\n"
         Sp2SeqFile.write(Sp2Seq_String)
         Sp2SeqFile.close()
 
-    return(SeqId_dic)
+    return SeqId_dic
 
 
 ### Read the config file:
 ## Sp\tID\tRefSPecies\tFam\tdir_path
-ConfigFile = open(ConfigFileName,"r")
+ConfigFile = open(ConfigFileName, "r")
 SeqId_dic = {}
 FastaPath2SpPerFam_dic = {}
 NbFigures = 10
 for line in ConfigFile:
     (Species, SpeciesId, Family, InFastaFileName) = line.strip().split("\t")
     if os.path.isfile(InFastaFileName):
-        FastaPath2SpPerFam_dic.setdefault(Family,{})
+        FastaPath2SpPerFam_dic.setdefault(Family, {})
         FastaPath2SpPerFam_dic[Family][InFastaFileName] = SpeciesId
         SeqId_dic.setdefault(SpeciesId, {"SeqPrefix" : "AP%s0" %(SpeciesId),
                                          "Species" : Species,
@@ -145,8 +151,8 @@ for line in ConfigFile:
                                          })
 
 for Family in FastaPath2SpPerFam_dic.keys():
-    OutFastaFileName = "%s/apytram.%s.fa" %(OutDirName,Family)
-    Sp2SeqFileName = "%s/apytram.%s.sp2seq.txt" %(OutDirName,Family)
+    OutFastaFileName = "%s/apytram.%s.fa" %(OutDirName, Family)
+    Sp2SeqFileName = "%s/apytram.%s.sp2seq.txt" %(OutDirName, Family)
     SeqId_dic = read_fasta_from_apytram(FastaPath2SpPerFam_dic[Family],
                             OutFastaFileName,
                             Sp2SeqFileName,
