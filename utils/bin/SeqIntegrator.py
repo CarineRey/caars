@@ -81,7 +81,7 @@ Options.add_argument('--realign_ali', action='store_true', default=False,
 Options.add_argument('--resolve_polytomy', action='store_true', default=False,
                     help="resolve polytomy. (default: False)")
 Options.add_argument('-tmp', type=str,
-                    help="Directory to stock all intermediary files for the apytram run. (default: a directory in /tmp which will be removed at the end)",
+                    help="Directory to stock all intermediary files for the job. (default: a directory in /tmp which will be removed at the end)",
                     default="")
 Options.add_argument('-log', type=str, default="SeqIntegrator.log",
                    help="a log file to report avancement (default: seq_integrator.log)")
@@ -157,7 +157,7 @@ if args.output_prefix:
     if os.path.isdir(OutDirName):
         logger.info("The output directory %s exists", os.path.dirname(args.output_prefix))
     elif OutDirName: # if OutDirName is not a empty string we create the directory
-        logger.info("The temporary directory %s does not exist, it will be created", os.path.dirname(args.output_prefix))
+        logger.info("The output directory %s does not exist, it will be created", os.path.dirname(args.output_prefix))
         os.makedirs(os.path.dirname(args.output_prefix))
 else:
     logger.error("The output prefix must be defined")
