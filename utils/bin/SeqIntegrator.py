@@ -74,6 +74,8 @@ requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./
 Options = parser.add_argument_group('Options')
 Options.add_argument('-sptorefine',   type=str, default = "",
                     help = "A list of species names delimited by commas. These species will be concerned by merging. (default: All species will be concerned)")
+Options.add_argument('--no_merge',  action='store_true', default = False,
+                    help = "not use phylo merge to merge sequences. (default: False)")
 Options.add_argument('--realign_ali',  action='store_true', default = False,
                     help = "Realign the ali even if no sequences to add. (default: False)")
 Options.add_argument('--resolve_polytomy',  action='store_true', default = False,
@@ -272,137 +274,141 @@ if StartingFastaFiles and Sp2SeqFiles:
         logger.error("%s or %s is not a file" %(StartingAlignment,StartingFasta))
         end(1)
 
-    ### Built a tree with the global alignment
-    logger.info("Built a tree with the global alignment")
-    FasttreeProcess = PhyloPrograms.Fasttree(MafftProcess.OutputFile)
-    FasttreeProcess.Nt = True
-    FasttreeProcess.Gtr = True
-    FasttreeProcess.Gamma = True
-    FasttreeProcess.OutputTree = "%s/StartTree.tree" %TmpDirName
-    if os.path.isfile(MafftProcess.OutputFile):
-        FasttreeProcess.get_output()
+    if args.no_merge:
+        logger.info("no_merge=True, sequences will not be merged.")
+        LastAli = MafftProcess.OutputFile
     else:
-        logger.error("%s is not a file. There was an issue with the previous step." %(MafftProcess.OutputFile))
-        end(1)
+        ### Built a tree with the global alignment
+        logger.info("Built a tree with the global alignment")
+        FasttreeProcess = PhyloPrograms.Fasttree(MafftProcess.OutputFile)
+        FasttreeProcess.Nt = True
+        FasttreeProcess.Gtr = True
+        FasttreeProcess.Gamma = True
+        FasttreeProcess.OutputTree = "%s/StartTree.tree" %TmpDirName
+        if os.path.isfile(MafftProcess.OutputFile):
+            FasttreeProcess.get_output()
+        else:
+            logger.error("%s is not a file. There was an issue with the previous step." %(MafftProcess.OutputFile))
+            end(1)
 
-    ### Resolve Polytomy
-    StartTreeFilename = FasttreeProcess.OutputTree
-    if not os.path.isfile(StartTreeFilename):
-        logger.error("%s is not a file. There was an issue with the previous step." %(StartTreeFilename))
-        end(1)
-    if args.resolve_polytomy:
-        logger.info("Resolve polytomy")
-        t = Tree(StartTreeFilename)
-        t.resolve_polytomy(recursive=True)
-        t.write(format=0, outfile=StartTreeFilename)
-    if not os.path.isfile(StartTreeFilename):
-        logger.error("%s is not a file. There was an issue with the previous step." %(StartTreeFilename))
-        end(1)
+        ### Resolve Polytomy
+        StartTreeFilename = FasttreeProcess.OutputTree
+        if not os.path.isfile(StartTreeFilename):
+            logger.error("%s is not a file. There was an issue with the previous step." %(StartTreeFilename))
+            end(1)
+        if args.resolve_polytomy:
+            logger.info("Resolve polytomy")
+            t = Tree(StartTreeFilename)
+            t.resolve_polytomy(recursive=True)
+            t.write(format=0, outfile=StartTreeFilename)
+        if not os.path.isfile(StartTreeFilename):
+            logger.error("%s is not a file. There was an issue with the previous step." %(StartTreeFilename))
+            end(1)
 
-    ### Use phylomerge to merge sequence from a same species
-    logger.info("Use phylomerge to merge sequence from a same species")
-    Int1Sp2Seq = "%s/Int1.sp2seq.txt" %TmpDirName
-    PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, StartTreeFilename)
-    PhylomergeProcess.TaxonToSequence = Sp2Seq
-    PhylomergeProcess.RearrangeTree = True
-    PhylomergeProcess.BootstrapThreshold = 0.8
-    PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
-    PhylomergeProcess.OutputTaxonToSequence = Int1Sp2Seq
-    if SpToRefine:
-        logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
-        SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
-        SpToRefineFile = open(SpToRefineFilename,"w")
-        SpToRefineFile.write("\n".join(SpToRefine)+"\n")
-        SpToRefineFile.close()
-        PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
+        ### Use phylomerge to merge sequence from a same species
+        logger.info("Use phylomerge to merge sequence from a same species")
+        Int1Sp2Seq = "%s/Int1.sp2seq.txt" %TmpDirName
+        PhylomergeProcess = PhyloPrograms.Phylomerge(MafftProcess.OutputFile, StartTreeFilename)
+        PhylomergeProcess.TaxonToSequence = Sp2Seq
+        PhylomergeProcess.RearrangeTree = True
+        PhylomergeProcess.BootstrapThreshold = 0.8
+        PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
+        PhylomergeProcess.OutputTaxonToSequence = Int1Sp2Seq
+        if SpToRefine:
+            logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
+            SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
+            SpToRefineFile = open(SpToRefineFilename,"w")
+            SpToRefineFile.write("\n".join(SpToRefine)+"\n")
+            SpToRefineFile.close()
+            PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
-    if os.path.isfile(MafftProcess.OutputFile) and \
-       os.path.isfile(StartTreeFilename) and \
-       os.path.isfile(PhylomergeProcess.TaxonToSequence) :
-       PhylomergeProcess.launch()
-    else:
-        logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
-         %(MafftProcess.OutputFile, StartTreeFilename ,PhylomergeProcess.TaxonToSequence))
-        end(1)
+        if os.path.isfile(MafftProcess.OutputFile) and \
+        os.path.isfile(StartTreeFilename) and \
+        os.path.isfile(PhylomergeProcess.TaxonToSequence) :
+        PhylomergeProcess.launch()
+        else:
+            logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
+            %(MafftProcess.OutputFile, StartTreeFilename ,PhylomergeProcess.TaxonToSequence))
+            end(1)
 
-    logger.info("Realign the merge alignment")
-    ### Realign the merged alignment
-    Int1MafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
-    Int1MafftProcess.AutoOption = True
-    Int1MafftProcess.QuietOption = True
-    Int1MafftProcess.OutputFile = "%s/Int1.fa" %TmpDirName
-    if os.path.isfile(Int1MafftProcess.InputFile):
-        (out,err) = Int1MafftProcess.launch()
-    else:
-        logger.error("%s is not a file. There was an issue with the previous step." %(Int1MafftProcess.InputFile))
-        end(1)
-    Int1Ali = Int1MafftProcess.OutputFile
+        logger.info("Realign the merge alignment")
+        ### Realign the merged alignment
+        Int1MafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
+        Int1MafftProcess.AutoOption = True
+        Int1MafftProcess.QuietOption = True
+        Int1MafftProcess.OutputFile = "%s/Int1.fa" %TmpDirName
+        if os.path.isfile(Int1MafftProcess.InputFile):
+            (out,err) = Int1MafftProcess.launch()
+        else:
+            logger.error("%s is not a file. There was an issue with the previous step." %(Int1MafftProcess.InputFile))
+            end(1)
+        Int1Ali = Int1MafftProcess.OutputFile
 
-    ### Built a tree with the realigned merged alignment"
-    logger.info("Built a tree with the realigned merged alignment")
-    Int1FasttreeProcess = PhyloPrograms.Fasttree(Int1Ali)
-    Int1FasttreeProcess.Nt = True
-    Int1FasttreeProcess.Gtr = True
-    Int1FasttreeProcess.Gamma = True
-    Int1FasttreeProcess.OutputTree = "%s/Int1.tree" %TmpDirName
-    if os.path.isfile(Int1Ali):
-        Int1FasttreeProcess.get_output()
-    else:
-        logger.error("%s is not a file. There was an issue with the previous step." %(Int1Ali))
-        end(1)
+        ### Built a tree with the realigned merged alignment"
+        logger.info("Built a tree with the realigned merged alignment")
+        Int1FasttreeProcess = PhyloPrograms.Fasttree(Int1Ali)
+        Int1FasttreeProcess.Nt = True
+        Int1FasttreeProcess.Gtr = True
+        Int1FasttreeProcess.Gamma = True
+        Int1FasttreeProcess.OutputTree = "%s/Int1.tree" %TmpDirName
+        if os.path.isfile(Int1Ali):
+            Int1FasttreeProcess.get_output()
+        else:
+            logger.error("%s is not a file. There was an issue with the previous step." %(Int1Ali))
+            end(1)
 
-    ### Resolve Polytomy
-    Int1TreeFilename = Int1FasttreeProcess.OutputTree
-    if not os.path.isfile(Int1TreeFilename):
-        logger.error("%s is not a file. There was an issue with the previous step." %(Int1TreeFilename))
-        end(1)
-    if args.resolve_polytomy:
-        logger.info("Resolve polytomy")
-        t = Tree(Int1TreeFilename)
-        t.resolve_polytomy(recursive=True)
-        t.write(format=0, outfile=Int1TreeFilename)
-    if not os.path.isfile(Int1TreeFilename):
-        logger.error("%s is not a file. There was an issue with the previous step." %(Int1TreeFilename))
-        end(1)
+        ### Resolve Polytomy
+        Int1TreeFilename = Int1FasttreeProcess.OutputTree
+        if not os.path.isfile(Int1TreeFilename):
+            logger.error("%s is not a file. There was an issue with the previous step." %(Int1TreeFilename))
+            end(1)
+        if args.resolve_polytomy:
+            logger.info("Resolve polytomy")
+            t = Tree(Int1TreeFilename)
+            t.resolve_polytomy(recursive=True)
+            t.write(format=0, outfile=Int1TreeFilename)
+        if not os.path.isfile(Int1TreeFilename):
+            logger.error("%s is not a file. There was an issue with the previous step." %(Int1TreeFilename))
+            end(1)
 
-    ### Use phylomerge to merge sequence from a same species
-    logger.info("Use phylomerge to merge sequence from a same species")
-    FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
-    PhylomergeProcess = PhyloPrograms.Phylomerge(Int1Ali, Int1TreeFilename)
-    PhylomergeProcess.TaxonToSequence = Int1Sp2Seq
-    PhylomergeProcess.RearrangeTree = True
-    PhylomergeProcess.BootstrapThreshold = 0.8
-    PhylomergeProcess.OutputSequenceFile = "%s/Int1Merged.fa" %TmpDirName
-    PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
-    if SpToRefine:
-        logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
-        SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
-        SpToRefineFile = open(SpToRefineFilename,"w")
-        SpToRefineFile.write("\n".join(SpToRefine)+"\n")
-        SpToRefineFile.close()
-        PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
+        ### Use phylomerge to merge sequence from a same species
+        logger.info("Use phylomerge to merge sequence from a same species")
+        FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+        PhylomergeProcess = PhyloPrograms.Phylomerge(Int1Ali, Int1TreeFilename)
+        PhylomergeProcess.TaxonToSequence = Int1Sp2Seq
+        PhylomergeProcess.RearrangeTree = True
+        PhylomergeProcess.BootstrapThreshold = 0.8
+        PhylomergeProcess.OutputSequenceFile = "%s/Int1Merged.fa" %TmpDirName
+        PhylomergeProcess.OutputTaxonToSequence = FinalSp2Seq
+        if SpToRefine:
+            logger.debug("Species to refine:\n"+"\n".join(SpToRefine))
+            SpToRefineFilename = "%s/SpToRefine.txt" %TmpDirName
+            SpToRefineFile = open(SpToRefineFilename,"w")
+            SpToRefineFile.write("\n".join(SpToRefine)+"\n")
+            SpToRefineFile.close()
+            PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
-    if os.path.isfile(Int1Ali) and \
-       os.path.isfile(Int1TreeFilename) and \
-       os.path.isfile(Int1Sp2Seq) :
-       PhylomergeProcess.launch()
-    else:
-        logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
-         %(Int1Ali, Int1TreeFilename,Int1Sp2Seq))
-        end(1)
+        if os.path.isfile(Int1Ali) and \
+        os.path.isfile(Int1TreeFilename) and \
+        os.path.isfile(Int1Sp2Seq) :
+        PhylomergeProcess.launch()
+        else:
+            logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
+            %(Int1Ali, Int1TreeFilename,Int1Sp2Seq))
+            end(1)
 
-    logger.info("Realign the merge alignment")
-    ### Realign the last alignment
-    FinalMafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
-    FinalMafftProcess.AutoOption = True
-    FinalMafftProcess.QuietOption = True
-    FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
-    if os.path.isfile(FinalMafftProcess.InputFile):
-        (out,err) = FinalMafftProcess.launch()
-    else:
-        logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.InputFile))
-        end(1)
-    LastAli = FinalMafftProcess.OutputFile
+        logger.info("Realign the merge alignment")
+        ### Realign the last alignment
+        FinalMafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
+        FinalMafftProcess.AutoOption = True
+        FinalMafftProcess.QuietOption = True
+        FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
+        if os.path.isfile(FinalMafftProcess.InputFile):
+            (out,err) = FinalMafftProcess.launch()
+        else:
+            logger.error("%s is not a file. There was an issue with the previous step." %(FinalMafftProcess.InputFile))
+            end(1)
+        LastAli = FinalMafftProcess.OutputFile
 
 
 else: #No sequences to add
