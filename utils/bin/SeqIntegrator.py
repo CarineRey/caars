@@ -79,7 +79,7 @@ Options.add_argument('--no_merge',  action='store_true', default = False,
 Options.add_argument('--realign_ali',  action='store_true', default = False,
                     help = "Realign the ali even if no sequences to add. (default: False)")
 Options.add_argument('--resolve_polytomy',  action='store_true', default = False,
-                    help = "resolve_polytomy. (default: False)")
+                    help = "resolve polytomy. (default: False)")
 Options.add_argument('-tmp',  type=str,
                     help = "Directory to stock all intermediary files for the apytram run. (default: a directory in /tmp which will be removed at the end)",
                     default = "" )
