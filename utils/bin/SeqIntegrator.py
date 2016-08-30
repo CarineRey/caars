@@ -276,7 +276,10 @@ if StartingFastaFiles and Sp2SeqFiles:
 
     if args.no_merge:
         logger.info("no_merge=True, sequences will not be merged.")
-        LastAli = MafftProcess.OutputFile
+        LastAli = "%s.fa" %OutPrefixName
+        FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+        (out,err) = mv(Sp2Seq,FinalSp2Seq)
+        (out,err) = mv(MafftProcess.OutputFile, LastAli)
     else:
         ### Built a tree with the global alignment
         logger.info("Built a tree with the global alignment")
