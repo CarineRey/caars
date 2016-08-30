@@ -64,7 +64,7 @@ requiredOptions.add_argument('-ali', '--alignment', type=str,
 requiredOptions.add_argument('-fa', '--fasta', type=str,
                              help='Fasta file names delimited by a coma')
 requiredOptions.add_argument('-sp2seq', type=str,
-                             help='Link file name. A tabular file, each line correspond to a sequence name and its species. File names delimited by  comas.' , required=True)
+                             help='Link file name. A tabular file, each line correspond to a sequence name and its species. File names delimited by comas.' , required=True)
 requiredOptions.add_argument('-out', '--output_prefix',  type=str, default = "./output",
                    help = "Output prefix (Default ./output)")
 ##############
