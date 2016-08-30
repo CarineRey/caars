@@ -326,9 +326,9 @@ if StartingFastaFiles and Sp2SeqFiles:
             PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
         if os.path.isfile(MafftProcess.OutputFile) and \
-        os.path.isfile(StartTreeFilename) and \
-        os.path.isfile(PhylomergeProcess.TaxonToSequence) :
-        PhylomergeProcess.launch()
+           os.path.isfile(StartTreeFilename) and \
+           os.path.isfile(PhylomergeProcess.TaxonToSequence) :
+            PhylomergeProcess.launch()
         else:
             logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
             %(MafftProcess.OutputFile, StartTreeFilename ,PhylomergeProcess.TaxonToSequence))
@@ -392,9 +392,9 @@ if StartingFastaFiles and Sp2SeqFiles:
             PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
         if os.path.isfile(Int1Ali) and \
-        os.path.isfile(Int1TreeFilename) and \
-        os.path.isfile(Int1Sp2Seq) :
-        PhylomergeProcess.launch()
+           os.path.isfile(Int1TreeFilename) and \
+           os.path.isfile(Int1Sp2Seq) :
+            PhylomergeProcess.launch()
         else:
             logger.error("%s or %s or %s is not a file. There was an issue with the previous step." \
             %(Int1Ali, Int1TreeFilename,Int1Sp2Seq))
