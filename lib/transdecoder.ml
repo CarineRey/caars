@@ -45,7 +45,7 @@ let transdecoder
   ?retain_long_orfs
   ~threads
   ?(memory = 1)
-  (fasta: fasta workflow) : fasta workflow =
+  (fasta:fasta workflow) : fasta workflow =
   workflow ~np:threads ~mem:(1024 * memory) [
         mkdir_p dest;
         cd dest;

@@ -70,7 +70,7 @@ let apytram
     ?(memory = 1)
     ?time_max
     db_type
-    db_blast  : fasta workflow =
+    db_blast :fasta workflow =
 
     let memory = match memory with
       | 0 -> 1

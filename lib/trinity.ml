@@ -64,7 +64,7 @@ let trinity_fasta
     ~threads
     ?(memory = 1)
     (sample_fasta : fasta workflow sample_fasta)
-     : fasta workflow =
+    : fasta workflow =
     workflow  ~np:threads ~mem:(1024 * memory) [
         mkdir_p dest;
         cmd "Trinity" [

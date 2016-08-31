@@ -54,7 +54,7 @@ let phyldog
     ~threads
     ~linkdir
     ~treedir
-    (seqdir: fasta directory workflow)
+    (seqdir :fasta directory workflow)
     : phylotree directory workflow =
 
     let config_dir = dest // "Configuration" in
