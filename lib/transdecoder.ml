@@ -41,6 +41,7 @@ open Bistro_bioinfo.Std
 
 let transdecoder
   ?only_best_orf
+  ?only_top_strand
   ?pep_min_length
   ?retain_long_orfs
   ~threads
@@ -51,7 +52,7 @@ let transdecoder
         cd dest;
         script "sh" [%bistro{|
         touch tmp
-        TransDecoder.LongOrfs -t {{ dep fasta }} {{ option (opt "-m" int ) pep_min_length }}
+        TransDecoder.LongOrfs -t {{ dep fasta }} {{ option (opt "-m" int ) pep_min_length }} {{ option (flag string "-S") only_top_strand }}
         TransDecoder.Predict  -t {{ dep fasta }} --cpu {{ ident np }} {{option (flag string "--single_best_orf") only_best_orf }} {{option (opt "--retain_long_orfs" int ) retain_long_orfs}}
         mv *.cds tmp
         mv tmp orfs.cds
