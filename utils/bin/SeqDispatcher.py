@@ -330,9 +330,8 @@ for Query in QueryNames:
             Family = Target2FamilyDic[Target][0]
             if not Family in TmpFamily:
                 TmpFamily.append(Family)
-
-            if not HitDic.has_key(Family):
-                HitDic[Family] = {}
+            
+            HitDic.setdefault(Family,{})
 
             if HitDic[Family].has_key(Target):
                 HitDic[Family][Target]["Query"].append(Query)
