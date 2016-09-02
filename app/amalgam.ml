@@ -256,7 +256,7 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
   match (s.run_transdecoder,s.given_assembly) with
     | (true,false) -> let pep_min_length = 50 in
                     let retain_long_orfs = 150 in
-                    (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~memory ~threads trinity_assembly)
+                    (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly)
     | (false, _ ) -> (s, trinity_assembly)
     | (true, true) -> (s, trinity_assembly)
     )
