@@ -49,11 +49,11 @@ import ete2
 ### Set up the logger
 # create logger with 'spam_application'
 logger = logging.getLogger('ParseInput')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 # create file handler which logs even debug messages
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG) #WARN
+ch.setLevel(logging.WARNING) #WARN
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)

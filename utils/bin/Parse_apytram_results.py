@@ -43,11 +43,11 @@ import string
 ### Set up the logger
 # create logger with 'spam_application'
 logger = logging.getLogger('parse_apytram_input')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 # create file handler which logs even debug messages
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG) #WARN
+ch.setLevel(logging.WARNING) #WARN
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
