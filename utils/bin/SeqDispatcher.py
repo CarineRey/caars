@@ -485,6 +485,8 @@ for Family in ConfirmedHitDic.keys():
     #Get retained sequences
     FamilyOutputName = "%s.%s.fa" %(OutPrefixName, Family)
     TabFamilyOutputName = "%s.%s.sp2seq.txt" %(OutPrefixName, Family)
+    TabByFamilyString = []
+
     BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename, "")
     (FastaString, err) = BlastdbcmdProcess.launch()
     if err:
