@@ -316,6 +316,7 @@ BlastTable = pandas.read_csv(BlastOutputFile, sep=None, engine='python', header=
 logger.info("First Step")
 HitDic = {}
 NoHitList = []
+
 for Query in QueryNames:
     Query = Query.split()[0]
     TmpTable = BlastTable[BlastTable.qid == Query]
@@ -323,38 +324,123 @@ for Query in QueryNames:
         NoHitList.append(Query)
     else:
         TmpBestScore = max(TmpTable.score)
-        BestTarget = TmpTable.tid[TmpTable.score == TmpBestScore].values
-        TmpFamily = []
 
+        BestTargetTable = TmpTable[TmpTable.score == TmpBestScore]
+        BestTargetTable.is_copy = False
+
+        BestTarget = BestTargetTable.tid.values
+        BestTargetTable["reverse_calc"] = (BestTargetTable["qend"] - BestTargetTable["qstart"]) * (BestTargetTable["tend"] - BestTargetTable["tstart"])
+
+        BestTargetTable.loc[ BestTargetTable['reverse_calc'] >= 0, "reverse"] = False
+        BestTargetTable.loc[ BestTargetTable['reverse_calc'] < 0, 'reverse'] = True
+
+        TmpFamily = []
         for Target in BestTarget:
             Family = Target2FamilyDic[Target][0]
             if not Family in TmpFamily:
                 TmpFamily.append(Family)
-            
-            HitDic.setdefault(Family,{})
 
-            if HitDic[Family].has_key(Target):
-                HitDic[Family][Target]["Query"].append(Query)
-                HitDic[Family][Target]["Score"].append(TmpBestScore)
-            else:
-                HitDic[Family][Target] = {"Query":[Query], "Score":[TmpBestScore]}
+            HitDic.setdefault(Family, {})
+            HitDic[Family].setdefault(Target, {"Query":[], "Score":[], "Reverse":[], "Retained":[]})
+
+            HitDic[Family][Target]["Query"].append(Query)
+            HitDic[Family][Target]["Score"].append(TmpBestScore)
+            HitDic[Family][Target]["Reverse"].append(BestTargetTable.reverse[BestTargetTable.tid == Target].values[0])
 
         if len(TmpFamily) > 1:
             logger.warning("More than one family has been attributed to %s:\n\t- %s", Query, "\n\t- ".join(TmpFamily))
+            #print BestTargetTable
 
-if NoHitList:
-    logger.debug("Queries wihout blast hit:\n\t- %s", "\n\t- ".join(NoHitList))
+
+#if NoHitList:
+#    logger.debug("Queries wihout blast hit:\n\t- %s", "\n\t- ".join(NoHitList))
 
 # Second: For each family, for each target with an hit we kept hits with a score >=0.9 of the best hit
 logger.info("Second Step")
+ConfirmedHitDic = {}
 for Family in HitDic.keys():
+    ConfirmedHitDic.setdefault(Family, {"Retained":[], "To_be_reverse":[]})
     for Target in HitDic[Family]:
+        ConfirmedHitDic[Family].setdefault(Target, {"Retained":[]})
         BestScore = max(HitDic[Family][Target]["Score"])
         L = len(HitDic[Family][Target]["Score"])
         Threshold = 0.9
-        HitDic[Family][Target]["Retained"] = [HitDic[Family][Target]["Query"][i] for i in range(L) if  HitDic[Family][Target]["Score"][i] >= (Threshold*BestScore)]
+        for i in range(L):
+            if HitDic[Family][Target]["Score"][i] >= (Threshold * BestScore):
+                ConfirmedHitDic[Family][Target]["Retained"].append(HitDic[Family][Target]["Query"][i])
+                if HitDic[Family][Target]["Reverse"][i]:
+                    ConfirmedHitDic[Family]["To_be_reverse"].append(HitDic[Family][Target]["Query"][i])
 
 ### Write output file
+# usefull functions:
+def read_fasta(fasta_string):
+    if fasta_string:
+        Fasta = fasta_string.strip().split("\n")
+    else:
+        Fasta = []
+
+    name = ""
+    sequence_list = []
+    fasta_dict = {}
+
+    for line in Fasta + [">"]:
+        if re.match(">", line):
+            # This is a new sequence write the previous sequence if it exists
+            if sequence_list:
+                fasta_dict.setdefault(name, "")
+                sequence = "".join(sequence_list)
+                sequence_list = []
+                fasta_dict[name] = sequence
+            name = line.replace(">lcl|", "").strip().split()[0] # remove the ">lcl|"
+        elif name != "":
+            sequence_list.append(line)
+        else:
+            pass
+    return fasta_dict
+
+def rev_complement(Sequence_str):
+    intab = "ABCDGHMNRSTUVWXYabcdghmnrstuvwxy"
+    outtab = "TVGHCDKNYSAABWXRtvghcdknysaabwxr"
+    trantab = string.maketrans(intab, outtab)
+    # Reverse
+    Reverse = Sequence_str.replace("\n","")[::-1]
+    # Complement
+    Complement = Reverse.translate(trantab)
+    return Complement
+
+def write_fasta(fasta_dict, outfile):
+    String = []
+    Output = open(outfile, "w")
+    for (n, s) in fasta_dict.items():
+        formated_sequence = ">" + n + "\n" + '\n'.join(s[i:i+60] for i in range(0, len(s), 60)) + "\n"
+        String.append(formated_sequence)
+    Output.write("".join(String))
+    Output.close()
+
+
+def rename_fasta(fasta_dict, Family):
+    for o_k in fasta_dict.keys():
+        SeqName = "%s%s%s" %(SeqId_dic["SeqPrefix"],
+                                 string.zfill(SeqId_dic["SeqNb"],
+                                              SeqId_dic["NbFigures"]
+                                              ),
+                                 "_%s" %(Family))
+        SeqId_dic["SeqNb"] += 1
+
+        if o_k in ConfirmedHitDic[Family]["To_be_reverse"]:
+            fasta_dict[SeqName] = rev_complement(fasta_dict.pop(o_k))
+            logger.info(SeqName + ": Reversed sequence")
+        else:
+            fasta_dict[SeqName] = fasta_dict.pop(o_k)
+
+        Target = TmpDic[o_k]
+        if args.tab_out_one_file:
+            # Write in the output table query target family
+            OutputTableString.append("%s\t%s\t%s\n" %(SeqName, Target, Family))
+        if args.sp2seq_tab_out_by_family:
+            TabByFamilyString.append("%s:%s\n" %(SpeciesQuery, SeqName))
+
+
 ## Build a query database
 logger.info("Build a query database")
 QueryDatabaseName = "%s/Query_DB" %TmpDirName
@@ -381,13 +467,13 @@ OutputTableString = []
 SeqId_dic = {"SeqPrefix" : "TR%s0" %(SpeciesID),
              "SeqNb" : 1, "NbFigures" : 10}
 
-for Family in HitDic.keys():
+for Family in ConfirmedHitDic.keys():
     logger.debug("for %s", Family)
     TmpRetainedNames = []
     TmpDic = {}
     for Target in HitDic[Family]:
-        TmpRetainedNames.extend(HitDic[Family][Target]["Retained"])
-        for Query in HitDic[Family][Target]["Retained"]:
+        TmpRetainedNames.extend(ConfirmedHitDic[Family][Target]["Retained"])
+        for Query in ConfirmedHitDic[Family][Target]["Retained"]:
             TmpDic[Query] = Target
     ## Write outputs
     #Get retained sequences names
@@ -404,46 +490,24 @@ for Family in HitDic.keys():
     if err:
         end(1)
     logger.debug("blastdbcmd --- %s seconds ---", time.time() - start_blastdbcmd_time)
-    #Rename sequences:
-    NewString = []
-    TabByFamilyString = []
-    for line in FastaString.strip().split("\n"):
-        if re.match(">", line):
-            SeqName = "%s%s%s" %(SeqId_dic["SeqPrefix"],
-                                     string.zfill(SeqId_dic["SeqNb"],
-                                                  SeqId_dic["NbFigures"]
-                                                  ),
-                                     "_%s" %(Family))
-            SeqId_dic["SeqNb"] += 1
-            Name = line.replace(">lcl|", "").strip().split()[0]
-            Target = TmpDic[Name]
-            NewName = ">%s\n" %(SeqName)
-            NewString.append(NewName)
-            if args.tab_out_one_file:
-                # Write in the output table query target family
-                OutputTableString.append("%s\t%s\t%s\n" %(SeqName, Target, Family))
-            if args.sp2seq_tab_out_by_family:
-                TabByFamilyString.append("%s:%s\n" %(SpeciesQuery, SeqName))
-        else:
-            NewString.append(line + "\n")
 
-    FamilyOutput = open(FamilyOutputName, "w")
-    FamilyOutput.write("".join(NewString))
-    FamilyOutput.close()
+    #Read fasta
+    family_fasta_dict = read_fasta(FastaString)
+    #Rename sequences:
+    rename_fasta(family_fasta_dict, Family)
+
+    write_fasta(family_fasta_dict, FamilyOutputName)
 
     if args.sp2seq_tab_out_by_family:
         TabFamilyOutput = open(TabFamilyOutputName, "w")
         TabFamilyOutput.write("".join(TabByFamilyString))
         TabFamilyOutput.close()
 
-
 if args.tab_out_one_file:
     OutputTableFilename = "%s_table.tsv" %(OutPrefixName)
     OutputTableFile = open(OutputTableFilename, "w")
     OutputTableFile.write("".join(OutputTableString))
     OutputTableFile.close()
-
-
 
 logger.info("--- %s seconds ---", str(time.time() - start_time))
 
