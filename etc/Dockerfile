@@ -19,7 +19,7 @@ RUN echo "deb http://biopp.univ-montp2.fr/repos/apt/ Trusty main" >> /etc/apt/so
     wget http://biopp.univ-montp2.fr/repos/apt/conf/biopp.gpg.key; \
     apt-key add biopp.gpg.key; \
 	apt-get update ; \
-    apt-get install -qy libbpp-phyl-dev 
+    apt-get install -qy libbpp-phyl-dev
 
 ##### install phyldog
 RUN apt-get install -y cmake g++-4.9
@@ -34,10 +34,10 @@ RUN wget http://www.libpll.org/Downloads/libpll-1.0.11.tar.gz && \
 
 WORKDIR /root/usr/bin/libpll-1.0.11
 ENV CXX /usr/bin/g++-4.9
-RUN ./configure && make install 
+RUN ./configure && make install
 
 WORKDIR /opt/phyldog/build
-RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install 
+RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install
 
 ##### install fastree
 RUN apt-get install -qy fasttree  # pranck
@@ -58,27 +58,28 @@ WORKDIR /opt/TransDecoder-3.0.0/
 RUN make
 ENV PATH /opt/TransDecoder-3.0.0/:$PATH
 
-##### install opam 
+#### install opam
+WORKDIR /root/
 RUN apt-get update && apt-get install -y \
     aspcud bzip2 curl wget git  curl make m4 unzip gcc \
     pkg-config libncurses5-dev libgdbm-dev
- 
-RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /root/usr/bin 4.02.3
-ENV PATH /root/usr/bin/.opam/4.02.3/bin:$PATH
-RUN /root/usr/bin/opam init --comp 4.02.3
+
+RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /root/usr/bin 4.03.0
+ENV PATH /root/usr/bin/.opam/4.03.0/bin:$PATH
+RUN /root/usr/bin/opam init --comp 4.03.0
 
 RUN echo ". /root/usr/bin/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile
 RUN echo "export PATH=/root/usr/bin/:$PATH" >> ~/.profile
 
 
-ENV PATH /root/usr/bin/:/root/.opam/4.02.3/bin/:$PATH
-ENV CAML_LD_LIBRARY_PATH /root/.opam/4.02.3/lib/stublibs
-ENV OCAML_TOPLEVEL_PATH /root/.opam/4.02.3/lib/toplevel
-ENV MANPATH /root/.opam/4.02.3/man
-ENV PERL5LIB /root/.opam/4.02.3/lib/perl5
+ENV PATH /root/usr/bin/:/root/.opam/4.03.0/bin/:$PATH
+ENV CAML_LD_LIBRARY_PATH /root/.opam/4.03.0/lib/stublibs
+ENV OCAML_TOPLEVEL_PATH /root/.opam/4.03.0/lib/toplevel
+ENV MANPATH /root/.opam/4.03.0/man
+ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
 
-#### install bistro
-RUN opam pin add sexplib 113.00.00
+##### install bistro
+RUN opam pin add sexplib 113.33.00+4.03
 RUN opam pin add bistro --dev-repo
 
 ##### install phylomerge
