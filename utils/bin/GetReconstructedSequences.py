@@ -47,11 +47,11 @@ import re
 ### Set up the logger
 # create logger with 'spam_application'
 logger = logging.getLogger('GetReconstructedSequences')
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 # create file handler which logs even debug messages
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING) #WARN
+ch.setLevel(logging.DEBUG) #WARN
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -68,6 +68,7 @@ ali_dir = sys.argv[1]
 sp2seq_dir = sys.argv[2]
 RefinedSpecies = set(sys.argv[3].split(","))
 out_dir = sys.argv[4]
+
 
 logger.debug(ali_dir)
 logger.debug(sp2seq_dir)
@@ -157,6 +158,7 @@ def write_validated_sp2seq(Seq2Sp_dict):
 
 AliDict = {}
 for f in glob.glob("%s/*" %ali_dir):
+    print f
     AliDict = read_ali_file(f, Seq2Sp_dict, AliDict)
 
 
