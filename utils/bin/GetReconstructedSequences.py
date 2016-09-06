@@ -33,10 +33,6 @@
 # The fact that you are presently reading this means that you have had
 # knowledge of the CeCILL license and that you accept its terms.
 
-
-
-#python bin/ParseInput.py Bistro/example_2/Config_files/Config_RNA-seq.tsv Bistro/example_2/Config_files/Species_tree.nw  Bistro/example_2/Alignment_data/ Bistro/example_2/Sequences_Species_links/ Bistro/example_2/
-
 import sys
 import os
 import glob
@@ -96,7 +92,7 @@ else: # we create the directory
 Seq2Sp_dict = {}
 
 def read_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
-    fam = File.replace("fa")
+    fam = os.path.basename(File).split('.')[0]
     if os.path.isfile(File):
         f = open(File, "r")
         for line in f:
@@ -107,7 +103,7 @@ def read_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
         f.close()
     return Seq2Sp_dict
 
-for f in glob.glob("%s/*.tsv" %sp2seq_dir):
+for f in glob.glob("%s/*sp2seq.txt" %sp2seq_dir):
     Seq2Sp_dict = read_seq2species_file(Seq2Sp_dict, RefinedSpecies, f)
 
 ### Read all alignment in alignment_dir
@@ -136,12 +132,12 @@ def write_seq(AliDict):
     Fasta_File = "%s/amalgam_sequences.fa" %(out_dir)
     string = []
     for (name, seq) in AliDict.items():
-        seq = seq.replace("-", "")
+        seq = "".join(seq).replace("-", "").replace("\n", "")
         string.extend([">", name, "\n",
                        '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60))])
     
     f = open(Fasta_File, "w")
-    f.write("".join(string))
+    f.write("".join(string) + "\n")
     f.close()
         
 def write_validated_sp2seq(Seq2Sp_dict):
@@ -153,12 +149,11 @@ def write_validated_sp2seq(Seq2Sp_dict):
         String.append("%s%s%s%s%s\n" %(seq, sep, sp, sep, fam))
 
     f = open(SeqSpLink_File, "w")
-    f.write("".join(String))
+    f.write("".join(String) + "\n")
     f.close()
 
 AliDict = {}
 for f in glob.glob("%s/*" %ali_dir):
-    print f
     AliDict = read_ali_file(f, Seq2Sp_dict, AliDict)
 
 
