@@ -141,7 +141,7 @@ def write_seq(AliDict):
     f.close()
         
 def write_validated_sp2seq(Seq2Sp_dict):
-    SeqSpLink_File = "%s/amalgam_sequences.sp2seq.txt" %(out_dir)
+    SeqSpLink_File = "%s/amalgam_sequences.seq2sp2fam.txt" %(out_dir)
     String = []
     sep = "\t"
     for seq in Seq2Sp_dict.keys():
