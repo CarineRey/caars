@@ -436,7 +436,7 @@ let get_reconstructed_sequences merged_families_dirs configuration =
        let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
        workflow ~version:1 [
             mkdir_p dest;
-            cmd "GetReconstructedSequence.py"  [
+            cmd "GetReconstructedSequences.py"  [
             dep merged_families_dirs // "Merged_fasta";
             dep merged_families_dirs // "Sp2Seq_link";
             seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
