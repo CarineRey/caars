@@ -134,7 +134,7 @@ def write_seq(AliDict):
     for (name, seq) in AliDict.items():
         seq = "".join(seq).replace("-", "").replace("\n", "")
         string.extend([">", name, "\n",
-                       '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60))])
+                       '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60)),"\n"])
     
     f = open(Fasta_File, "w")
     f.write("".join(string) + "\n")

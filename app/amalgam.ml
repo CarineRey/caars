@@ -434,7 +434,7 @@ let merged_families_distributor merged_families =
 
 let get_reconstructed_sequences merged_families_dirs configuration =
        let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
-       workflow ~version:1 [
+       workflow ~version:2 [
             mkdir_p dest;
             cmd "GetReconstructedSequences.py"  [
             dep merged_families_dirs // "Merged_fasta";
