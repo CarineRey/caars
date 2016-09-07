@@ -404,7 +404,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
 
     let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
     let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
-    let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species)  in
+    let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
 
     (family, seq_integrator ~realign_ali:true ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
     )
@@ -432,6 +432,17 @@ let merged_families_distributor merged_families =
     script "bash" config
   ]
 
+let get_reconstructed_sequences merged_families_dirs configuration =
+       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
+       workflow ~version:1 [
+            mkdir_p dest;
+            cmd "GetReconstructedSequence.py"  [
+            dep merged_families_dirs // "Merged_fasta";
+            dep merged_families_dirs // "Sp2Seq_link";
+            seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
+            ident dest
+            ]
+    ]
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
     let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
@@ -511,6 +522,8 @@ let main configuration =
 
     let merged_families_dirs = merged_families_distributor merged_families in
 
+    let reconstructed_sequences = get_reconstructed_sequences merged_families_dirs configuration in
+
     let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
     let output = output_of_phyldog phyldog merged_families configuration.families in
@@ -561,7 +574,9 @@ let main configuration =
         [ "merged_families" ; fam  ] %> merged_family
         )
         ;
-      [["merged_families_dir" ] %> merged_families_dirs]
+      [["merged_families_dir"] %> merged_families_dirs]
+        ;
+      [["reconstructed_sequences"] %> reconstructed_sequences]
         ;
       [["phyldog" ] %> phyldog]
         ;
