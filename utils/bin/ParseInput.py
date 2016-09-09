@@ -123,6 +123,9 @@ for line in f:
             if not os.path.isfile(path_assembly):
                 logger.error("The given trinity assembly file %s does not exist for %s", path_assembly, rna_id)
                 sys.exit(1)
+        if path_fastq_left == path_fastq_right and path_fastq_left != "-":
+	    logger.error("Left and right fastq files are identical, check sample sheet line of %s", ran_id)
+            sys.exit(1) 
         if sp in All_Species and ref_species in All_Species:
             if run_apytram.strip() in ["y", "yes", "Y", "Yes"]:
                 RefSpApytram.extend(ref_species.split(","))
