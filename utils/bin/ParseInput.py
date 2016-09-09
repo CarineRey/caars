@@ -273,7 +273,7 @@ for f in glob.glob("%s/*" %ali_dir):
         sys.exit(1)
     # Check all sequence name in Seq2SpDict
     if not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
-        logger.error("All sequences present in %f are not in a file from %s", f, seq2sp_dir)
+        logger.error("All sequences present in %s are not in a file from %s", f, seq2sp_dir)
         sys.exit(1)
     # Check all sp in All_species and write each temporary files
     Ref_dic_trinity = {}
