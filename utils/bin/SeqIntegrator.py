@@ -165,7 +165,7 @@ else:
 
 ### Check that input files exist
 if not os.path.isfile(StartingAlignment):
-    logger.debug(StartingAlignment+" is not a file.")
+    logger.error(StartingAlignment+" is not a file.")
     end(1)
 
 StartingFastaFiles = []
