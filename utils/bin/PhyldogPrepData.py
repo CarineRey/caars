@@ -115,7 +115,7 @@ OPTDIR = args.optdir
 SP_RESDIR = args.species_tree_resdir
 GENES_RESDIR = args.gene_trees_resdir
 STARTINGTREEDIR = args.starting_tree_dir
-TREEFILE = args.species_tree_file
+TREEFILE = args.species_tree_file.replace("//","/")
 STARTINGTREE = args.startingtree
 if TREEFILE:
     TREEFILEGIVEN = True
