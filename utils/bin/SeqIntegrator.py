@@ -443,6 +443,9 @@ FinalTreeFilename = FinalFasttreeProcess.OutputTree
 if not os.path.isfile(FinalTreeFilename):
     logger.error("%s is not a file. There was an issue with the previous step.", FinalTreeFilename)
     end(1)
+if not os.path.getsize(FinalTreeFilename):
+    logger.error("%s is empty. There was an issue with the previous step.", FinalTreeFilename)
+    end(1)
 
 if args.resolve_polytomy:
     logger.info("Resolve polytomyi in %s", FinalTreeFilename)
@@ -456,6 +459,9 @@ if not os.path.isfile(FinalTreeFilename):
     logger.error("%s is not a file. There was an issue with the previous step.", FinalTreeFilename)
     end(1)
 
+if not os.path.getsize(FinalTreeFilename):
+    logger.error("%s is empty. There was an issue with the previous step.", FinalTreeFilename)
+    end(1)
 
 logger.debug("--- %s seconds ---", str(time.time() - start_time))
 end(0)
