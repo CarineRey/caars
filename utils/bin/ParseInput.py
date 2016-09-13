@@ -272,8 +272,14 @@ for f in glob.glob("%s/*" %ali_dir):
     Extention = os.path.basename(f).split('.')[1]
     Nb_Family += 1
     AliDict_i, err = read_ali_file(f)
-    if err | Extention != ".fa" | os.path.isfile("%s/%s.%s" %(ali_dir, Family, "fa")):
-        logger.error("%s is not a fasta file with Family.fa as filename ", f)
+    if  Extention != "fa":
+        logger.error("%s is not a fasta file with Family.fa as filename. (Detected extention %s)", f, Extention)
+        sys.exit(1)
+    if not os.path.isfile("%s/%s.%s" %(ali_dir, Family, "fa")):
+        logger.error("%s is not a fasta file with Family.fa as filename.(Detected file: %s/%s.%s)", f, ali_dir, Family, "fa")
+        sys.exit(1)
+    if err:
+        logger.error("%s is not a fasta file", f)
         sys.exit(1)
     # Check all sequence name in Seq2SpDict
     if not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
