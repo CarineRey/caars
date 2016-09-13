@@ -594,7 +594,7 @@ let main config_file outdir species_tree_file alignments_dir seq2sp_dir np memor
   let memory = Option.value ~default:1 memory in
   let configuration = load_configuration config_file species_tree_file alignments_dir seq2sp_dir np memory outdir in
   let target_amalgam = Amalgam.main configuration in
-  Bistro_app.local ~use_docker:false ~np:configuration.threads  ~mem:( 1024 * configuration.memory) target_amalgam ~outdir
+  Bistro_app.local ~use_docker:false ~np:configuration.threads  ~mem:(1024 * configuration.memory) target_amalgam ~outdir
 
 let spec =
   let open Command.Spec in
