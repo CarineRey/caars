@@ -180,8 +180,8 @@ module Amalgam = struct
 
 type configuration_dir = [ `configuration ] directory
 
-let parse_input { rna_conf_file ; species_tree_file ; alignments_dir ; seq2sp_dir } : configuration_dir workflow=
-       workflow ~np:1 ~version:9 [
+let parse_input { rna_conf_file ; species_tree_file ; alignments_dir ; seq2sp_dir; memory } : configuration_dir workflow=
+       workflow ~np:1 ~version:9 ~mem:(memory * 1024) [
             cmd "ParseInput.py"  [ string rna_conf_file ;
                                           string species_tree_file;
                                           string alignments_dir;
