@@ -85,7 +85,8 @@ Options.add_argument('-tmp', type=str,
                     default="")
 Options.add_argument('-log', type=str, default="SeqIntegrator.log",
                    help="a log file to report avancement (default: seq_integrator.log)")
-
+Options.add_argument('--debug', action='store_true', default=False,
+                   help="debug mode, default False")
 ### Option parsing
 args = parser.parse_args()
 
@@ -119,7 +120,10 @@ fh = logging.FileHandler(LogFile)
 fh.setLevel(logging.INFO)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING)
+if args.debug:
+    ch.setLevel(logging.DEBUG)
+else:
+    ch.setLevel(logging.WARNING)
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
