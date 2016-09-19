@@ -122,6 +122,8 @@ fh.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 if args.debug:
     ch.setLevel(logging.DEBUG)
+    fh.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 else:
     ch.setLevel(logging.WARNING)
 # create formatter and add it to the handlers
@@ -347,7 +349,7 @@ if StartingFastaFiles and Sp2SeqFiles:
         if os.path.isfile(Int1MafftProcess.InputFile):
             (out, err) = Int1MafftProcess.launch()
         else:
-            logger.error("%s is not a file. There was an issue with the previous step.", Int1MafftProcess.InputFile)
+            logger.error("%s is not a file. There was an issue with the previous step. (Phylomerge)", Int1MafftProcess.InputFile)
             end(1)
         Int1Ali = Int1MafftProcess.OutputFile
 
@@ -374,9 +376,9 @@ if StartingFastaFiles and Sp2SeqFiles:
             t = Tree(Int1TreeFilename)
             t.resolve_polytomy(recursive=True)
             t.write(format=0, outfile=Int1TreeFilename)
-        if not os.path.isfile(Int1TreeFilename):
-            logger.error("%s is not a file. There was an issue with the previous step.", Int1TreeFilename)
-            end(1)
+            if not os.path.isfile(Int1TreeFilename):
+                logger.error("%s is not a file. There was an issue with the previous step. (Resolve polytomy)", Int1TreeFilename)
+                end(1)
 
         ### Use phylomerge to merge sequence from a same species
         logger.info("Use phylomerge to merge sequence from a same species")
@@ -413,7 +415,7 @@ if StartingFastaFiles and Sp2SeqFiles:
         if os.path.isfile(FinalMafftProcess.InputFile):
             (out, err) = FinalMafftProcess.launch()
         else:
-            logger.error("%s is not a file. There was an issue with the previous step.", FinalMafftProcess.InputFile)
+            logger.error("%s is not a file. There was an issue with the previous step. (Phylomerge 2nd)", FinalMafftProcess.InputFile)
             end(1)
         LastAli = FinalMafftProcess.OutputFile
 
