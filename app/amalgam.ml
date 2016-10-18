@@ -337,7 +337,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
     )
   in
   workflow ~version:4 [
-    script "Parse_apytram_results.py" config ~args:[dest]
+    cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
   ]
 
 
@@ -417,7 +417,7 @@ let merged_families_distributor merged_families =
     mkdir_p (dest // "Merged_fasta");
     mkdir_p (dest // "Merged_tree");
     mkdir_p (dest // "Sp2Seq_link");
-    let config = Bistro.Expr.(
+    let script = Bistro.Expr.(
         List.map extension_list ~f:(fun (ext,dir) ->
             List.map  merged_families ~f:(fun (f, w) ->
                 let input = w / selector [ f ^ ext ] in
@@ -429,7 +429,7 @@ let merged_families_distributor merged_families =
         |> seq ~sep:"\n"
       )
     in
-    script "bash" config
+    cmd "bash" [ file_dump script ]
   ]
 
 let get_reconstructed_sequences merged_families_dirs configuration =
@@ -461,7 +461,7 @@ let output_of_phyldog phyldog merged_families families =
       mkdir_p (dest // "Sp2Seq_link");
       mkdir_p (dest // "Gene_trees");
       let extension_list = [(".fa","Alignments");(".sp2seq.txt","Sp2Seq_link")] in
-      let config = Bistro.Expr.(
+      let script = Bistro.Expr.(
         seq ~sep:"\n" [
           List.map extension_list ~f:(fun (ext,dir) ->
                 List.map  merged_families ~f:(fun (f, w) ->
@@ -482,7 +482,7 @@ let output_of_phyldog phyldog merged_families families =
         ]
       )
       in
-    script "bash" config;
+      cmd "bash" [ file_dump script ];
     ]
 
 let main configuration =
@@ -535,55 +535,55 @@ let main configuration =
     let target_to_sample_fasta s d = function
           | Fasta_Single_end (w, _ ) -> [[ d ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
           | Fasta_Paired_end (lw, rw , _) -> [[ d ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ d ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> lw]
-     in
-
-    List.concat [
-      [[ "configuration" ] %>  configuration_dir ]
-        ;
-      List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "raw_fasta" sample_fasta))
-        ;
-      List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "norm_fasta" norm_fasta))
-        ;
-      List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-        [ "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
-        )
-        ;
-      List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-        [ "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
-        )
-        ;
-      List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
-        [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
-        )
-        ;
-      List.map blast_dbs ~f:(fun (s,blast_db) ->
-        [ "blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
-        )
-        ;
-      List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-        [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
-        )
-        ;
-      List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
-        [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
-        )
-        ;
-      [["apytram_results" ] %> apytram_results_dir]
-        ;
-      List.map merged_families ~f:(fun (fam, merged_family) ->
-        [ "merged_families" ; fam  ] %> merged_family
-        )
-        ;
-      [["merged_families_dir"] %> merged_families_dirs]
-        ;
-      [["reconstructed_sequences"] %> reconstructed_sequences]
-        ;
-      [["phyldog" ] %> phyldog]
-        ;
-      [[ "output" ] %> output ]
-        ;
-    ]
-
+    in
+    let repo =
+      List.concat [
+        [[ "configuration" ] %>  configuration_dir ]
+          ;
+        List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "raw_fasta" sample_fasta))
+          ;
+        List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "norm_fasta" norm_fasta))
+          ;
+        List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+          [ "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+          )
+          ;
+        List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
+          [ "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+          )
+          ;
+        List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
+          [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
+          )
+          ;
+        List.map blast_dbs ~f:(fun (s,blast_db) ->
+          [ "blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
+          )
+          ;
+        List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
+          [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+          )
+          ;
+        List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
+          [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+          )
+          ;
+        [["apytram_results" ] %> apytram_results_dir]
+          ;
+        List.map merged_families ~f:(fun (fam, merged_family) ->
+          [ "merged_families" ; fam  ] %> merged_family
+          )
+          ;
+        [["merged_families_dir"] %> merged_families_dirs]
+          ;
+        [["reconstructed_sequences"] %> reconstructed_sequences]
+          ;
+        [["phyldog" ] %> phyldog]
+          ;
+        [[ "output" ] %> output ]
+          ;
+      ]
+    in repo
 
 end
 
@@ -594,7 +594,9 @@ let main config_file outdir species_tree_file alignments_dir seq2sp_dir np memor
   let memory = Option.value ~default:1 memory in
   let configuration = load_configuration config_file species_tree_file alignments_dir seq2sp_dir np memory outdir in
   let target_amalgam = Amalgam.main configuration in
-  Bistro_app.local ~use_docker:false ~np:configuration.threads  ~mem:(1024 * configuration.memory) target_amalgam ~outdir
+  Bistro_app.(
+    run ~use_docker:false ~np:configuration.threads  ~mem:(1024 * configuration.memory) (of_repo target_amalgam ~outdir)
+  )
 
 let spec =
   let open Command.Spec in

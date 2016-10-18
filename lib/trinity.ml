@@ -109,11 +109,7 @@ let fastq_read_normalization
     ?(memory = 1)
     (fastq : _ fastq workflow sample_fastq)
     : _ fastq directory workflow =
-    workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
-    mkdir_p dest;
-    mkdir_p tmp;
-    cd tmp;
-    script "sh" [%bistro{|
+  let script = [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
@@ -122,6 +118,12 @@ let fastq_read_normalization
     {{ config_output_fastq_paired_or_single fastq }}
 
     |}]
+  in
+  workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
+    mkdir_p dest;
+    mkdir_p tmp;
+    cd tmp;
+    cmd "sh" [ file_dump script ] 
     ]
 let config_fasta_paired_or_single = function
   | Fasta_Single_end (w, _ ) ->
@@ -147,11 +149,7 @@ let fasta_read_normalization
     ?(memory = 1)
     (fasta : fasta workflow sample_fasta)
     : fasta directory workflow =
-    workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
-    mkdir_p dest;
-    mkdir_p tmp ;
-    cd tmp;
-    script "sh" [%bistro{|
+  let script = [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
@@ -160,16 +158,24 @@ let fasta_read_normalization
     {{ config_output_fasta_paired_or_single fasta }}
 
     |}]
+  in
+  workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
+    mkdir_p dest;
+    mkdir_p tmp ;
+    cd tmp;
+    cmd "sh" [ file_dump script ];
     ]
 
 
 let fastool ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
-    workflow ~np:1 [
-    cmd "ls" [ dep dep_input ];
-    script "sh" [%bistro {|
+  let script = [%bistro {|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     FASTOOL_PATH=$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool
     $FASTOOL_PATH --illumina-trinity --to-fasta  {{ dep fastq }} > {{ ident dest }}
     |} ]
-    ]
+  in
+  workflow ~np:1 [
+    cmd "ls" [ dep dep_input ];
+    cmd "sh" [ file_dump script ];
+  ]

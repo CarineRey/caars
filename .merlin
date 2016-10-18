@@ -1,5 +1,6 @@
 B _build/app
 B _build/lib
+FLG -short-paths
 PKG bistro.utils
 PKG bistro.bioinfo
 PKG ppx_bistro
