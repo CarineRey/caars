@@ -5,6 +5,20 @@ open Bistro_bioinfo.Std
 open Commons
 open Configuration
 
+type output = [ `amalgam_output ] directory
+
+let alignement_fasta fam : (output, fasta) selector =
+  selector [ "Alignements" ; fam ^ ".fa" ]
+
+let gene_tree fam : (output, [`newick]) selector =
+  selector [ "Gene_trees" ; fam ^ ".tree" ]
+
+type sp2seq_link
+
+let sp2seq_link fam : (output, sp2seq_link) selector =
+  selector [ "Sp2Seq_link" ; fam ^ ".sp2seq.txt" ]
+
+
 type configuration_dir = [ `configuration ] directory
 
 let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir; memory } : configuration_dir workflow=
