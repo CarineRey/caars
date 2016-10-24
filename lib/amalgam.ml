@@ -152,7 +152,7 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir   =
           s.species
           s.id
           (configuration_dir / ref_transcriptomes / selector [ s.ref_species ^ "_transcriptome.fa" ])
-          (configuration_dir / ref_seq_fam_links / selector [ s.ref_species ^ "_Fam_Seq.fa" ])
+          (configuration_dir / ref_seq_fam_links / selector [ s.ref_species ^ "_Fam_Seq.tsv" ])
       in
       (s, r)
     )

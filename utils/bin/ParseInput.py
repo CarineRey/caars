@@ -241,7 +241,7 @@ def write_seq_ref_Trinity(Ref_dic_trinity, AliDict_i, Family):
         f.close()
 
         #Tab Seq 2 Fam:
-        FamSeqLink_File = "%s/%s_Fam_Seq.fa" %(SeqFamLinkDirPath, sp)
+        FamSeqLink_File = "%s/%s_Fam_Seq.tsv" %(SeqFamLinkDirPath, sp)
         string = []
         for name in Ref_dic_trinity[sp]:
             string.extend([name, "\t", Family, "\n"])
