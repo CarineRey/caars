@@ -79,7 +79,6 @@ ENV MANPATH /root/.opam/4.03.0/man
 ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
 
 ##### install bistro
-RUN opam pin add sexplib 113.33.00+4.03
 RUN opam pin add bistro --dev-repo
 
 ##### install phylomerge
