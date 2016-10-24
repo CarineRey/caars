@@ -112,7 +112,6 @@ TargetFile = args.ref_transcriptome
 Target2FamilyFilename = args.ref_transcriptome2family
 
 Evalue = args.evalue
-Threads = args.threads
 
 ### Set up the log directory
 if args.log:
@@ -284,11 +283,10 @@ else:
 logger.info("Blast the query fasta on the target database")
 start_blast_time = time.time()
 BlastOutputFile = "%s/Queries_Targets.blast" % (TmpDirName)
-BlastnProcess = BlastPlus.Blast("blastn", DatabaseName, QueryFile)
+BlastnProcess = BlastPlus.Blast("blastn", DatabaseName, FastaFile)
 BlastnProcess.Evalue = Evalue
 BlastnProcess.Task = "megablast"
 BlastnProcess.max_target_seqs = 500
-BlastnProcess.Threads = Threads
 BlastnProcess.OutFormat = "6"
 # Write blast ouptut in BlastOutputFile if the file does not exist
 if not os.path.isfile(BlastOutputFile):
@@ -309,14 +307,14 @@ logger.debug("blast --- %s seconds ---", str(time.time() - start_blast_time))
 FieldNames = ["qid", "tid", "id", "alilen", "mis", "gap", "qstart", "qend", "tstart", "tend", "evalue", "score"]
 BlastTable = pandas.read_csv(BlastOutputFile, sep=None, engine='python', header=None, names=FieldNames)
 
-# First: Find the best hit for each Query sequences and create a Hit dictonary
+# First: Find the best hit for each Query sequences and create a Hit dictionary
 logger.info("First Step")
 HitDic = {}
 NoHitList = []
 
 for Query in QueryNames:
     Query = Query.split()[0]
-    TmpTable = BlastTable[BlastTable.qid == Query]
+    TmpTable = BlastTable[BlastTable.qid == Query].sort(["score"], ascending=[0])
     if not len(TmpTable.index):
         NoHitList.append(Query)
     else:
@@ -440,12 +438,12 @@ def rename_fasta(fasta_dict, Family):
 ## Build a query database
 logger.info("Build a query database")
 QueryDatabaseName = "%s/Query_DB" %TmpDirName
-if not os.path.isfile(QueryFile):
+if not os.path.isfile(FastaFile):
     logger.error("The query fasta file (-q) does not exist.")
     end(1)
 # database building
 logger.info(QueryDatabaseName + " database building")
-MakeblastdbProcess = BlastPlus.Makeblastdb(QueryFile, QueryDatabaseName)
+MakeblastdbProcess = BlastPlus.Makeblastdb(FastaFile, QueryDatabaseName)
 ExitCode = MakeblastdbProcess.launch()
 
 CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, "", "")
