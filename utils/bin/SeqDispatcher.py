@@ -74,7 +74,7 @@ requiredOptions.add_argument('-d', '--database', type=str,
                              help='''Database prefix name of the ref transcriptome fasta file.
                               If a database with the same name already exists,
                               the existing database will be kept and the database will NOT be rebuilt.
-                              (default=: The database will be buil in the temporary directory and will be remove at the end.)''',
+                              (default=: The database will be build in the temporary directory and will be remove at the end.)''',
                               required=False)
 requiredOptions.add_argument('-t2f', '--ref_transcriptome2family', type=str,
                              help='Link file name. A tabular file, each line correspond to a sequence name and its family. ', required=True)
@@ -92,22 +92,22 @@ requiredOptions.add_argument('--tab_out_one_file', action='store_true', default=
 ##############
 Options = parser.add_argument_group('Options')
 Options.add_argument('-e', '--evalue', type=float,
-                    help="Evalue threshold of the blastn of the queries on the database of the ref transcriptome. (default= 1e-3)",
-                    default=1e-3)
+                     help="Evalue threshold of the blastn of the queries on the database of the ref transcriptome. (default= 1e-3)",
+                     default=1e-3)
 
 Options.add_argument('-tmp', type=str,
-                    help="Directory to stock all intermediary files for the apytram run. (default=: a directory in /tmp which will be removed at the end)",
-                    default="")
+                     help="Directory to stock all intermediary files for the apytram run. (default=: a directory in /tmp which will be removed at the end)",
+                     default="")
 Options.add_argument('-log', type=str, default="seq_dispatcher.log",
-                   help="a log file to report avancement (default=: seq_dispatcher.log)")
+                     help="a log file to report avancement (default=: seq_dispatcher.log)")
 ##############
 
 
 ##############
 MiscellaneousOptions = parser.add_argument_group('Miscellaneous options')
 MiscellaneousOptions.add_argument('-threads', type=int,
-                    help="Number of available threads. (default= 1)",
-                    default=1)
+                                  help="Number of available threads. (default= 1)",
+                                  default=1)
 ##############
 
 ### Option parsing
@@ -298,8 +298,8 @@ if not os.path.isfile(BlastOutputFile):
     (out, err) = BlastnProcess.launch(BlastOutputFile)
     if err:
         end(1)
-else:
-    logger.warn("%s has already been created, it will be used", BlastOutputFile)
+    else:
+        logger.warn("%s has already been created, it will be used", BlastOutputFile)
 
 if not os.stat(BlastOutputFile).st_size:
     logger.debug("Blast found no hit")
@@ -440,7 +440,6 @@ def rename_fasta(fasta_dict, Family):
         if args.sp2seq_tab_out_by_family:
             TabByFamilyString.append("%s:%s\n" %(SpeciesQuery, SeqName))
 
-
 ## Build a query database
 logger.info("Build a query database")
 QueryDatabaseName = "%s/Query_DB" %TmpDirName
@@ -459,7 +458,6 @@ if not CheckDatabase_BlastdbcmdProcess.is_database():
     end(1)
 else:
     logger.info("Database %s exists", QueryDatabaseName)
-
 
 ## Third step: For each family, write a fasta which contained all retained family
 logger.info("Write output files")
