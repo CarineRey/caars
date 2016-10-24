@@ -168,6 +168,27 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
         (s, f, apytram_result_fasta)
     )
 
+let checkfamily ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
+  workflow ~version:1 [
+    mkdir_p tmp;
+    cmd "CheckFamily.py"  [
+      opt "-tmp" ident tmp ;
+      opt "-i" dep input ;
+      opt "-t" dep ref_transcriptome ;
+      opt "-f" string family;
+      opt "-t2f" dep seq2fam;
+      opt "-o" ident dest;
+    ]
+  ]
+
+let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir =
+  List.map apytram_orfs_ref_fams ~f:(fun (s, f, apytram_orfs_fasta) ->
+    let input = apytram_orfs_fasta in
+    let ref_transcriptome = configuration_dir / ref_transcriptomes / selector [ s.ref_species ^ "_transcriptome.fa" ] in
+    let seq2fam = configuration_dir / ref_seq_fam_links / selector [ s.ref_species ^ "_Fam_Seq.tsv" ] in
+    let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam in
+    (s, f, checked_families_fasta)
+    )
 
 let parse_apytram_results apytram_annotated_ref_fams =
   let config = Bistro.Expr.(
@@ -180,7 +201,6 @@ let parse_apytram_results apytram_annotated_ref_fams =
   workflow ~version:4 [
     cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
   ]
-
 
 
 let seq_integrator
@@ -360,7 +380,9 @@ let build_app configuration =
 
   let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams divided_memory in
 
-  let apytram_results_dir = parse_apytram_results apytram_orfs_ref_fams in
+  let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir in
+
+  let apytram_results_dir = parse_apytram_results apytram_checked_families in
 
   let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
 
@@ -427,5 +449,5 @@ let build_app configuration =
       [[ "output" ] %> output ]
       ;
     ]
-  in 
+  in
   Bistro_app.of_repo repo ~outdir:configuration.outdir
