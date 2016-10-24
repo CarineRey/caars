@@ -3,7 +3,7 @@
 
 # File: SeqDispatcher.py
 # Created by: Carine Rey
-# Created on: March 2016
+# Created on: October 2016
 #
 #
 # Copyright 2016 Carine Rey
@@ -53,23 +53,20 @@ import BlastPlus
 start_time = time.time()
 
 ### Option defining
-parser = argparse.ArgumentParser(prog="SeqDispatcher.py",
+parser = argparse.ArgumentParser(prog="CheckFamily.py",
                                  description='''
-    Attribute a family to a list of sequences according to a given target
-    sequences list wich have an asocciated family. ''')
+    Check all sequences of a fasta file are associated with a unique family, else remove them.''')
 parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 
 
 ##############
 requiredOptions = parser.add_argument_group('Required arguments')
-requiredOptions.add_argument('-q', '--query', type=str,
-                             help='Query fasta file name.', required=True)
-requiredOptions.add_argument('-qs', '--query_species', type=str,
-                             help='query species', required=True)
-requiredOptions.add_argument('-qid', '--query_id', type=str,
-                             help='query unique id', required=True)
+requiredOptions.add_argument('-i', '--input', type=str,
+                             help='fasta file name.', required=True)
 requiredOptions.add_argument('-t', '--ref_transcriptome', type=str,
                              help='Target fasta file name', required=True)
+requiredOptions.add_argument('-f', '--family', type=str,
+                             help='family name', required=True)
 requiredOptions.add_argument('-d', '--database', type=str,
                              help='''Database prefix name of the ref transcriptome fasta file.
                               If a database with the same name already exists,
@@ -78,14 +75,11 @@ requiredOptions.add_argument('-d', '--database', type=str,
                               required=False)
 requiredOptions.add_argument('-t2f', '--ref_transcriptome2family', type=str,
                              help='Link file name. A tabular file, each line correspond to a sequence name and its family. ', required=True)
-requiredOptions.add_argument('-out', '--output_prefix', type=str, default="./output",
-                   help="Output prefix (default= ./output)")
-
-requiredOptions.add_argument('--sp2seq_tab_out_by_family', action='store_true', default=False,
-                   help="Return one file by family  (Seq:species)")
+requiredOptions.add_argument('-o', '--output', type=str, default="./output.fa",
+                   help="Output name (default= ./output.fa)")
 
 requiredOptions.add_argument('--tab_out_one_file', action='store_true', default=False,
-                   help="Return one tabulated file (Seq species family)")
+                   help="Return one tabulated file of removed seqs (Seq expected_family observed_family)")
 ##############
 
 
@@ -98,16 +92,13 @@ Options.add_argument('-e', '--evalue', type=float,
 Options.add_argument('-tmp', type=str,
                      help="Directory to stock all intermediary files for the job. (default=: a directory in /tmp which will be removed at the end)",
                      default="")
-Options.add_argument('-log', type=str, default="seq_dispatcher.log",
-                     help="a log file to report avancement (default=: seq_dispatcher.log)")
+Options.add_argument('-log', type=str, default="checkfamily.log",
+                     help="a log file to report avancement (default=: checkfamily.log)")
 ##############
 
 
 ##############
 MiscellaneousOptions = parser.add_argument_group('Miscellaneous options')
-MiscellaneousOptions.add_argument('-threads', type=int,
-                                  help="Number of available threads. (default= 1)",
-                                  default=1)
 MiscellaneousOptions.add_argument('--debug', action='store_true', default=False,
                    help="debug mode, default False")
 ##############
@@ -116,9 +107,7 @@ MiscellaneousOptions.add_argument('--debug', action='store_true', default=False,
 args = parser.parse_args()
 
 ### Read arguments
-QueryFile = args.query
-SpeciesQuery = args.query_species
-SpeciesID = args.query_id
+FastaFile = args.input
 TargetFile = args.ref_transcriptome
 Target2FamilyFilename = args.ref_transcriptome2family
 
@@ -165,7 +154,7 @@ if args.tmp:
         os.makedirs(args.tmp)
     TmpDirName = args.tmp
 else:
-    TmpDirName = tempfile.mkdtemp(prefix='tmp_SeqDispatcher')
+    TmpDirName = tempfile.mkdtemp(prefix='checkfamily')
 
 def end(exit_code):
     ### Remove tempdir if the option --tmp have not been use
@@ -177,21 +166,21 @@ def end(exit_code):
     sys.exit(exit_code)
 
 ### Set up the output directory
-if args.output_prefix and os.path.dirname(args.output_prefix):
-    OutDirName = os.path.dirname(args.output_prefix)
-    OutPrefixName = args.output_prefix
+if args.output and os.path.dirname(args.output):
+    OutDirName = os.path.dirname(args.output)
+    OutName = args.output
     if os.path.isdir(OutDirName):
-        logger.info("The output directory %s exists", os.path.dirname(args.output_prefix))
+        logger.info("The output directory %s exists", os.path.dirname(args.output))
     elif OutDirName: # if OutDirName is not a empty string we create the directory
-        logger.info("The output directory %s does not exist, it will be created", os.path.dirname(args.output_prefix))
-        os.makedirs(os.path.dirname(args.output_prefix))
+        logger.info("The output directory %s does not exist, it will be created", os.path.dirname(args.output))
+        os.makedirs(os.path.dirname(args.output))
 else:
     logger.error("The output prefix must be defined")
     end(1)
 
 ### Check that input files exist
-if not os.path.isfile(args.query):
-    logger.error(args.query + " (-q) is not a file.")
+if not os.path.isfile(args.input):
+    logger.error(args.input + " (-q) is not a file.")
     end(1)
 
 if not os.path.isfile(args.ref_transcriptome):
@@ -205,7 +194,7 @@ if not os.path.isfile(args.ref_transcriptome2family):
 ### Parse input fasta files
 ## Get query names
 logger.info("Get query names")
-BashProcess = subprocess.Popen(["grep", "-e", "^>", args.query],
+BashProcess = subprocess.Popen(["grep", "-e", "^>", args.input],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
 OutBashProcess = BashProcess.communicate()
@@ -339,8 +328,8 @@ for Query in QueryNames:
         BestTarget = BestTargetTable.tid.values
         BestTargetTable["reverse_calc"] = (BestTargetTable["qend"] - BestTargetTable["qstart"]) * (BestTargetTable["tend"] - BestTargetTable["tstart"])
 
-        BestTargetTable.loc[BestTargetTable['reverse_calc'] >= 0, "reverse"] = False
-        BestTargetTable.loc[BestTargetTable['reverse_calc'] < 0, 'reverse'] = True
+        BestTargetTable.loc[ BestTargetTable['reverse_calc'] >= 0, "reverse"] = False
+        BestTargetTable.loc[ BestTargetTable['reverse_calc'] < 0, 'reverse'] = True
 
         TmpFamily = []
         for Target in BestTarget:
@@ -411,7 +400,7 @@ def rev_complement(Sequence_str):
     outtab = "TVGHCDKNYSAABWXRtvghcdknysaabwxr"
     trantab = string.maketrans(intab, outtab)
     # Reverse
-    Reverse = Sequence_str.replace("\n", "")[::-1]
+    Reverse = Sequence_str.replace("\n","")[::-1]
     # Complement
     Complement = Reverse.translate(trantab)
     return Complement
