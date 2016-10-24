@@ -79,6 +79,8 @@ ENV MANPATH /root/.opam/4.03.0/man
 ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
 
 ##### install bistro
+RUN opam pin add oasis 0.4.6
+RUN opam install ocamlgraph
 RUN opam pin add bistro --dev-repo
 
 ##### install phylomerge
@@ -90,6 +92,9 @@ ENV PATH /opt/phylomerge:$PATH
 #### install amalgam
 RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
 WORKDIR /usr/local/amalgam/
+
+RUN git fetch origin && git checkout -b html-output origin/html-output
+
 RUN make
 ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
 ENV PYTHONPATH /usr/local/amalgam/utils/lib
