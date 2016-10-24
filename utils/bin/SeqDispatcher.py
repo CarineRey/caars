@@ -108,6 +108,8 @@ MiscellaneousOptions = parser.add_argument_group('Miscellaneous options')
 MiscellaneousOptions.add_argument('-threads', type=int,
                                   help="Number of available threads. (default= 1)",
                                   default=1)
+MiscellaneousOptions.add_argument('--debug', action='store_true', default=False,
+                   help="debug mode, default False")
 ##############
 
 ### Option parsing
@@ -136,10 +138,16 @@ logger = logging.getLogger("main")
 logger.setLevel(logging.INFO)
 # create file handler which logs even debug messages
 fh = logging.FileHandler(LogFile)
-fh.setLevel(logging.INFO)
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING)
+if args.debug:
+    logger.setLevel(logging.DEBUG)
+    ch.setLevel(logging.DEBUG)
+    fh.setLevel(logging.DEBUG)
+else:
+    ch.setLevel(logging.WARNING)
+    fh.setLevel(logging.INFO)
+
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(formatter)
