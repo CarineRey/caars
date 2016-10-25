@@ -296,8 +296,10 @@ BlastnProcess = BlastPlus.Blast("blastn", DatabaseName, QueryFile)
 BlastnProcess.Evalue = Evalue
 BlastnProcess.Task = "megablast"
 BlastnProcess.max_target_seqs = 500
+BlastnProcess.max_hsps_per_subject = 1
 BlastnProcess.Threads = Threads
 BlastnProcess.OutFormat = "6"
+
 # Write blast ouptut in BlastOutputFile if the file does not exist
 if not os.path.isfile(BlastOutputFile):
     (out, err) = BlastnProcess.launch(BlastOutputFile)
