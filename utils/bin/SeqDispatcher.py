@@ -92,8 +92,8 @@ requiredOptions.add_argument('--tab_out_one_file', action='store_true', default=
 ##############
 Options = parser.add_argument_group('Options')
 Options.add_argument('-e', '--evalue', type=float,
-                     help="Evalue threshold of the blastn of the queries on the database of the ref transcriptome. (default= 1e-3)",
-                     default=1e-3)
+                     help="Evalue threshold of the blastn of the queries on the database of the ref transcriptome. (default= 1e-6)",
+                     default=1e-6)
 
 Options.add_argument('-tmp', type=str,
                      help="Directory to stock all intermediary files for the job. (default=: a directory in /tmp which will be removed at the end)",
