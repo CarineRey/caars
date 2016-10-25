@@ -76,8 +76,10 @@ class Blast(object):
         self.OutFormat = 8
         self.Evalue = 10
         self.max_target_seqs = 1000000000
+        self.max_hsps_per_subject = 0
         self.perc_identity = 0
         self.Task = ""
+        self.Strand = ""
 
     def launch(self, OutputFile):
         if self.Program in ["blastn", "blastx", "tblastn", "tblastx"]:
@@ -93,8 +95,15 @@ class Blast(object):
                 command.extend(
                 ["-perc_identity", str(self.perc_identity)]
                 )
+            if self.max_hsps_per_subject:
+                command.extend(
+                ["-max_hsps_per_subject", str(self.max_hsps_per_subject)]
+                )
             if self.Task:
                 command.extend(["-task", self.Task])
+
+            if self.Strand in ["both", "plus", "minus"]:
+                command.extend(["-strand", self.Task])
 
             self.logger.debug(" ".join(command))
             p = subprocess.Popen(command,
