@@ -365,6 +365,7 @@ for Query in QueryNames:
 
 # Second: For each family, for each target with an hit we kept hits with a score >=0.9 of the best hit
 logger.info("Second Step")
+Threshold = 0.9
 ConfirmedHitDic = {}
 for Family in HitDic.keys():
     ConfirmedHitDic.setdefault(Family, {"Retained":[], "To_be_reverse":[]})
@@ -372,7 +373,6 @@ for Family in HitDic.keys():
         ConfirmedHitDic[Family].setdefault(Target, {"Retained":[]})
         BestScore = max(HitDic[Family][Target]["Score"])
         L = len(HitDic[Family][Target]["Score"])
-        Threshold = 0.9
         for i in range(L):
             if HitDic[Family][Target]["Score"][i] >= (Threshold * BestScore):
                 ConfirmedHitDic[Family][Target]["Retained"].append(HitDic[Family][Target]["Query"][i])
