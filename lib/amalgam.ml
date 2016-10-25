@@ -197,6 +197,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
 let checkfamily ?ref_db ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
   workflow ~version:1 [
     mkdir_p tmp;
+    cd tmp;
     cmd "CheckFamily.py"  [
       opt "-tmp" ident tmp ;
       opt "-i" dep input ;
