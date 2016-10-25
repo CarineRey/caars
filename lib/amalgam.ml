@@ -110,6 +110,13 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
       | (true, true) -> (s, trinity_assembly)
     )
 
+
+let assemblies_stats_of_fasta =
+  List.map  ~f:(fun (s,assembly) ->
+  (s, Trinity.assembly_stats assembly)
+  )
+
+
 let concat = function
   | [] -> raise (Invalid_argument "fastX concat: empty list")
   | x :: [] -> x
@@ -372,7 +379,11 @@ let build_app configuration =
 
   let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration in
 
-  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir trinity_orfs in
+  let trinity_assemblies_stats = assemblies_stats_of_fasta trinity_assemblies in
+
+  let trinity_orfs_stats = assemblies_stats_of_fasta trinity_orfs in
+
+  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs trinity_orfs in
 
   let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 
@@ -390,7 +401,7 @@ let build_app configuration =
 
   let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams divided_memory in
 
-  let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir in
+  let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
   let apytram_results_dir = parse_apytram_results apytram_checked_families in
 
@@ -426,6 +437,14 @@ let build_app configuration =
       ;
       List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
           [ "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+        )
+      ;
+      List.map trinity_assemblies_stats ~f:(fun (s,trinity_assembly_stats) ->
+          [ "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
+        )
+      ;
+      List.map trinity_orfs_stats ~f:(fun (s,trinity_orfs_stats) ->
+          [ "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
         )
       ;
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
