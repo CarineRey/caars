@@ -48,6 +48,8 @@ let transdecoder
   ?(memory = 1)
   (fasta:fasta workflow) : fasta workflow =
   let script = [%bistro{|
+        if ! [ -x "$(command -v TransDecoder.LongOrfs)" ]; then   echo 'Transdecoder.LongOrfs is not installed.' >&2; exit 1; fi
+        if ! [ -x "$(command -v TransDecoder.Predict)" ]; then   echo 'TransDecoder.Predict is not installed.' >&2; exit 1; fi
         touch tmp
         TransDecoder.LongOrfs -t {{ dep fasta }} {{ option (opt "-m" int ) pep_min_length }} {{ option (flag string "-S") only_top_strand }}
         TransDecoder.Predict  -t {{ dep fasta }} --cpu {{ ident np }} {{option (flag string "--single_best_orf") only_best_orf }} {{option (opt "--retain_long_orfs" int ) retain_long_orfs}}
