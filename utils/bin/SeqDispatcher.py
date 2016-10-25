@@ -228,10 +228,7 @@ else:
     logger.error(OutBashProcess[1])
     end(1)
 
-### Parse the ref_transcriptome2family, create dictionnaries target2family and family2target
-Target2FamilyDic = {}
-Family2TargetDic = {}
-
+### Parse the ref_transcriptome2family
 Target2FamilyTable = pandas.read_csv(Target2FamilyFilename,
                                       sep=None, engine='python',
                                       header=None,
@@ -252,9 +249,9 @@ if len(Target2FamilyTable['Target']) != len(Target2FamilyTable['Target'].unique(
 Target2FamilyDic = Target2FamilyTable.set_index('Target').T.to_dict('list')
 
 
-for family in Target2FamilyTable['Family'].unique():
-    Family2TargetDic[family] = Target2FamilyTable['Target'][Target2FamilyTable['Family'] == family].values
-    #print "Family: %s\tNumber of targets: %s" %(family, len(Target2FamilyTable.Target[Target2FamilyTable['Family'] == family]))
+#for family in Target2FamilyTable['Family'].unique():
+#    Family2TargetDic[family] = Target2FamilyTable['Target'][Target2FamilyTable['Family'] == family].values
+#    #print "Family: %s\tNumber of targets: %s" %(family, len(Target2FamilyTable.Target[Target2FamilyTable['Family'] == family]))
 
 
 ### Check that there is a target database, otherwise build it
