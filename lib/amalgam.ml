@@ -127,12 +127,13 @@ let concat = function
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
-let parse_seqids = true
-let dbtype = "nucl"
+
 
 let blast_dbs_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
       if s.run_apytram then
+        let parse_seqids = true in
+        let dbtype = "nucl" in
         let fasta_to_norm_fasta_sample = function
           | Fasta_Single_end (w, _ ) -> w
           | Fasta_Paired_end (lw, rw , _) -> concat [ lw ; rw ]
