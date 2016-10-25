@@ -43,6 +43,14 @@ let ref_fams species family =
 let ali_species2seq_links family =
   selector ["Alignments_Species2Sequences" ; "alignments." ^  family ^ ".sp2seq.txt" ]
 
+let ref_blast_dbs_of_configuration_dir {all_ref_species} configuration_dir =
+  List.map all_ref_species ~f:(fun ref_species ->
+    let fasta = configuration_dir / ref_transcriptomes ref_species in
+    let parse_seqids = true in
+    let dbtype = "nucl" in
+    (ref_species, BlastPlus.makeblastdb ~parse_seqids ~dbtype  ("DB_" ^ ref_species) fasta)
+    )
+
 
 let fastq_to_fasta_conversion {all_ref_samples} dep_input =
   List.filter_map all_ref_samples ~f:(fun s ->
@@ -354,6 +362,8 @@ let build_app configuration =
 
   let configuration_dir = parse_input configuration in
 
+  let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
+
   let fasta_reads = fastq_to_fasta_conversion configuration configuration_dir in
 
   let norm_fasta = normalize_fasta fasta_reads configuration in
@@ -420,6 +430,10 @@ let build_app configuration =
       ;
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
           [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
+        )
+      ;
+       List.map ref_blast_dbs ~f:(fun (ref_species, blast_db) ->
+          [ "ref_blast_db" ; ref_species ] %> blast_db
         )
       ;
       List.map blast_dbs ~f:(fun (s,blast_db) ->

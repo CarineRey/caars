@@ -20,6 +20,7 @@ type t = {
   apytram_samples: rna_sample list ;
   trinity_samples : rna_sample list ;
   all_ref_samples : rna_sample list ;
+  all_ref_species : string list ;
   families : string list;
   sample_sheet : string ;
   species_tree_file : string ;
@@ -113,6 +114,14 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   let config_rna_seq = parse_rna_conf_file sample_sheet in
   let filter_samples f = List.filter config_rna_seq ~f in
   let id_list = List.map config_rna_seq ~f:(fun s -> s.id) in
+  let filter_ref_species = List.filter_map config_rna_seq ~f:(fun s ->
+      if (s.run_apytram || s.run_trinity) then
+        Some s.ref_species
+      else
+        None
+    )
+  in
+
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
   else if Filename.is_relative species_tree_file then
@@ -123,6 +132,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       apytram_samples = filter_samples (fun s -> s.run_apytram);
       trinity_samples = filter_samples (fun s -> s.run_trinity);
       all_ref_samples = filter_samples (fun s -> s.run_apytram || s.run_trinity);
+      all_ref_species = filter_ref_species;
       families = families_of_alignments_dir alignments_dir;
       sample_sheet ;
       species_tree_file ;
