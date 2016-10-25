@@ -7,6 +7,8 @@ open Configuration
 
 type output = [ `amalgam_output ] directory
 
+type tabular
+
 let alignement_fasta fam : (output, fasta) selector =
   selector [ "Alignements" ; fam ^ ".fa" ]
 
@@ -31,11 +33,11 @@ let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir
                          ]
   ]
 
-let ref_transcriptomes : (configuration_dir, fasta) selector =
-  selector ["R_Sp_transcriptomes"]
+let ref_transcriptomes species : (configuration_dir, fasta) selector =
+  selector ["R_Sp_transcriptomes" ;  species ^ "_transcriptome.fa" ]
 
-let ref_seq_fam_links =
-  selector ["R_Sp_Seq_Fam_links"]
+let ref_seq_fam_links species : (configuration_dir, tabular) selector =
+  selector ["R_Sp_Seq_Fam_links";  species ^ "_Fam_Seq.tsv"  ]
 
 let ref_fams species family =
   selector ["R_Sp_Gene_Families"; species ^ "." ^ family ^ ".fa"]
