@@ -319,6 +319,9 @@ logger.debug("blast --- %s seconds ---", str(time.time() - start_blast_time))
 FieldNames = ["qid", "tid", "id", "alilen", "mis", "gap", "qstart", "qend", "tstart", "tend", "evalue", "score"]
 BlastTable = pandas.read_csv(BlastOutputFile, sep=None, engine='python', header=None, names=FieldNames)
 
+# Get Family for each Target:
+BlastTableWithFamilies = pandas.merge(BlastTable, Target2FamilyTable, how='left', left_on=['tid'], right_on=['Target'])
+
 # First: Find the best hit for each Query sequences and create a Hit dictonary
 logger.info("First Step")
 HitDic = {}
@@ -326,7 +329,7 @@ NoHitList = []
 
 for Query in QueryNames:
     Query = Query.split()[0]
-    TmpTable = BlastTable[BlastTable.qid == Query]
+    TmpTable = BlastTableWithFamilies[BlastTable.qid == Query]
     if not len(TmpTable.index):
         NoHitList.append(Query)
     else:
@@ -341,22 +344,20 @@ for Query in QueryNames:
         BestTargetTable.loc[BestTargetTable['reverse_calc'] >= 0, "reverse"] = False
         BestTargetTable.loc[BestTargetTable['reverse_calc'] < 0, 'reverse'] = True
 
-        TmpFamily = []
-        for Target in BestTarget:
-            Family = Target2FamilyDic[Target][0]
-            if not Family in TmpFamily:
-                TmpFamily.append(Family)
-
-            HitDic.setdefault(Family, {})
-            HitDic[Family].setdefault(Target, {"Query":[], "Score":[], "Reverse":[], "Retained":[]})
-
-            HitDic[Family][Target]["Query"].append(Query)
-            HitDic[Family][Target]["Score"].append(TmpBestScore)
-            HitDic[Family][Target]["Reverse"].append(BestTargetTable.reverse[BestTargetTable.tid == Target].values[0])
+        TmpFamily = BestTargetTable["Family"].unique()
 
         if len(TmpFamily) > 1:
-            logger.warning("More than one family has been attributed to %s:\n\t- %s", Query, "\n\t- ".join(TmpFamily))
-            #print BestTargetTable
+            logger.info("More than one family can be attributed to %s:\n\t- %s\nIt will be discarded.", Query, "\n\t- ".join(TmpFamily))
+        else:
+            Family = TmpFamily[0]
+            for Target in BestTarget:
+
+                HitDic.setdefault(Family, {})
+                HitDic[Family].setdefault(Target, {"Query":[], "Score":[], "Reverse":[], "Retained":[]})
+
+                HitDic[Family][Target]["Query"].append(Query)
+                HitDic[Family][Target]["Score"].append(TmpBestScore)
+                HitDic[Family][Target]["Reverse"].append(BestTargetTable.reverse[BestTargetTable.tid == Target].values[0])
 
 
 #if NoHitList:
