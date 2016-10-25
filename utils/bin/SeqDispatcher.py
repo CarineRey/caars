@@ -386,7 +386,6 @@ def read_fasta(fasta_string):
         Fasta = fasta_string.strip().split("\n")
     else:
         Fasta = []
-
     name = ""
     sequence_list = []
     fasta_dict = {}
