@@ -142,6 +142,8 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+logger.info(" ".join(sys.argv))
+
 ### Set up the working directory
 if args.tmp:
     if os.path.isdir(args.tmp):
@@ -215,9 +217,6 @@ else:
     end(1)
 
 ### Parse the ref_transcriptome2family, create dictionnaries target2family and family2target
-Target2FamilyDic = {}
-Family2TargetDic = {}
-
 Target2FamilyTable = pandas.read_csv(Target2FamilyFilename,
                                       sep=None, engine='python',
                                       header=None,
@@ -235,13 +234,6 @@ if MissingTargets:
 if len(Target2FamilyTable['Target']) != len(Target2FamilyTable['Target'].unique()):
     logger.error("There are not unique target names")
     end(1)
-Target2FamilyDic = Target2FamilyTable.set_index('Target').T.to_dict('list')
-
-
-for family in Target2FamilyTable['Family'].unique():
-    Family2TargetDic[family] = Target2FamilyTable['Target'][Target2FamilyTable['Family'] == family].values
-    #print "Family: %s\tNumber of targets: %s" %(family, len(Target2FamilyTable.Target[Target2FamilyTable['Family'] == family]))
-
 
 ### Check that there is a target database, otherwise build it
 logger.info("Check that there is a target database, otherwise build it")
@@ -283,21 +275,24 @@ start_blast_time = time.time()
 BlastOutputFile = "%s/Queries_Targets.blast" % (TmpDirName)
 BlastnProcess = BlastPlus.Blast("blastn", DatabaseName, FastaFile)
 BlastnProcess.Evalue = Evalue
-BlastnProcess.Task = "megablast"
-BlastnProcess.max_target_seqs = 500
+BlastnProcess.Task = "blastn"
+BlastnProcess.max_target_seqs = 100
+BlastnProcess.max_hsps_per_subject = 1
 BlastnProcess.OutFormat = "6"
 BlastnProcess.Strand="plus"
 
+# Write an empty output file to be sure
+OutputFile = open(OutputFasta, "w")
+OutputFile.write("")
+OutputFile.close()
+
 # Write blast ouptut in BlastOutputFile if the file does not exist
-if not os.path.isfile(BlastOutputFile):
-    (out, err) = BlastnProcess.launch(BlastOutputFile)
-    if err:
-        end(1)
-    else:
-        logger.warn("%s has already been created, it will be used", BlastOutputFile)
+(out, err) = BlastnProcess.launch(BlastOutputFile)
+if err:
+    end(1)
 
 if not os.stat(BlastOutputFile).st_size:
-    logger.debug("Blast found no hit")
+    logger.info("Blast found no hit")
     end(0)
 
 logger.debug("blast --- %s seconds ---", str(time.time() - start_blast_time))
@@ -335,8 +330,11 @@ for Query in QueryNames:
         else:
             RetainedQuery.extend(BestTargetTable.qid.values)
 
-### Second : Build a query database
 
+if not RetainedQuery:
+    end(0)
+
+### Second : Build a query database
 # Build a query database
 logger.info("Build a query database")
 QueryDatabaseName = "%s/Query_DB" %TmpDirName

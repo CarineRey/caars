@@ -146,7 +146,7 @@ let blast_dbs_of_norm_fasta norm_fasta =
 
 
 let seq_dispatcher ?s2s_tab_by_family ?ref_db ~query ~query_species ~query_id ~ref_transcriptome ~seq2fam : fasta workflow =
-  workflow ~version:7 [
+  workflow ~version:9 [
     mkdir_p tmp;
     cmd "SeqDispatcher.py"  [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
@@ -195,7 +195,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
     )
 
 let checkfamily ?ref_db ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
-  workflow ~version:1 [
+  workflow ~version:6 [
     mkdir_p tmp;
     cd tmp;
     cmd "CheckFamily.py"  [
@@ -474,11 +474,15 @@ let build_app configuration =
         )
       ;
       List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+          [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
         )
       ;
       List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+          [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+        )
+      ;
+      List.map apytram_checked_families ~f:(fun (s, fam, apytram_result) ->
+          [ "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
         )
       ;
       [["apytram_results" ] %> apytram_results_dir]

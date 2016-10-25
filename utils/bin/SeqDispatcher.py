@@ -156,6 +156,8 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+logger.info(" ".join(sys.argv))
+
 ### Set up the working directory
 if args.tmp:
     if os.path.isdir(args.tmp):
@@ -249,11 +251,6 @@ if len(Target2FamilyTable['Target']) != len(Target2FamilyTable['Target'].unique(
 Target2FamilyDic = Target2FamilyTable.set_index('Target').T.to_dict('list')
 
 
-#for family in Target2FamilyTable['Family'].unique():
-#    Family2TargetDic[family] = Target2FamilyTable['Target'][Target2FamilyTable['Family'] == family].values
-#    #print "Family: %s\tNumber of targets: %s" %(family, len(Target2FamilyTable.Target[Target2FamilyTable['Family'] == family]))
-
-
 ### Check that there is a target database, otherwise build it
 logger.info("Check that there is a target database, otherwise build it")
 if not args.database:
@@ -301,15 +298,12 @@ BlastnProcess.Threads = Threads
 BlastnProcess.OutFormat = "6"
 
 # Write blast ouptut in BlastOutputFile if the file does not exist
-if not os.path.isfile(BlastOutputFile):
-    (out, err) = BlastnProcess.launch(BlastOutputFile)
-    if err:
-        end(1)
-    else:
-        logger.warn("%s has already been created, it will be used", BlastOutputFile)
+(out, err) = BlastnProcess.launch(BlastOutputFile)
+if err:
+    end(1)
 
 if not os.stat(BlastOutputFile).st_size:
-    logger.debug("Blast found no hit")
+    logger.info("Blast found no hit")
     end(0)
 
 logger.debug("blast --- %s seconds ---", str(time.time() - start_blast_time))
