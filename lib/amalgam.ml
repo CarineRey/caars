@@ -194,7 +194,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
         (s, f, apytram_result_fasta)
     )
 
-let checkfamily ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
+let checkfamily ?ref_db ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
   workflow ~version:1 [
     mkdir_p tmp;
     cmd "CheckFamily.py"  [
@@ -204,15 +204,17 @@ let checkfamily ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fa
       opt "-f" string family;
       opt "-t2f" dep seq2fam;
       opt "-o" ident dest;
+      option (opt "-d" (fun blast_db -> seq [dep blast_db ; string "/db"])) ref_db;
     ]
   ]
 
-let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir =
+let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs =
   List.map apytram_orfs_ref_fams ~f:(fun (s, f, apytram_orfs_fasta) ->
     let input = apytram_orfs_fasta in
-    let ref_transcriptome = configuration_dir / ref_transcriptomes / selector [ s.ref_species ^ "_transcriptome.fa" ] in
-    let seq2fam = configuration_dir / ref_seq_fam_links / selector [ s.ref_species ^ "_Fam_Seq.tsv" ] in
-    let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam in
+    let ref_transcriptome = configuration_dir / ref_transcriptomes s.ref_species in
+    let seq2fam = configuration_dir / ref_seq_fam_links s.ref_species in
+    let ref_db = List.Assoc.find_exn ref_blast_dbs s.ref_species in
+    let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
     (s, f, checked_families_fasta)
     )
 
