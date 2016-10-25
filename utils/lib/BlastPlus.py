@@ -103,7 +103,7 @@ class Blast(object):
                 command.extend(["-task", self.Task])
 
             if self.Strand in ["both", "plus", "minus"]:
-                command.extend(["-strand", self.Task])
+                command.extend(["-strand", self.Strand])
 
             self.logger.debug(" ".join(command))
             p = subprocess.Popen(command,
