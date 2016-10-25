@@ -145,11 +145,12 @@ let blast_dbs_of_norm_fasta norm_fasta =
     )
 
 
-let seq_dispatcher ?s2s_tab_by_family query query_species query_id ref_transcriptome seq2fam : fasta workflow =
-  workflow ~version:6 [
+let seq_dispatcher ?s2s_tab_by_family ?ref_db ~query ~query_species ~query_id ~ref_transcriptome ~seq2fam : fasta workflow =
+  workflow ~version:7 [
     mkdir_p tmp;
     cmd "SeqDispatcher.py"  [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
+      option (opt "-d" (fun blast_db -> seq [dep blast_db ; string "/db"])) ref_db;
       opt "-tmp" ident tmp ;
       opt "-log" seq [ dest ; string ("/SeqDispatcher." ^ query_id ^ "." ^ query_species ^ ".log" )] ;
       opt "-q" dep query ;
@@ -161,16 +162,23 @@ let seq_dispatcher ?s2s_tab_by_family query query_species query_id ref_transcrip
     ]
   ]
 
-let trinity_annotated_fams_of_trinity_assemblies configuration_dir   =
+let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs =
   List.map ~f:(fun (s,trinity_assembly) ->
+      let ref_db = List.Assoc.find_exn ref_blast_dbs s.ref_species in
+      let query = trinity_assembly in
+      let query_species= s.species in
+      let query_id = s.id in
+      let ref_transcriptome = (configuration_dir / ref_transcriptomes s.ref_species) in
+      let seq2fam = (configuration_dir / ref_seq_fam_links s.ref_species) in
       let r =
         seq_dispatcher
           ~s2s_tab_by_family:true
-          trinity_assembly
-          s.species
-          s.id
-          (configuration_dir / ref_transcriptomes / selector [ s.ref_species ^ "_transcriptome.fa" ])
-          (configuration_dir / ref_seq_fam_links / selector [ s.ref_species ^ "_Fam_Seq.tsv" ])
+          ~query
+          ~query_species
+          ~query_id
+          ~ref_transcriptome
+          ~seq2fam
+          ~ref_db
       in
       (s, r)
     )
