@@ -312,9 +312,7 @@ RetainedQuery = []
 for Query in QueryNames:
     Query = Query.split()[0]
     TmpTable =  BlastTableWithFamilies[BlastTable.qid == Query]
-    if not len(TmpTable.index):
-        NoHitList.append(Query)
-    else:
+    if len(TmpTable.index):
         TmpBestScore = max(TmpTable.score)
 
         BestTargetTable = TmpTable[TmpTable.score == TmpBestScore]
