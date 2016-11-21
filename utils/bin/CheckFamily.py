@@ -36,13 +36,11 @@
 import os
 import sys
 import time
-import string
 import tempfile
 import shutil
 import logging
 import argparse
 import subprocess
-import re
 
 import pandas
 
@@ -279,7 +277,7 @@ BlastnProcess.Task = "blastn"
 BlastnProcess.max_target_seqs = 100
 BlastnProcess.max_hsps_per_subject = 1
 BlastnProcess.OutFormat = "6"
-BlastnProcess.Strand="plus"
+BlastnProcess.Strand = "plus"
 
 # Write an empty output file to be sure
 OutputFile = open(OutputFasta, "w")
@@ -311,7 +309,7 @@ RetainedQuery = []
 
 for Query in QueryNames:
     Query = Query.split()[0]
-    TmpTable =  BlastTableWithFamilies[BlastTable.qid == Query]
+    TmpTable = BlastTableWithFamilies[BlastTable.qid == Query]
     if len(TmpTable.index):
         TmpBestScore = max(TmpTable.score)
 
