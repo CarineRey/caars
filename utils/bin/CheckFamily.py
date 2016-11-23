@@ -321,12 +321,12 @@ for Query in QueryNames:
         logger.debug("Family: %s", " ".join(TmpFamily))
         if len(TmpFamily) > 1:
             logger.info("More than one family can be attributed to %s:\n\t- %s\nIt will be discarded.", Query, "\n\t- ".join(TmpFamily))
-            DiscardedQuery.extend(BestTargetTable.qid.values)
+            DiscardedQuery.append(Query + "\t" + ",".join(TmpFamily))
         elif Family != ExpectedFamily:
             logger.info("Observed family (%s) is different of the expected family (%s). %s will be discarded.", Family, ExpectedFamily, Query)
-            DiscardedQuery.extend(BestTargetTable.qid.values)
+            DiscardedQuery.append(Query + "\t" + Family)
         else:
-            RetainedQuery.extend(Query)
+            RetainedQuery.append(Query)
     logger.debug("end: %s", Query)
 
 
