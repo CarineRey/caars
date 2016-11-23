@@ -195,19 +195,22 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
     )
 
 let checkfamily ?ref_db ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
-  workflow ~version:6 [
-    mkdir_p tmp;
-    cd tmp;
+  let tmp_checkfamily = dest // "tmp" in
+  let dest_checkfamily = dest // "sequences.fa" in
+  workflow ~version:8 [
+    mkdir_p tmp_checkfamily;
+    cd tmp_checkfamily;
     cmd "CheckFamily.py"  [
-      opt "-tmp" ident tmp ;
+      opt "-tmp" ident tmp_checkfamily ;
       opt "-i" dep input ;
       opt "-t" dep ref_transcriptome ;
       opt "-f" string family;
       opt "-t2f" dep seq2fam;
-      opt "-o" ident dest;
+      opt "-o" ident dest_checkfamily;
       option (opt "-d" (fun blast_db -> seq [dep blast_db ; string "/db"])) ref_db;
     ]
   ]
+  / selector [ "sequences.fa" ]
 
 let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs =
   List.map apytram_orfs_ref_fams ~f:(fun (s, f, apytram_orfs_fasta) ->

@@ -304,27 +304,36 @@ BlastTableWithFamilies = pandas.merge(BlastTable, Target2FamilyTable, how='left'
 ### First: Find the best hit for each Query sequences and check family
 logger.info("First Step")
 RetainedQuery = []
-
+DiscardedQuery = []
 for Query in QueryNames:
     Query = Query.split()[0]
-    TmpTable = BlastTableWithFamilies[BlastTable.qid == Query]
+    logger.debug("Query: %s", Query)
+    TmpTable = BlastTableWithFamilies[BlastTableWithFamilies.qid == Query]
     if len(TmpTable.index):
         TmpBestScore = max(TmpTable.score)
 
         BestTargetTable = TmpTable[TmpTable.score == TmpBestScore]
         BestTargetTable.is_copy = False
 
+        logger.debug(BestTargetTable)
         TmpFamily = BestTargetTable["Family"].unique()
         Family = TmpFamily[0]
-
+        logger.debug("Family: %s", " ".join(TmpFamily))
         if len(TmpFamily) > 1:
             logger.info("More than one family can be attributed to %s:\n\t- %s\nIt will be discarded.", Query, "\n\t- ".join(TmpFamily))
+            DiscardedQuery.extend(BestTargetTable.qid.values)
         elif Family != ExpectedFamily:
             logger.info("Observed family (%s) is different of the expected family (%s). %s will be discarded.", Family, ExpectedFamily, Query)
+            DiscardedQuery.extend(BestTargetTable.qid.values)
         else:
-            loger.debug(" ".join(BestTargetTable.qid.values))
-            RetainedQuery.extend(BestTargetTable.qid.values)
+            RetainedQuery.extend(Query)
+    logger.debug("end: %s", Query)
 
+
+DiscardedFilename = "%s/%s_discarded_sequences_names.txt" %(TmpDirName, Family)
+TmpFile = open(DiscardedFilename, "w")
+TmpFile.write("\n".join(DiscardedQuery))
+TmpFile.close()
 
 if not RetainedQuery:
     end(0)
