@@ -46,8 +46,6 @@ import pandas
 
 import BlastPlus
 
-
-
 start_time = time.time()
 
 ### Option defining
@@ -324,6 +322,7 @@ for Query in QueryNames:
         elif Family != ExpectedFamily:
             logger.info("Observed family (%s) is different of the expected family (%s). %s will be discarded.", Family, ExpectedFamily, Query)
         else:
+            loger.debug(" ".join(BestTargetTable.qid.values))
             RetainedQuery.extend(BestTargetTable.qid.values)
 
 
