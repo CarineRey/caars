@@ -19,6 +19,7 @@ type t = {
   apytram_samples: rna_sample list ;
   trinity_samples : rna_sample list ;
   all_ref_samples : rna_sample list ;
+  all_ref_species : string list ;
   families : string list;
   sample_sheet : string ;
   species_tree_file : string ;

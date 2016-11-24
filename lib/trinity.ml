@@ -39,6 +39,8 @@ open Bistro_bioinfo.Std
 open Commons
 
 
+type assembly_stats
+
 let ( % ) f g = fun x -> g (f x)
 
 
@@ -123,7 +125,7 @@ let fastq_read_normalization
     mkdir_p dest;
     mkdir_p tmp;
     cd tmp;
-    cmd "sh" [ file_dump script ] 
+    cmd "sh" [ file_dump script ]
     ]
 let config_fasta_paired_or_single = function
   | Fasta_Single_end (w, _ ) ->
@@ -177,5 +179,24 @@ let fastool ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
   in
   workflow ~np:1 [
     cmd "ls" [ dep dep_input ];
+    cmd "sh" [ file_dump script ];
+  ]
+
+
+let assembly_stats (fasta:fasta workflow) : assembly_stats workflow =
+   let script = [%bistro {|
+    TRINITY_PATH=`which Trinity`
+    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
+    TRINITYSTATS_PATH=$TRINTIY_DIR_PATH/util/TrinityStats.pl
+    FASTA={{ dep fasta }}
+    if [ -s $FASTA]
+    then
+    $TRINITYSTATS_PATH {{ dep fasta }} > {{ ident dest }}
+    else
+    echo "Empty file" > {{ ident dest }}
+    fi
+    |} ]
+  in
+  workflow ~np:1 [
     cmd "sh" [ file_dump script ];
   ]

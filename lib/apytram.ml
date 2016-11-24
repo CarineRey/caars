@@ -99,7 +99,7 @@ let apytram
         (*opt "-memory" int 2 ;*)
         opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;
         opt "-threads" ident np ;
-        opt "-d" (fun blast_db -> seq [dep db_blast ; string "/db"]) db_blast;
+        opt "-d" (fun blast_db -> seq [dep blast_db ; string "/db"]) db_blast;
         opt "-dt" string (string_of_db_type db_type);
         opt "-out" seq [ident dest ; string "/apytram"];
         opt "-log" seq [ident dest ; string "/apytram.log"];

@@ -47,6 +47,6 @@ let makeblastdb ?parse_seqids ~dbtype  dbname  (fasta : fasta workflow) : blast_
         cmd "makeblastdb" [ option (flag string "-parse_seqids") parse_seqids ;
                     opt "-in" dep fasta;
                     opt "-dbtype" string dbtype ;
-                    string "-out" ; seq ~sep:"/" [ dest ;string dbname; string "db" ] ] ;
+                    string "-out" ; seq ~sep:"/" [ dest; string dbname; string "db" ] ] ;
          ]
    / selector [ dbname ]

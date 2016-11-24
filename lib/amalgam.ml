@@ -7,6 +7,8 @@ open Configuration
 
 type output = [ `amalgam_output ] directory
 
+type tabular
+
 let alignement_fasta fam : (output, fasta) selector =
   selector [ "Alignements" ; fam ^ ".fa" ]
 
@@ -31,17 +33,25 @@ let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir
                          ]
   ]
 
-let ref_transcriptomes : (configuration_dir, fasta) selector =
-  selector ["R_Sp_transcriptomes"]
+let ref_transcriptomes species : (configuration_dir, fasta) selector =
+  selector ["R_Sp_transcriptomes" ;  species ^ "_transcriptome.fa" ]
 
-let ref_seq_fam_links =
-  selector ["R_Sp_Seq_Fam_links"]
+let ref_seq_fam_links species : (configuration_dir, tabular) selector =
+  selector ["R_Sp_Seq_Fam_links";  species ^ "_Fam_Seq.tsv"  ]
 
 let ref_fams species family =
   selector ["R_Sp_Gene_Families"; species ^ "." ^ family ^ ".fa"]
 
 let ali_species2seq_links family =
   selector ["Alignments_Species2Sequences" ; "alignments." ^  family ^ ".sp2seq.txt" ]
+
+let ref_blast_dbs_of_configuration_dir {all_ref_species} configuration_dir =
+  List.map all_ref_species ~f:(fun ref_species ->
+    let fasta = configuration_dir / ref_transcriptomes ref_species in
+    let parse_seqids = true in
+    let dbtype = "nucl" in
+    (ref_species, BlastPlus.makeblastdb ~parse_seqids ~dbtype  ("DB_" ^ ref_species) fasta)
+    )
 
 
 let fastq_to_fasta_conversion {all_ref_samples} dep_input =
@@ -102,6 +112,13 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
       | (true, true) -> (s, trinity_assembly)
     )
 
+
+let assemblies_stats_of_fasta =
+  List.map  ~f:(fun (s,assembly) ->
+  (s, Trinity.assembly_stats assembly)
+  )
+
+
 let concat = function
   | [] -> raise (Invalid_argument "fastX concat: empty list")
   | x :: [] -> x
@@ -110,12 +127,13 @@ let concat = function
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
-let parse_seqids = true
-let dbtype = "nucl"
+
 
 let blast_dbs_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
       if s.run_apytram then
+        let parse_seqids = true in
+        let dbtype = "nucl" in
         let fasta_to_norm_fasta_sample = function
           | Fasta_Single_end (w, _ ) -> w
           | Fasta_Paired_end (lw, rw , _) -> concat [ lw ; rw ]
@@ -127,11 +145,12 @@ let blast_dbs_of_norm_fasta norm_fasta =
     )
 
 
-let seq_dispatcher ?s2s_tab_by_family query query_species query_id ref_transcriptome seq2fam : fasta workflow =
-  workflow ~version:6 [
+let seq_dispatcher ?s2s_tab_by_family ?ref_db ~query ~query_species ~query_id ~ref_transcriptome ~seq2fam : fasta workflow =
+  workflow ~version:9 [
     mkdir_p tmp;
     cmd "SeqDispatcher.py"  [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
+      option (opt "-d" (fun blast_db -> seq [dep blast_db ; string "/db"])) ref_db;
       opt "-tmp" ident tmp ;
       opt "-log" seq [ dest ; string ("/SeqDispatcher." ^ query_id ^ "." ^ query_species ^ ".log" )] ;
       opt "-q" dep query ;
@@ -143,16 +162,23 @@ let seq_dispatcher ?s2s_tab_by_family query query_species query_id ref_transcrip
     ]
   ]
 
-let trinity_annotated_fams_of_trinity_assemblies configuration_dir   =
+let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs =
   List.map ~f:(fun (s,trinity_assembly) ->
+      let ref_db = List.Assoc.find_exn ref_blast_dbs s.ref_species in
+      let query = trinity_assembly in
+      let query_species= s.species in
+      let query_id = s.id in
+      let ref_transcriptome = (configuration_dir / ref_transcriptomes s.ref_species) in
+      let seq2fam = (configuration_dir / ref_seq_fam_links s.ref_species) in
       let r =
         seq_dispatcher
           ~s2s_tab_by_family:true
-          trinity_assembly
-          s.species
-          s.id
-          (configuration_dir / ref_transcriptomes / selector [ s.ref_species ^ "_transcriptome.fa" ])
-          (configuration_dir / ref_seq_fam_links / selector [ s.ref_species ^ "_Fam_Seq.fa" ])
+          ~query
+          ~query_species
+          ~query_id
+          ~ref_transcriptome
+          ~seq2fam
+          ~ref_db
       in
       (s, r)
     )
@@ -168,6 +194,33 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
         (s, f, apytram_result_fasta)
     )
 
+let checkfamily ?ref_db ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
+  let tmp_checkfamily = dest // "tmp" in
+  let dest_checkfamily = dest // "sequences.fa" in
+  workflow ~version:8 [
+    mkdir_p tmp_checkfamily;
+    cd tmp_checkfamily;
+    cmd "CheckFamily.py"  [
+      opt "-tmp" ident tmp_checkfamily ;
+      opt "-i" dep input ;
+      opt "-t" dep ref_transcriptome ;
+      opt "-f" string family;
+      opt "-t2f" dep seq2fam;
+      opt "-o" ident dest_checkfamily;
+      option (opt "-d" (fun blast_db -> seq [dep blast_db ; string "/db"])) ref_db;
+    ]
+  ]
+  / selector [ "sequences.fa" ]
+
+let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs =
+  List.map apytram_orfs_ref_fams ~f:(fun (s, f, apytram_orfs_fasta) ->
+    let input = apytram_orfs_fasta in
+    let ref_transcriptome = configuration_dir / ref_transcriptomes s.ref_species in
+    let seq2fam = configuration_dir / ref_seq_fam_links s.ref_species in
+    let ref_db = List.Assoc.find_exn ref_blast_dbs s.ref_species in
+    let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
+    (s, f, checked_families_fasta)
+    )
 
 let parse_apytram_results apytram_annotated_ref_fams =
   let config = Bistro.Expr.(
@@ -180,7 +233,6 @@ let parse_apytram_results apytram_annotated_ref_fams =
   workflow ~version:4 [
     cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
   ]
-
 
 
 let seq_integrator
@@ -334,6 +386,8 @@ let build_app configuration =
 
   let configuration_dir = parse_input configuration in
 
+  let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
+
   let fasta_reads = fastq_to_fasta_conversion configuration configuration_dir in
 
   let norm_fasta = normalize_fasta fasta_reads configuration in
@@ -342,7 +396,11 @@ let build_app configuration =
 
   let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration in
 
-  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir trinity_orfs in
+  let trinity_assemblies_stats = assemblies_stats_of_fasta trinity_assemblies in
+
+  let trinity_orfs_stats = assemblies_stats_of_fasta trinity_orfs in
+
+  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs trinity_orfs in
 
   let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 
@@ -360,7 +418,9 @@ let build_app configuration =
 
   let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams divided_memory in
 
-  let apytram_results_dir = parse_apytram_results apytram_orfs_ref_fams in
+  let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
+
+  let apytram_results_dir = parse_apytram_results apytram_checked_families in
 
   let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
 
@@ -396,8 +456,20 @@ let build_app configuration =
           [ "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
         )
       ;
+      List.map trinity_assemblies_stats ~f:(fun (s,trinity_assembly_stats) ->
+          [ "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
+        )
+      ;
+      List.map trinity_orfs_stats ~f:(fun (s,trinity_orfs_stats) ->
+          [ "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
+        )
+      ;
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
           [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
+        )
+      ;
+       List.map ref_blast_dbs ~f:(fun (ref_species, blast_db) ->
+          [ "ref_blast_db" ; ref_species ] %> blast_db
         )
       ;
       List.map blast_dbs ~f:(fun (s,blast_db) ->
@@ -405,11 +477,15 @@ let build_app configuration =
         )
       ;
       List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+          [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
         )
       ;
       List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ] %> apytram_result
+          [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+        )
+      ;
+      List.map apytram_checked_families ~f:(fun (s, fam, apytram_result) ->
+          [ "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
         )
       ;
       [["apytram_results" ] %> apytram_results_dir]
@@ -427,5 +503,5 @@ let build_app configuration =
       [[ "output" ] %> output ]
       ;
     ]
-  in 
+  in
   Bistro_app.of_repo repo ~outdir:configuration.outdir
