@@ -504,4 +504,5 @@ let build_app configuration =
       ;
     ]
   in
-  Bistro_app.of_repo repo ~outdir:configuration.outdir
+  let repo_app = Bistro_app.of_repo repo ~outdir:configuration.outdir in
+  List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
