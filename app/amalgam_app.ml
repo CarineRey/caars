@@ -44,7 +44,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~outdir in
   let amalgam_app = Amalgam.build_app configuration in
   Bistro_app.(
-    run ~use_docker:false ~np:configuration.Configuration.threads  ~mem:(1024 * configuration.Configuration.memory) amalgam_app
+    run ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) amalgam_app
   )
 
 let spec =
