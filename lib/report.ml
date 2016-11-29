@@ -12,15 +12,37 @@ let head t =
   ]
 
 let trinity_section trinity_assemblies_stats =
-  let foreach_sample (sample, trinity_output) =
+  let optint = function
+    | None -> k"NA"
+    | Some i -> k (Int.to_string i)
+  in
+  let optfloat = function
+    | None -> k"NA"
+    | Some i -> k (Float.to_string i)
+  in
+  let table_headers =
+  [tr [
+      th [ k "Species" ] ;
+      th [ k "nb_genes" ] ;
+      th [ k "nb_transcripts" ] ;
+      th [ k "gc"] ;
+      th [ k "n50" ] ;
+    ]
+    ]
+  in
+  let foreach_sample (sample, Bistro_app.Path assembly_stats) =
+    let { Trinity_stats.n50 ; nb_genes; gc; nb_transcripts } = Trinity_stats.parse assembly_stats in
     tr [
       td [ k sample.Configuration.species ] ;
-      td [ k "42" ] ;
+      td [ optint nb_genes ] ;
+      td [ optint nb_transcripts ] ;
+      td [ optfloat gc] ;
+      td [ optint n50 ] ;
     ]
   in
   [
     h2 [ k"Trinity assemblies stats" ] ;
-    table ~a:[a_class ["table"]] (List.map trinity_assemblies_stats ~f:foreach_sample)
+    table ~a:[a_class ["table" ; "table-condensed"]] (List.concat [ table_headers; (List.map trinity_assemblies_stats ~f:foreach_sample)])
   ]
 
 (* http://ocsigen.org/tyxml/4.0.1/manual/intro*) 
@@ -34,7 +56,7 @@ let render ~trinity_assemblies_stats =
       ] ;
       trinity_section trinity_assemblies_stats ;
     ]
-    |> div ~a:[a_class ["content"]]
+    |> div ~a:[a_class ["container"]]
 
     in
   html
