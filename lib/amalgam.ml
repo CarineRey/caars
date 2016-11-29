@@ -509,5 +509,5 @@ let build_app configuration =
     List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
     |> assoc
   in
-  let f_app = pure (fun () stats -> Report.generate ~stats (Filename.concat configuration.outdir "report.html")) in
+  let f_app = pure (fun () trinity_assemblies_stats -> Report.generate ~trinity_assemblies_stats (Filename.concat configuration.outdir "report.html")) in
   f_app $ repo_app $ stats_app
