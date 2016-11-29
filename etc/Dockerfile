@@ -79,7 +79,8 @@ ENV MANPATH /root/.opam/4.03.0/man
 ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
 
 ##### install bistro
-RUN opam pin add oasis 0.4.6
+RUN opam pin add -y oasis git://github.com/ocaml/oasis.git#opam/testing
+RUN opam pin add -y solvuu-build https://github.com/solvuu/solvuu-build.git#45dfffef8587d45ec9166615418749372ff4a0e8
 RUN opam install ocamlgraph
 RUN opam pin add bistro --dev-repo
 
