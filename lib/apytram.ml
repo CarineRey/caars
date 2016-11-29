@@ -46,6 +46,7 @@ let string_of_db_type = function
   | Right FR -> "FR"
   | Right UP -> "paired"
 
+type output
 
 let apytram
     ?fastq (* prendre en compte des listes *)
@@ -70,7 +71,7 @@ let apytram
     ?(memory = 1)
     ?time_max
     db_type
-    db_blast :fasta workflow =
+    db_blast : output directory workflow =
 
     let memory = match memory with
       | 0 -> 1
@@ -108,3 +109,4 @@ let apytram
         opt "-tmp" ident  ( dest // "apytram_tmp" ) ;*)
         ]
     ]
+

@@ -1,7 +1,7 @@
 open Bistro.Std
 open Bistro_bioinfo.Std
 
-type output = [ `amalgam_output ] directory
+type output = [ `amalgam_output ]
 
 val alignement_fasta : string -> (output, fasta) selector
 

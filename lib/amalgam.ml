@@ -5,7 +5,7 @@ open Bistro_bioinfo.Std
 open Commons
 open Configuration
 
-type output = [ `amalgam_output ] directory
+type output = [ `amalgam_output ]
 
 type tabular
 
@@ -21,9 +21,9 @@ let sp2seq_link fam : (output, sp2seq_link) selector =
   selector [ "Sp2Seq_link" ; fam ^ ".sp2seq.txt" ]
 
 
-type configuration_dir = [ `configuration ] directory
+type configuration_dir = [ `configuration ]
 
-let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir; memory } : configuration_dir workflow=
+let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir; memory } : configuration_dir directory workflow=
   workflow ~np:1 ~version:9 ~mem:(memory * 1024) [
     cmd "ParseInput.py"  [ string sample_sheet ;
                            string species_tree_file;
