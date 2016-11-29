@@ -1,0 +1,24 @@
+opam-version: "1.2"
+name: "amalgam"
+version: "0.0"
+maintainer: "Carine Rey <carine.rey@ens-lyon.fr>"
+authors: [
+  "Bastien Boussau"
+  "Carine Rey"
+  "Marie Sémon"
+  "Philippe Veber"
+]
+homepage: "https://github.com/CarineRey/amalgam"
+bug-reports: "https://github.com/CarineRey/amalgam/issues"
+license: "CeCILL"
+dev-repo: "https://github.com/CarineRey/amalgam.git"
+build: [
+  [make]
+  [make "META"]
+  [make "%{name}%.install"]
+]
+depends: [
+  "ocamlfind" {build}
+  "solvuu-build" {build}
+  "core" {>= "111.13.00" }
+]
