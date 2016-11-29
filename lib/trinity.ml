@@ -189,7 +189,7 @@ let assembly_stats (fasta:fasta workflow) : assembly_stats workflow =
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     TRINITYSTATS_PATH=$TRINTIY_DIR_PATH/util/TrinityStats.pl
     FASTA={{ dep fasta }}
-    if [ -s $FASTA]
+    if [ -s $FASTA ]
     then
     $TRINITYSTATS_PATH {{ dep fasta }} > {{ ident dest }}
     else
