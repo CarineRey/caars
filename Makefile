@@ -1,5 +1,5 @@
 amalgam:
-	ocamlbuild -use-ocamlfind -I lib -tag thread -pkgs bistro.utils,bistro.bioinfo,ppx_bistro app/amalgam.byte
+	ocamlbuild -use-ocamlfind -I lib -tag thread -pkgs bistro.utils,bistro.bioinfo,ppx_bistro app/amalgam_app.byte
 
 test:
 	ocamlbuild -use-ocamlfind -I lib -tag thread -pkgs bistro.utils,bistro.bioinfo,ppx_bistro app/test_bistro.byte

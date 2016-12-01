@@ -3,7 +3,7 @@
 
 # File: SeqDispatcher.py
 # Created by: Carine Rey
-# Created on: March 2016
+# Created on: October 2016
 #
 #
 # Copyright 2016 Carine Rey
@@ -36,40 +36,33 @@
 import os
 import sys
 import time
-import string
 import tempfile
 import shutil
 import logging
 import argparse
 import subprocess
-import re
 
 import pandas
 
 import BlastPlus
 
-
-
 start_time = time.time()
 
 ### Option defining
-parser = argparse.ArgumentParser(prog="SeqDispatcher.py",
+parser = argparse.ArgumentParser(prog="CheckFamily.py",
                                  description='''
-    Attribute a family to a list of sequences according to a given target
-    sequences list wich have an asocciated family. ''')
+    Check all sequences of a fasta file are associated with a unique family, else remove them.''')
 parser.add_argument('--version', action='version', version='%(prog)s 1.0')
 
 
 ##############
 requiredOptions = parser.add_argument_group('Required arguments')
-requiredOptions.add_argument('-q', '--query', type=str,
-                             help='Query fasta file name.', required=True)
-requiredOptions.add_argument('-qs', '--query_species', type=str,
-                             help='query species', required=True)
-requiredOptions.add_argument('-qid', '--query_id', type=str,
-                             help='query unique id', required=True)
+requiredOptions.add_argument('-i', '--input', type=str,
+                             help='fasta file name.', required=True)
 requiredOptions.add_argument('-t', '--ref_transcriptome', type=str,
                              help='Target fasta file name', required=True)
+requiredOptions.add_argument('-f', '--family', type=str,
+                             help='family name', required=True)
 requiredOptions.add_argument('-d', '--database', type=str,
                              help='''Database prefix name of the ref transcriptome fasta file.
                               If a database with the same name already exists,
@@ -78,36 +71,26 @@ requiredOptions.add_argument('-d', '--database', type=str,
                               required=False)
 requiredOptions.add_argument('-t2f', '--ref_transcriptome2family', type=str,
                              help='Link file name. A tabular file, each line correspond to a sequence name and its family. ', required=True)
-requiredOptions.add_argument('-out', '--output_prefix', type=str, default="./output",
-                   help="Output prefix (default= ./output)")
-
-requiredOptions.add_argument('--sp2seq_tab_out_by_family', action='store_true', default=False,
-                   help="Return one file by family  (Seq:species)")
-
-requiredOptions.add_argument('--tab_out_one_file', action='store_true', default=False,
-                   help="Return one tabulated file (Seq species family)")
+requiredOptions.add_argument('-o', '--output', type=str, default="./output.fa",
+                   help="Output name (default= ./output.fa)")
 ##############
 
 
 ##############
 Options = parser.add_argument_group('Options')
 Options.add_argument('-e', '--evalue', type=float,
-                     help="Evalue threshold of the blastn of the queries on the database of the ref transcriptome. (default= 1e-6)",
-                     default=1e-6)
-
+                     help="Evalue threshold of the blastn of the queries on the database of the ref transcriptome. (default= 1e-3)",
+                     default=1e-3)
 Options.add_argument('-tmp', type=str,
                      help="Directory to stock all intermediary files for the job. (default=: a directory in /tmp which will be removed at the end)",
                      default="")
-Options.add_argument('-log', type=str, default="seq_dispatcher.log",
-                     help="a log file to report avancement (default=: seq_dispatcher.log)")
+Options.add_argument('-log', type=str, default="checkfamily.log",
+                     help="a log file to report avancement (default=: checkfamily.log)")
 ##############
 
 
 ##############
 MiscellaneousOptions = parser.add_argument_group('Miscellaneous options')
-MiscellaneousOptions.add_argument('-threads', type=int,
-                                  help="Number of available threads. (default= 1)",
-                                  default=1)
 MiscellaneousOptions.add_argument('--debug', action='store_true', default=False,
                    help="debug mode, default False")
 ##############
@@ -116,14 +99,13 @@ MiscellaneousOptions.add_argument('--debug', action='store_true', default=False,
 args = parser.parse_args()
 
 ### Read arguments
-QueryFile = args.query
-SpeciesQuery = args.query_species
-SpeciesID = args.query_id
+FastaFile = args.input
+OutputFasta = args.output
 TargetFile = args.ref_transcriptome
+ExpectedFamily = args.family
 Target2FamilyFilename = args.ref_transcriptome2family
 
 Evalue = args.evalue
-Threads = args.threads
 
 ### Set up the log directory
 if args.log:
@@ -167,7 +149,7 @@ if args.tmp:
         os.makedirs(args.tmp)
     TmpDirName = args.tmp
 else:
-    TmpDirName = tempfile.mkdtemp(prefix='tmp_SeqDispatcher')
+    TmpDirName = tempfile.mkdtemp(prefix='checkfamily')
 
 def end(exit_code):
     ### Remove tempdir if the option --tmp have not been use
@@ -179,21 +161,21 @@ def end(exit_code):
     sys.exit(exit_code)
 
 ### Set up the output directory
-if args.output_prefix and os.path.dirname(args.output_prefix):
-    OutDirName = os.path.dirname(args.output_prefix)
-    OutPrefixName = args.output_prefix
+if args.output and os.path.dirname(args.output):
+    OutDirName = os.path.dirname(args.output)
+    OutName = args.output
     if os.path.isdir(OutDirName):
-        logger.info("The output directory %s exists", os.path.dirname(args.output_prefix))
+        logger.info("The output directory %s exists", os.path.dirname(args.output))
     elif OutDirName: # if OutDirName is not a empty string we create the directory
-        logger.info("The output directory %s does not exist, it will be created", os.path.dirname(args.output_prefix))
-        os.makedirs(os.path.dirname(args.output_prefix))
+        logger.info("The output directory %s does not exist, it will be created", os.path.dirname(args.output))
+        os.makedirs(os.path.dirname(args.output))
 else:
     logger.error("The output prefix must be defined")
     end(1)
 
 ### Check that input files exist
-if not os.path.isfile(args.query):
-    logger.error(args.query + " (-q) is not a file.")
+if not os.path.isfile(args.input):
+    logger.error(args.input + " (-q) is not a file.")
     end(1)
 
 if not os.path.isfile(args.ref_transcriptome):
@@ -207,7 +189,7 @@ if not os.path.isfile(args.ref_transcriptome2family):
 ### Parse input fasta files
 ## Get query names
 logger.info("Get query names")
-BashProcess = subprocess.Popen(["grep", "-e", "^>", args.query],
+BashProcess = subprocess.Popen(["grep", "-e", "^>", args.input],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
 OutBashProcess = BashProcess.communicate()
@@ -230,7 +212,7 @@ else:
     logger.error(OutBashProcess[1])
     end(1)
 
-### Parse the ref_transcriptome2family
+### Parse the ref_transcriptome2family, create dictionnaries target2family and family2target
 Target2FamilyTable = pandas.read_csv(Target2FamilyFilename,
                                       sep=None, engine='python',
                                       header=None,
@@ -248,8 +230,6 @@ if MissingTargets:
 if len(Target2FamilyTable['Target']) != len(Target2FamilyTable['Target'].unique()):
     logger.error("There are not unique target names")
     end(1)
-Target2FamilyDic = Target2FamilyTable.set_index('Target').T.to_dict('list')
-
 
 ### Check that there is a target database, otherwise build it
 logger.info("Check that there is a target database, otherwise build it")
@@ -289,13 +269,18 @@ else:
 logger.info("Blast the query fasta on the target database")
 start_blast_time = time.time()
 BlastOutputFile = "%s/Queries_Targets.blast" % (TmpDirName)
-BlastnProcess = BlastPlus.Blast("blastn", DatabaseName, QueryFile)
+BlastnProcess = BlastPlus.Blast("blastn", DatabaseName, FastaFile)
 BlastnProcess.Evalue = Evalue
-BlastnProcess.Task = "megablast"
-BlastnProcess.max_target_seqs = 500
+BlastnProcess.Task = "blastn"
+BlastnProcess.max_target_seqs = 100
 BlastnProcess.max_hsps_per_subject = 1
-BlastnProcess.Threads = Threads
 BlastnProcess.OutFormat = "6"
+BlastnProcess.Strand = "plus"
+
+# Write an empty output file to be sure
+OutputFile = open(OutputFasta, "w")
+OutputFile.write("")
+OutputFile.close()
 
 # Write blast ouptut in BlastOutputFile if the file does not exist
 (out, err) = BlastnProcess.launch(BlastOutputFile)
@@ -316,140 +301,53 @@ BlastTable = pandas.read_csv(BlastOutputFile, sep=None, engine='python', header=
 # Get Family for each Target:
 BlastTableWithFamilies = pandas.merge(BlastTable, Target2FamilyTable, how='left', left_on=['tid'], right_on=['Target'])
 
-# First: Find the best hit for each Query sequences and create a Hit dictonary
+### First: Find the best hit for each Query sequences and check family
 logger.info("First Step")
-HitDic = {}
-NoHitList = []
-
+RetainedQuery = []
+DiscardedQuery = []
 for Query in QueryNames:
     Query = Query.split()[0]
+    logger.debug("Query: %s", Query)
     TmpTable = BlastTableWithFamilies[BlastTableWithFamilies.qid == Query]
-    if not len(TmpTable.index):
-        NoHitList.append(Query)
-    else:
+    if len(TmpTable.index):
         TmpBestScore = max(TmpTable.score)
 
         BestTargetTable = TmpTable[TmpTable.score == TmpBestScore]
         BestTargetTable.is_copy = False
 
-        BestTarget = BestTargetTable.tid.values
-        BestTargetTable["reverse_calc"] = (BestTargetTable["qend"] - BestTargetTable["qstart"]) * (BestTargetTable["tend"] - BestTargetTable["tstart"])
-
-        BestTargetTable.loc[BestTargetTable['reverse_calc'] >= 0, "reverse"] = False
-        BestTargetTable.loc[BestTargetTable['reverse_calc'] < 0, 'reverse'] = True
-
+        logger.debug(BestTargetTable)
         TmpFamily = BestTargetTable["Family"].unique()
-
+        Family = TmpFamily[0]
+        logger.debug("Family: %s", " ".join(TmpFamily))
         if len(TmpFamily) > 1:
             logger.info("More than one family can be attributed to %s:\n\t- %s\nIt will be discarded.", Query, "\n\t- ".join(TmpFamily))
+            DiscardedQuery.append(Query + "\t" + ",".join(TmpFamily))
+        elif Family != ExpectedFamily:
+            logger.info("Observed family (%s) is different of the expected family (%s). %s will be discarded.", Family, ExpectedFamily, Query)
+            DiscardedQuery.append(Query + "\t" + Family)
         else:
-            Family = TmpFamily[0]
-            for Target in BestTarget:
-
-                HitDic.setdefault(Family, {})
-                HitDic[Family].setdefault(Target, {"Query":[], "Score":[], "Reverse":[], "Retained":[]})
-
-                HitDic[Family][Target]["Query"].append(Query)
-                HitDic[Family][Target]["Score"].append(TmpBestScore)
-                HitDic[Family][Target]["Reverse"].append(BestTargetTable.reverse[BestTargetTable.tid == Target].values[0])
+            RetainedQuery.append(Query)
+    logger.debug("end: %s", Query)
 
 
-#if NoHitList:
-#    logger.debug("Queries wihout blast hit:\n\t- %s", "\n\t- ".join(NoHitList))
+DiscardedFilename = "%s/%s_discarded_sequences_names.txt" %(TmpDirName, Family)
+TmpFile = open(DiscardedFilename, "w")
+TmpFile.write("\n".join(DiscardedQuery))
+TmpFile.close()
 
-# Second: For each family, for each target with an hit we kept hits with a score >=0.9 of the best hit
-logger.info("Second Step")
-Threshold = 0.9
-ConfirmedHitDic = {}
-for Family in HitDic.keys():
-    ConfirmedHitDic.setdefault(Family, {"Retained":[], "To_be_reverse":[]})
-    for Target in HitDic[Family]:
-        ConfirmedHitDic[Family].setdefault(Target, {"Retained":[]})
-        BestScore = max(HitDic[Family][Target]["Score"])
-        L = len(HitDic[Family][Target]["Score"])
-        for i in range(L):
-            if HitDic[Family][Target]["Score"][i] >= (Threshold * BestScore):
-                ConfirmedHitDic[Family][Target]["Retained"].append(HitDic[Family][Target]["Query"][i])
-                if HitDic[Family][Target]["Reverse"][i]:
-                    ConfirmedHitDic[Family]["To_be_reverse"].append(HitDic[Family][Target]["Query"][i])
+if not RetainedQuery:
+    end(0)
 
-### Write output file
-# usefull functions:
-def read_fasta(fasta_string):
-    if fasta_string:
-        Fasta = fasta_string.strip().split("\n")
-    else:
-        Fasta = []
-    name = ""
-    sequence_list = []
-    fasta_dict = {}
-
-    for line in Fasta + [">"]:
-        if re.match(">", line):
-            # This is a new sequence write the previous sequence if it exists
-            if sequence_list:
-                fasta_dict.setdefault(name, "")
-                sequence = "".join(sequence_list)
-                sequence_list = []
-                fasta_dict[name] = sequence
-            name = line.replace(">lcl|", "").strip().split()[0] # remove the ">lcl|"
-        elif name != "":
-            sequence_list.append(line)
-        else:
-            pass
-    return fasta_dict
-
-def rev_complement(Sequence_str):
-    intab = "ABCDGHMNRSTUVWXYabcdghmnrstuvwxy"
-    outtab = "TVGHCDKNYSAABWXRtvghcdknysaabwxr"
-    trantab = string.maketrans(intab, outtab)
-    # Reverse
-    Reverse = Sequence_str.replace("\n", "")[::-1]
-    # Complement
-    Complement = Reverse.translate(trantab)
-    return Complement
-
-def write_fasta(fasta_dict, outfile):
-    String = []
-    Output = open(outfile, "w")
-    for (n, s) in fasta_dict.items():
-        formated_sequence = ">" + n + "\n" + '\n'.join(s[i:i+60] for i in range(0, len(s), 60)) + "\n"
-        String.append(formated_sequence)
-    Output.write("".join(String))
-    Output.close()
-
-
-def rename_fasta(fasta_dict, Family):
-    for o_k in fasta_dict.keys():
-        SeqName = "%s%s%s" %(SeqId_dic["SeqPrefix"],
-                                 string.zfill(SeqId_dic["SeqNb"],
-                                              SeqId_dic["NbFigures"]
-                                              ),
-                                 "_%s" %(Family))
-        SeqId_dic["SeqNb"] += 1
-
-        if o_k in ConfirmedHitDic[Family]["To_be_reverse"]:
-            fasta_dict[SeqName] = rev_complement(fasta_dict.pop(o_k))
-            logger.info(SeqName + ": Reversed sequence")
-        else:
-            fasta_dict[SeqName] = fasta_dict.pop(o_k)
-
-        Target = TmpDic[o_k]
-        if args.tab_out_one_file:
-            # Write in the output table query target family
-            OutputTableString.append("%s\t%s\t%s\n" %(SeqName, Target, Family))
-        if args.sp2seq_tab_out_by_family:
-            TabByFamilyString.append("%s:%s\n" %(SpeciesQuery, SeqName))
-
-## Build a query database
+### Second : Build a query database
+# Build a query database
 logger.info("Build a query database")
 QueryDatabaseName = "%s/Query_DB" %TmpDirName
-if not os.path.isfile(QueryFile):
-    logger.error("The query fasta file (-q) does not exist.")
+if not os.path.isfile(FastaFile):
+    logger.error("The query fasta file (-i) does not exist.")
     end(1)
 # database building
 logger.info(QueryDatabaseName + " database building")
-MakeblastdbProcess = BlastPlus.Makeblastdb(QueryFile, QueryDatabaseName)
+MakeblastdbProcess = BlastPlus.Makeblastdb(FastaFile, QueryDatabaseName)
 ExitCode = MakeblastdbProcess.launch()
 
 CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, "", "")
@@ -460,55 +358,25 @@ if not CheckDatabase_BlastdbcmdProcess.is_database():
 else:
     logger.info("Database %s exists", QueryDatabaseName)
 
-## Third step: For each family, write a fasta which contained all retained family
+## Third step: write a fasta which contained all retained sequences
 logger.info("Write output files")
-OutputTableString = []
-SeqId_dic = {"SeqPrefix" : "TR%s0" %(SpeciesID),
-             "SeqNb" : 1, "NbFigures" : 10}
 
-for Family in ConfirmedHitDic.keys():
-    logger.debug("for %s", Family)
-    TmpRetainedNames = []
-    TmpDic = {}
-    for Target in HitDic[Family]:
-        TmpRetainedNames.extend(ConfirmedHitDic[Family][Target]["Retained"])
-        for Query in ConfirmedHitDic[Family][Target]["Retained"]:
-            TmpDic[Query] = Target
-    ## Write outputs
-    #Get retained sequences names
-    start_blastdbcmd_time = time.time()
-    TmpFilename = "%s/%s_sequences_names.txt" %(TmpDirName, Family)
-    TmpFile = open(TmpFilename, "w")
-    TmpFile.write("\n".join(TmpRetainedNames))
-    TmpFile.close()
-    #Get retained sequences
-    FamilyOutputName = "%s.%s.fa" %(OutPrefixName, Family)
-    TabFamilyOutputName = "%s.%s.sp2seq.txt" %(OutPrefixName, Family)
-    TabByFamilyString = []
+#Get retained sequences names
+start_blastdbcmd_time = time.time()
+TmpFilename = "%s/%s_sequences_names.txt" %(TmpDirName, Family)
+TmpFile = open(TmpFilename, "w")
+TmpFile.write("\n".join(RetainedQuery))
+TmpFile.close()
 
-    BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename, "")
-    (FastaString, err) = BlastdbcmdProcess.launch()
-    if err:
-        end(1)
-    logger.debug("blastdbcmd --- %s seconds ---", time.time() - start_blastdbcmd_time)
+#Get retained sequences
+BlastdbcmdProcess = BlastPlus.Blastdbcmd(QueryDatabaseName, TmpFilename, "")
+BlastdbcmdProcess.OutputFile = OutputFasta
 
-    #Read fasta
-    family_fasta_dict = read_fasta(FastaString)
-    #Rename sequences:
-    rename_fasta(family_fasta_dict, Family)
+(out, err) = BlastdbcmdProcess.launch()
 
-    write_fasta(family_fasta_dict, FamilyOutputName)
-
-    if args.sp2seq_tab_out_by_family:
-        TabFamilyOutput = open(TabFamilyOutputName, "w")
-        TabFamilyOutput.write("".join(TabByFamilyString))
-        TabFamilyOutput.close()
-
-if args.tab_out_one_file:
-    OutputTableFilename = "%s_table.tsv" %(OutPrefixName)
-    OutputTableFile = open(OutputTableFilename, "w")
-    OutputTableFile.write("".join(OutputTableString))
-    OutputTableFile.close()
+if err:
+    end(1)
+logger.debug("blastdbcmd --- %s seconds ---", time.time() - start_blastdbcmd_time)
 
 logger.info("--- %s seconds ---", str(time.time() - start_time))
 

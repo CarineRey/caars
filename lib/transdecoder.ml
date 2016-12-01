@@ -47,15 +47,19 @@ let transdecoder
   ~threads
   ?(memory = 1)
   (fasta:fasta workflow) : fasta workflow =
-  workflow ~np:threads ~mem:(1024 * memory) [
-        mkdir_p dest;
-        cd dest;
-        script "sh" [%bistro{|
+  let script = [%bistro{|
+        if ! [ -x "$(command -v TransDecoder.LongOrfs)" ]; then   echo 'Transdecoder.LongOrfs is not installed.' >&2; exit 1; fi
+        if ! [ -x "$(command -v TransDecoder.Predict)" ]; then   echo 'TransDecoder.Predict is not installed.' >&2; exit 1; fi
         touch tmp
         TransDecoder.LongOrfs -t {{ dep fasta }} {{ option (opt "-m" int ) pep_min_length }} {{ option (flag string "-S") only_top_strand }}
         TransDecoder.Predict  -t {{ dep fasta }} --cpu {{ ident np }} {{option (flag string "--single_best_orf") only_best_orf }} {{option (opt "--retain_long_orfs" int ) retain_long_orfs}}
         mv *.cds tmp
         mv tmp orfs.cds
         |}]
-        ]
-        / selector [ "orfs.cds" ]
+  in
+  workflow ~np:threads ~mem:(1024 * memory) [
+    mkdir_p dest;
+    cd dest;
+    cmd "sh" [ file_dump script ]; 
+  ]
+  / selector [ "orfs.cds" ]

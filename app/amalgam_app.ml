@@ -1,5 +1,5 @@
 (*
-# File: BlastPlus.ml
+# File: amalgam.ml
 # Created by: Carine Rey
 # Created on: March 2016
 #
@@ -32,21 +32,36 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core_kernel.Std
+open Core.Std
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
+open Commons
 
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory () =
+  let np = Option.value ~default:1 np in
+  let memory = Option.value ~default:1 memory in
+  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~outdir in
+  let amalgam_app = Amalgam.build_app configuration in
+  Bistro_app.(
+    run ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) amalgam_app
+  )
 
+let spec =
+  let open Command.Spec in
+  empty
+  +> flag "--sample-sheet"    (required file)   ~doc:"PATH sample sheet file."
+  +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
+  +> flag "--species-tree"    (required file)   ~doc:"ABSOLUTE PATH Species tree file in nw format containing all species. Warning absolute path is required."
+  +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
+  +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
+  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs. (Default:1)"
+  +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
 
-type blast_db = [`blast_db] directory
+let command =
+  Command.basic
+    ~summary:"Amalgam"
+    spec
+    main
 
-let makeblastdb ?parse_seqids ~dbtype  dbname  (fasta : fasta workflow) : blast_db workflow =
-    workflow ~np:1 [
-        mkdir_p dest;
-        cmd "makeblastdb" [ option (flag string "-parse_seqids") parse_seqids ;
-                    opt "-in" dep fasta;
-                    opt "-dbtype" string dbtype ;
-                    string "-out" ; seq ~sep:"/" [ dest; string dbname; string "db" ] ] ;
-         ]
-   / selector [ dbname ]
+let () = Command.run ~version:"0.1" command

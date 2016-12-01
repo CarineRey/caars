@@ -79,7 +79,9 @@ ENV MANPATH /root/.opam/4.03.0/man
 ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
 
 ##### install bistro
-RUN opam pin add sexplib 113.33.00+4.03
+RUN opam pin add -y oasis git://github.com/ocaml/oasis.git#opam/testing
+RUN opam pin add -y solvuu-build https://github.com/solvuu/solvuu-build.git#45dfffef8587d45ec9166615418749372ff4a0e8
+RUN opam install ocamlgraph
 RUN opam pin add bistro --dev-repo
 
 ##### install phylomerge
@@ -91,6 +93,9 @@ ENV PATH /opt/phylomerge:$PATH
 #### install amalgam
 RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
 WORKDIR /usr/local/amalgam/
+
+RUN git fetch origin && git checkout -b html-output origin/html-output
+
 RUN make
 ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
 ENV PYTHONPATH /usr/local/amalgam/utils/lib
