@@ -145,8 +145,16 @@ let blast_dbs_of_norm_fasta norm_fasta =
     )
 
 
-let seq_dispatcher ?s2s_tab_by_family ?ref_db ~query ~query_species ~query_id ~ref_transcriptome ~seq2fam : fasta workflow =
-  workflow ~version:9 [
+let seq_dispatcher
+    ?s2s_tab_by_family
+    ?ref_db
+    ~query
+    ~query_species
+    ~query_id
+    ~ref_transcriptome
+    ~threads
+    ~seq2fam : fasta workflow =
+  workflow ~np:threads ~version:9 [
     mkdir_p tmp;
     cmd "SeqDispatcher.py"  [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
@@ -156,13 +164,15 @@ let seq_dispatcher ?s2s_tab_by_family ?ref_db ~query ~query_species ~query_id ~r
       opt "-q" dep query ;
       opt "-qs" string query_species ;
       opt "-qid" string query_id ;
+      opt "-threads" ident np ;
       opt "-t" dep ref_transcriptome ;
       opt "-t2f" dep seq2fam;
       opt "-out" seq [ dest ; string ("/Trinity." ^ query_id ^ "." ^ query_species )] ;
     ]
   ]
 
-let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs =
+let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs configuration =
+  let threads = configuration.threads in
   List.map ~f:(fun (s,trinity_assembly) ->
       let ref_db = List.Assoc.find_exn ref_blast_dbs s.ref_species in
       let query = trinity_assembly in
@@ -179,6 +189,7 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
           ~ref_transcriptome
           ~seq2fam
           ~ref_db
+          ~threads
       in
       (s, r)
     )
@@ -400,7 +411,7 @@ let build_app configuration =
 
   let trinity_orfs_stats = assemblies_stats_of_fasta trinity_orfs in
 
-  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs trinity_orfs in
+  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs configuration trinity_orfs in
 
   let blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 
