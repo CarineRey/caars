@@ -282,7 +282,7 @@ for f in glob.glob("%s/*" %ali_dir):
         logger.error("%s is not a fasta file", f)
         sys.exit(1)
     if Nb_seqs < 3:
-        logger.error("%s has less than 3 sequences. (%s sequences detected in: %s/%s)", Family, Nb_seqs, ali_dir, f)
+        logger.error("%s has less than 3 sequences. (%s sequences detected in: %s)", Family, Nb_seqs, f)
         sys.exit(1)
     # Check all sequence name in Seq2SpDict
     if not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
