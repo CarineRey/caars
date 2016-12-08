@@ -45,7 +45,6 @@ import re
 
 import ete2
 
-
 ### Set up the logger
 # create logger with 'spam_application'
 logger = logging.getLogger('ParseInput')
@@ -91,7 +90,7 @@ if not os.path.isdir(ali_dir):
     sys.exit(1)
 
 if not os.path.isdir(seq2sp_dir):
-    logger.debug("The sequences2species diectory %s does not exist", seq2sp_dir)
+    logger.error("The sequences2species diectory %s does not exist", seq2sp_dir)
     sys.exit(1)
 
 
@@ -158,7 +157,7 @@ def read_seq2species_file(Seq2Sp_dict, File):
             if not Seq2Sp_dict.has_key(seq):
                 Seq2Sp_dict[seq] = sp.replace("\n", "")
             else:
-                logger.debug("ERROR : Sequence name \"%s\" is not unique")
+                logger.error("ERROR : Sequence name \"%s\" is not unique")
                 sys.exit(1)
         f.close()
     return Seq2Sp_dict
@@ -283,7 +282,7 @@ for f in glob.glob("%s/*" %ali_dir):
         logger.error("%s is not a fasta file", f)
         sys.exit(1)
     if Nb_seqs < 3:
-        logger.error("%s has less than 3 sequences. (%s sequences detected in: %s/%s)", Nb_seqs, ali_dir, f)
+        logger.error("%s has less than 3 sequences. (%s sequences detected in: %s/%s)", Family, Nb_seqs, ali_dir, f)
         sys.exit(1)
     # Check all sequence name in Seq2SpDict
     if not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
