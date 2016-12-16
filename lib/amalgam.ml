@@ -329,16 +329,17 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let ali = merged_w / selector [ fam ^ ".fa" ] in
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
     let threads = 1 in
-    (fam, Aligner.mafft ~threads ~treein ~auto:true ali, reconciled_w, merged_w)
+    (fam, Aligner.mafft ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families =
   let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
-  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/")] in
+  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","Reconciled_Gene_tree")] in
   let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in
   workflow ~version:1 [
     mkdir_p tmp;
     mkdir_p (dest // "Merged_fasta");
+    mkdir_p (dest // "Realigned_fasta");
     mkdir_p (dest // "Merged_tree");
     mkdir_p (dest // "Reconciled_Gene_tree");
     mkdir_p (dest // "Sp2Seq_link");
