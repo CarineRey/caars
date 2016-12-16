@@ -107,7 +107,7 @@ class Mafft(object):
         if self.AutoOption:
             command.append("--auto")
         if self.Maxiterate:
-            command.extend(["--maxiterate", self.Maxiterate])
+            command.extend(["--maxiterate", str(self.Maxiterate)])
         if self.AddOption:
             if os.path.isfile(self.AddOption):
                 command.extend(["--add", self.AddOption])
