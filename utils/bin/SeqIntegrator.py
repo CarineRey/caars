@@ -237,7 +237,7 @@ if args.realign_ali:
 
     ### Realign the input alignment
     InitialMafftProcess = Aligner.Mafft(StartingAlignment)
-    InitialMafftProcess.AutoOption = True
+    InitialMafftProcess.Maxiterate = 1000
     InitialMafftProcess.QuietOption = True
     InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName, "RealignAli")
 
@@ -271,7 +271,7 @@ if StartingFastaFiles and Sp2SeqFiles:
     MafftProcess = Aligner.Mafft(StartingAlignment)
     MafftProcess.AddOption = StartingFasta
     MafftProcess.AdjustdirectionOption = False
-    MafftProcess.AutoOption = True
+    MafftProcess.Maxiterate = 1000
     MafftProcess.QuietOption = True
     MafftProcess.OutputFile = "%s/StartMafft.fa" %TmpDirName
     if os.path.isfile(StartingAlignment) and os.path.isfile(StartingFasta):
@@ -343,7 +343,7 @@ if StartingFastaFiles and Sp2SeqFiles:
         logger.info("Realign the merge alignment")
         ### Realign the merged alignment
         Int1MafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
-        Int1MafftProcess.AutoOption = True
+        Int1MafftProcess.Maxiterate = 1000
         Int1MafftProcess.QuietOption = True
         Int1MafftProcess.OutputFile = "%s/Int1.fa" %TmpDirName
         if os.path.isfile(Int1MafftProcess.InputFile):
@@ -409,7 +409,7 @@ if StartingFastaFiles and Sp2SeqFiles:
         logger.info("Realign the merge alignment")
         ### Realign the last alignment
         FinalMafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
-        FinalMafftProcess.AutoOption = True
+        FinalMafftProcess.Maxiterate = 1000
         FinalMafftProcess.QuietOption = True
         FinalMafftProcess.OutputFile = "%s.fa" %OutPrefixName
         if os.path.isfile(FinalMafftProcess.InputFile):

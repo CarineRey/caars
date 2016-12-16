@@ -96,6 +96,7 @@ class Mafft(object):
         self.AddOption = False
         self.AdjustdirectionOption = False
         self.AutoOption = False
+        self.Maxiterate = 0
         self.QuietOption = False
 
     def launch(self, output=""):
@@ -105,6 +106,8 @@ class Mafft(object):
             command.append("--adjustdirection")
         if self.AutoOption:
             command.append("--auto")
+        if self.Maxiterate:
+            command.extend(["--maxiterate", self.Maxiterate])
         if self.AddOption:
             if os.path.isfile(self.AddOption):
                 command.extend(["--add", self.AddOption])
