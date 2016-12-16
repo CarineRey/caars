@@ -313,21 +313,43 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       (family, seq_integrator ~realign_ali:true ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
     )
 
+let phyldog_by_fam_of_merged_families merged_families configuration =
+  List.map  merged_families ~f:(fun (fam, merged_family) ->
+    let ali = merged_family / selector [ fam ^ ".fa" ] in
+    let tree = merged_family / selector [ fam ^ ".tree" ] in
+    let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
+    let treefile = configuration.species_tree_file in
+    let threads = Pervasives.min 2 configuration.threads in
+    let memory = Pervasives.(configuration.memory / configuration.threads) in
+    (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~link ~tree ali, merged_family)
+    )
 
-let merged_families_distributor merged_families =
-  let extension_list = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
+
+let merged_families_distributor merged_and_reconciled_families =
+  let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
+  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/")] in
   workflow ~version:1 [
     mkdir_p tmp;
     mkdir_p (dest // "Merged_fasta");
     mkdir_p (dest // "Merged_tree");
+    mkdir_p (dest // "Reconciled_Gene_tree");
     mkdir_p (dest // "Sp2Seq_link");
     let script = Bistro.Expr.(
-        List.map extension_list ~f:(fun (ext,dir) ->
-            List.map  merged_families ~f:(fun (f, w) ->
-                let input = w / selector [ f ^ ext ] in
+      List.map merged_and_reconciled_families ~f:(fun (f, reconciled_w, merged_w) ->
+          List.concat[
+              List.map extension_list_merged ~f:(fun (ext,dir) ->
+                let input = merged_w / selector [ f ^ ext ] in
                 let output = dest // dir // (f ^ ext)  in
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
               )
+              ;
+              List.map extension_list_reconciled ~f:(fun (ext,dir) ->
+                let input = reconciled_w / selector [ f ^ ext ] in
+                let output = dest // dir // (f ^ ext)  in
+                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+              )
+              ]
+
             |> seq ~sep:"\n"
           )
         |> seq ~sep:"\n"
@@ -336,13 +358,13 @@ let merged_families_distributor merged_families =
     cmd "bash" [ file_dump script ]
   ]
 
-let get_reconstructed_sequences merged_families_dirs configuration =
+let get_reconstructed_sequences merged_and_reconciled_families_dirs configuration =
   let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
   workflow ~version:2 [
     mkdir_p dest;
     cmd "GetReconstructedSequences.py"  [
-      dep merged_families_dirs // "Merged_fasta";
-      dep merged_families_dirs // "Sp2Seq_link";
+      dep merged_and_reconciled_families_dirs // "Merged_fasta";
+      dep merged_and_reconciled_families_dirs // "Sp2Seq_link";
       seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
       ident dest
     ]
@@ -357,6 +379,7 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
   let threads = Pervasives.min threads_max configuration.threads in
   let memory = configuration.memory in
   Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
+
 
 
 let output_of_phyldog phyldog merged_families families =
@@ -435,14 +458,16 @@ let build_app configuration =
 
   let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
 
-  let merged_families_dirs = merged_families_distributor merged_families in
+  let merged_and_reconciled_families = phyldog_by_fam_of_merged_families merged_families configuration in
 
-  let reconstructed_sequences = get_reconstructed_sequences merged_families_dirs configuration in
+  let merged_and_reconciled_families_dirs = merged_families_distributor merged_and_reconciled_families in
 
-  let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
+  let reconstructed_sequences = get_reconstructed_sequences merged_and_reconciled_families_dirs configuration in
+
+  (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
   let output = output_of_phyldog phyldog merged_families configuration.families in
-
+*)
 
 
   let open Bistro_app in
@@ -505,13 +530,9 @@ let build_app configuration =
           [ "merged_families" ; fam  ] %> merged_family
         )
       ;
-      [["merged_families_dir"] %> merged_families_dirs]
+      [["merged_families_dir"] %> merged_and_reconciled_families_dirs]
       ;
       [["reconstructed_sequences"] %> reconstructed_sequences]
-      ;
-      [["phyldog" ] %> phyldog]
-      ;
-      [[ "output" ] %> output ]
       ;
     ]
   in

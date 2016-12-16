@@ -41,6 +41,56 @@ type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
 
+let phyldog_by_fam
+    ?datatype
+    ?dataformat
+    ?treefile
+    ?topospecies
+    ?dlopt
+    ?equgenomes
+    ?topogene
+    ?timelimit
+    ?(memory = 1)
+    ~threads
+    ~link
+    ~tree
+    (ali :fasta workflow)
+    : phylotree directory workflow =
+
+    let config_dir = dest // "Configuration" in
+    let results_species = dest // "Species_tree/" in
+    let results_genes = dest // "Gene_trees/" in
+    workflow ~version:1 ~np:threads ~mem:(1024 * memory) [
+    mkdir_p config_dir;
+    mkdir_p results_species;
+    mkdir_p results_genes;
+    mkdir_p (dest // "tmp_phyldog");
+    cd (dest // "tmp_phyldog");
+    (* Preparing phyldog configuration files*)
+    cmd "PhyldogPrepData.py" [
+              option (opt "-datatype" string) datatype ;
+              option (opt "-dataformat" string) dataformat ;
+              option (opt "-species_tree_file" string) treefile ;
+              option (flag string "-topospecies") topospecies ;
+              option (opt "-dlopt" string) dlopt ;
+              option (opt "-timelimit" int) timelimit ;
+              option (flag string "-equgenomes") equgenomes ;
+              option (flag string "-topogene") topogene ;
+              opt "-link" dep link;
+              opt "-seq" dep ali;
+              opt "-starting_tree" dep tree;
+              opt "-species_tree_resdir" ident results_species;
+              opt "-gene_trees_resdir" ident results_genes;
+              opt "-optdir" seq [ ident config_dir ] ;
+              ];
+    (* Run phyldog *)
+    cmd "mpirun" [
+            opt "-np" ident np ;
+            string "phyldog";
+            seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
+            ];
+    ]
+
 let phyldog
     ?datatype
     ?dataformat
