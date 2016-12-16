@@ -324,10 +324,18 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~link ~tree ali, merged_family)
     )
 
+let realign_merged_families merged_and_reconciled_families configuration =
+  List.map  merged_and_reconciled_families ~f:(fun (fam, reconciled_w, merged_w) ->
+    let ali = merged_w / selector [ fam ^ ".fa" ] in
+    let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
+    let threads = 1 in
+    (fam, Aligner.mafft ~threads ~treein ~auto:true ali, reconciled_w, merged_w)
+    )
 
-let merged_families_distributor merged_and_reconciled_families =
+let merged_families_distributor merged_reconciled_and_realigned_families =
   let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
   let extension_list_reconciled = [(".ReconciledTree","Gene_trees/")] in
+  let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in
   workflow ~version:1 [
     mkdir_p tmp;
     mkdir_p (dest // "Merged_fasta");
@@ -335,7 +343,7 @@ let merged_families_distributor merged_and_reconciled_families =
     mkdir_p (dest // "Reconciled_Gene_tree");
     mkdir_p (dest // "Sp2Seq_link");
     let script = Bistro.Expr.(
-      List.map merged_and_reconciled_families ~f:(fun (f, reconciled_w, merged_w) ->
+      List.map merged_reconciled_and_realigned_families ~f:(fun (f, realigned_w, reconciled_w, merged_w) ->
           List.concat[
               List.map extension_list_merged ~f:(fun (ext,dir) ->
                 let input = merged_w / selector [ f ^ ext ] in
@@ -345,6 +353,12 @@ let merged_families_distributor merged_and_reconciled_families =
               ;
               List.map extension_list_reconciled ~f:(fun (ext,dir) ->
                 let input = reconciled_w / selector [ f ^ ext ] in
+                let output = dest // dir // (f ^ ext)  in
+                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+              )
+              ;
+              List.map extension_list_realigned ~f:(fun (ext,dir) ->
+                let input = realigned_w in
                 let output = dest // dir // (f ^ ext)  in
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
               )
@@ -460,9 +474,11 @@ let build_app configuration =
 
   let merged_and_reconciled_families = phyldog_by_fam_of_merged_families merged_families configuration in
 
-  let merged_and_reconciled_families_dirs = merged_families_distributor merged_and_reconciled_families in
+  let merged_reconciled_and_realigned_families = realign_merged_families merged_and_reconciled_families configuration in
 
-  let reconstructed_sequences = get_reconstructed_sequences merged_and_reconciled_families_dirs configuration in
+  let merged_reconciled_and_realigned_families_dirs = merged_families_distributor merged_reconciled_and_realigned_families in
+
+  let reconstructed_sequences = get_reconstructed_sequences merged_reconciled_and_realigned_families_dirs configuration in
 
   (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
@@ -530,7 +546,7 @@ let build_app configuration =
           [ "merged_families" ; fam  ] %> merged_family
         )
       ;
-      [["merged_families_dir"] %> merged_and_reconciled_families_dirs]
+      [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
       ;
       [["reconstructed_sequences"] %> reconstructed_sequences]
       ;

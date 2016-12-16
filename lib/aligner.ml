@@ -1,16 +1,18 @@
+open Core.Std
 open Bistro.Std
-open Bistro.EDSL_sh
+open Bistro.EDSL
 open Bistro_bioinfo.Std
 
 
-let mafft 
+let mafft
   ?treein
-  ?(auto = true)
+  ~auto
   ?maxiterate
+  ~threads
   (fa:fasta workflow) : fasta workflow =
-  workflow ~descr:"mafft" ~np [
+  workflow ~descr:"mafft" ~np:threads [
     cmd "mafft" ~stdout:dest [
-      option (flag string "--auto") auto;
+      flag string "--auto" auto;
       option (opt "--treein" dep) treein;
       option (opt "--maxiterate" int) maxiterate;
       dep fa ;
