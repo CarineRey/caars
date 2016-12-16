@@ -67,7 +67,7 @@ let trinity_fasta
     ?(memory = 1)
     (sample_fasta : fasta workflow sample_fasta)
     : fasta workflow =
-    workflow  ~np:threads ~mem:(1024 * memory) [
+    workflow ~descr:"Trinity" ~np:threads ~mem:(1024 * memory) [
         mkdir_p dest;
         cmd "Trinity" [
             string "--no_version_check";
@@ -121,7 +121,7 @@ let fastq_read_normalization
 
     |}]
   in
-  workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
+  workflow ~descr:"fastq_read_normalization" ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp;
     cd tmp;
@@ -161,7 +161,7 @@ let fasta_read_normalization
 
     |}]
   in
-  workflow ~version:2 ~np:threads ~mem:(1024 * memory) [
+  workflow ~descr:"fasta_read_normalization" ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp ;
     cd tmp;
@@ -177,7 +177,7 @@ let fastool ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
     $FASTOOL_PATH --illumina-trinity --to-fasta  {{ dep fastq }} > {{ ident dest }}
     |} ]
   in
-  workflow ~np:1 [
+  workflow ~descr:"fastq to fasta" ~np:1 [
     cmd "ls" [ dep dep_input ];
     cmd "sh" [ file_dump script ];
   ]
@@ -197,6 +197,6 @@ let assembly_stats (fasta:fasta workflow) : assembly_stats workflow =
     fi
     |} ]
   in
-  workflow ~np:1 [
+  workflow ~descr:"assembly stats trinity" ~np:1 [
     cmd "sh" [ file_dump script ];
   ]

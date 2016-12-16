@@ -24,7 +24,7 @@ let sp2seq_link fam : (output, sp2seq_link) selector =
 type configuration_dir = [ `configuration ]
 
 let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir; memory } : configuration_dir directory workflow=
-  workflow ~np:1 ~version:9 ~mem:(memory * 1024) [
+  workflow ~np:1 ~descr:"Parse input" ~version:9 ~mem:(memory * 1024) [
     cmd "ParseInput.py"  [ string sample_sheet ;
                            string species_tree_file;
                            string alignments_dir;
@@ -154,7 +154,7 @@ let seq_dispatcher
     ~ref_transcriptome
     ~threads
     ~seq2fam : fasta workflow =
-  workflow ~np:threads ~version:9 [
+  workflow ~np:threads ~version:9 ~descr:"SeqDispatcher.py" [
     mkdir_p tmp;
     cmd "SeqDispatcher.py"  [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
@@ -208,7 +208,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
 let checkfamily ?ref_db ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
   let tmp_checkfamily = dest // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
-  workflow ~version:8 [
+  workflow ~version:8 ~descr:"CheckFamily.py" [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
     cmd "CheckFamily.py"  [
@@ -241,7 +241,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
       |> seq ~sep:"\n"
     )
   in
-  workflow ~version:4 [
+  workflow ~version:4 ~descr:"Parse_apytram_results.py" ~np:1  [
     cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
   ]
 
@@ -281,7 +281,7 @@ let seq_integrator
 
   let tmp_merge = dest // "tmp" in
 
-  workflow ~version:11 [
+  workflow ~version:11 ~descr:"SeqIntegrator.py" [
     mkdir_p tmp_merge ;
     cmd "SeqIntegrator.py"  [
       opt "-tmp" ident tmp_merge;
@@ -328,7 +328,7 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
 let merged_families_distributor merged_and_reconciled_families =
   let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
   let extension_list_reconciled = [(".ReconciledTree","Gene_trees/")] in
-  workflow ~version:1 [
+  workflow ~version:1 ~descr:"build_final_directory" [
     mkdir_p tmp;
     mkdir_p (dest // "Merged_fasta");
     mkdir_p (dest // "Merged_tree");
@@ -360,7 +360,7 @@ let merged_families_distributor merged_and_reconciled_families =
 
 let get_reconstructed_sequences merged_and_reconciled_families_dirs configuration =
   let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
-  workflow ~version:2 [
+  workflow ~descr:"GetReconstructedSequences.py" ~version:2 [
     mkdir_p dest;
     cmd "GetReconstructedSequences.py"  [
       dep merged_and_reconciled_families_dirs // "Merged_fasta";
@@ -383,7 +383,7 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
 
 
 let output_of_phyldog phyldog merged_families families =
-  workflow ~version:1 [
+  workflow ~descr:"output_of_phyldog" ~version:1 [
     mkdir_p (dest // "Alignments");
     mkdir_p (dest // "Sp2Seq_link");
     mkdir_p (dest // "Gene_trees");

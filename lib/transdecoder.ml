@@ -57,7 +57,7 @@ let transdecoder
         mv tmp orfs.cds
         |}]
   in
-  workflow ~np:threads ~mem:(1024 * memory) [
+  workflow ~descr:"Transdecoder" ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     cd dest;
     cmd "sh" [ file_dump script ]; 

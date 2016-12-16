@@ -60,7 +60,7 @@ let phyldog_by_fam
     let config_dir = dest // "Configuration" in
     let results_species = dest // "Species_tree/" in
     let results_genes = dest // "Gene_trees/" in
-    workflow ~version:1 ~np:threads ~mem:(1024 * memory) [
+    workflow ~descr:"phyldog_by_fam" ~version:1 ~np:threads ~mem:(1024 * memory) [
     mkdir_p config_dir;
     mkdir_p results_species;
     mkdir_p results_genes;
