@@ -81,7 +81,7 @@ requiredOptions.add_argument('-gene_trees_resdir', type=str, default="",
 
 requiredOptions.add_argument('-species_tree_file', type=str,
                              help="Absolute PATH to the starting species tree file (Newick)")
-requiredOptions.add_argument('-startingtree', type=str, choices=["RANDOM", "MRP"], default="RANDOM",
+requiredOptions.add_argument('-species_starting_tree_calc', type=str, choices=["RANDOM", "MRP"], default="RANDOM",
                              help="If no species tree file, What kind of species tree? RANDOM or MRP?")
 
 requiredOptions.add_argument('-topospecies', action='store_true', default=False,
@@ -116,7 +116,7 @@ SP_RESDIR = args.species_tree_resdir
 GENES_RESDIR = args.gene_trees_resdir
 STARTINGTREE = args.starting_tree
 TREEFILE = args.species_tree_file.replace("//","/")
-STARTINGTREE = args.startingtree
+STARTINGTREECALC = args.species_starting_tree_calc
 if TREEFILE:
     TREEFILEGIVEN = True
 else:
@@ -197,9 +197,9 @@ if __name__ == '__main__':
             sys.exit(1)
         print "Starting from "+TREEFILE+"\n"
     else:
-        if not STARTINGTREE in ["RANDOM", "MRP"]:
+        if not STARTINGTREECALC in ["RANDOM", "MRP"]:
             sys.exit(1)
-        if STARTINGTREE == "RANDOM":
+        if STARTINGTREECALC == "RANDOM":
             print "Starting species tree: RANDOM\n"
         else:
             print "Starting species tree: MRP\n"
@@ -439,7 +439,7 @@ if __name__ == '__main__':
     if TREEFILEGIVEN:
         fopt.write("init.species.tree=user\n")
         fopt.write("species.tree.file="+TREEFILE+"\n")
-    elif STARTINGTREE == "RANDOM":
+    elif STARTINGTREECALC == "RANDOM":
         fopt.write("init.species.tree=random #user\n")
     else:
         fopt.write("init.species.tree=mrp\n")

@@ -67,7 +67,7 @@ let phyldog_by_fam
     mkdir_p (dest // "tmp_phyldog");
     cd (dest // "tmp_phyldog");
     (* Preparing phyldog configuration files*)
-    cmd "PhyldogPrepData.py" [
+    cmd "PhyldogPrepDataByFam.py" [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
               option (opt "-species_tree_file" string) treefile ;
