@@ -111,6 +111,14 @@ let families_of_alignments_dir alignments_dir =
 
 
 let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~outdir =
+  let threads = match np with
+    | x when x > 1 -> np
+    | _ -> failwith "The number of CPUs must be at least 2"
+  in
+  let memory = match np with
+    | x when x > 0 -> memory
+    | _ -> failwith "The memory must be at least 1"
+  in
   let config_rna_seq = parse_rna_conf_file sample_sheet in
   let filter_samples f = List.filter config_rna_seq ~f in
   let id_list = List.map config_rna_seq ~f:(fun s -> s.id) in
@@ -138,7 +146,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       species_tree_file ;
       alignments_dir ;
       seq2sp_dir ;
-      threads = np ;
+      threads;
       memory ;
       outdir;
     }

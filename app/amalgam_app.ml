@@ -44,7 +44,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
       (Bistro_console_logger.create ())
       (Bistro_html_logger.create "report.html")
   in
-  let np = Option.value ~default:1 np in
+  let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~outdir in
   let amalgam_app = Amalgam.build_app configuration in
@@ -60,7 +60,7 @@ let spec =
   +> flag "--species-tree"    (required file)   ~doc:"ABSOLUTE PATH Species tree file in nw format containing all species. Warning absolute path is required."
   +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
   +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
-  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs. (Default:1)"
+  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
 
 let command =
