@@ -304,7 +304,8 @@ if StartingFastaFiles and Sp2SeqFiles:
         NbSeq_previous_iter = 0
         NbSeq_current_iter = count_lines(sp2seq)
         i = 0
-        while (NbSeq_current_iter != 1) or (NbSeq_current_iter != NbSeq_previous_iter):
+        while (NbSeq_current_iter != NbSeq_previous_iter):
+            logger.debug("%s iterations, %s NbSeq_current_iter, %s NbSeq_previous_iter", i, NbSeq_current_iter, NbSeq_previous_iter)
             i += 1
             NbSeq_previous_iter = NbSeq_current_iter
             ### Built a tree with the global alignment
