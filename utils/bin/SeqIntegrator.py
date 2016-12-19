@@ -366,8 +366,10 @@ if StartingFastaFiles and Sp2SeqFiles:
             NbSeq_current_iter = count_lines(sp2seq)
 
         logger.warning("%s merge process iterations", i)
-        LastAli = ali
-        FinalSp2Seq = sp2seq
+        LastAli = "%s.fa" %OutPrefixName
+        FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+        (out, err) = mv(ali, LastAli)
+        (out, err) = mv(sp2seq, FinalSp2Seq)
 
 
 else: #No sequences to add
