@@ -83,12 +83,27 @@ let phyldog_by_fam
               opt "-gene_trees_resdir" ident results_genes;
               opt "-optdir" seq [ ident config_dir ] ;
               ];
+    let script = [%bistro {|
+    nb_species=`wc -l {{ident (config_dir // "listSpecies.txt")}} `
+    filename=`basename {{ dep tree }}`
+    family=${filename%.*}
+    if [ $nb_species -gt 2 ]
+    then
+     mpirun -np {{ ident np  }} phyldog param={{ident (config_dir // "GeneralOptions.txt")}}
+    else
+     cp {{ dep tree }} {{ ident results_genes }}"$family".ReconciledTree
+    fi
+    |} ]
+    in
+    cmd "sh" [ file_dump script ];
+    (*
     (* Run phyldog *)
     cmd "mpirun" [
             opt "-np" ident np ;
             string "phyldog";
             seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
             ];
+    *)
     ]
 
 let phyldog
