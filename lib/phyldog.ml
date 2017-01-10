@@ -60,7 +60,7 @@ let phyldog_by_fam
     let config_dir = dest // "Configuration" in
     let results_species = dest // "Species_tree/" in
     let results_genes = dest // "Gene_trees/" in
-    workflow ~descr:"phyldog_by_fam" ~version:1 ~np:threads ~mem:(1024 * memory) [
+    workflow ~descr:"phyldog_by_fam" ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p config_dir;
     mkdir_p results_species;
     mkdir_p results_genes;
@@ -91,7 +91,7 @@ let phyldog_by_fam
     then
      mpirun -np {{ ident np  }} phyldog param={{ident (config_dir // "GeneralOptions.txt")}}
     else
-     cp {{ dep tree }} {{ ident results_genes }}"$family".ReconciledTree
+     nw2nhx.py {{ dep tree }} >  {{ ident results_genes }}"$family".ReconciledTree
     fi
     |} ]
     in
