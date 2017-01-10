@@ -362,7 +362,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families =
                 let input = realigned_w in
                 let output = dest // dir // (f ^ ext)  in
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-              )
+              );
               ]
 
             |> seq ~sep:"\n"
