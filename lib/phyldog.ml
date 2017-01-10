@@ -60,7 +60,7 @@ let phyldog_by_fam
     let config_dir = dest // "Configuration" in
     let results_species = dest // "Species_tree/" in
     let results_genes = dest // "Gene_trees/" in
-    workflow ~descr:"phyldog_by_fam" ~version:1 ~np:threads ~mem:(1024 * memory) [
+    workflow ~descr:"phyldog_by_fam" ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p config_dir;
     mkdir_p results_species;
     mkdir_p results_genes;
@@ -83,12 +83,27 @@ let phyldog_by_fam
               opt "-gene_trees_resdir" ident results_genes;
               opt "-optdir" seq [ ident config_dir ] ;
               ];
+    let script = [%bistro {|
+    nb_species=`wc -l {{ident (config_dir // "listSpecies.txt")}} `
+    filename=`basename {{ dep tree }}`
+    family=${filename%.*}
+    if [ $nb_species -gt 2 ]
+    then
+     mpirun -np {{ ident np  }} phyldog param={{ident (config_dir // "GeneralOptions.txt")}}
+    else
+     nw2nhx.py {{ dep tree }} >  {{ ident results_genes }}"$family".ReconciledTree
+    fi
+    |} ]
+    in
+    cmd "sh" [ file_dump script ];
+    (*
     (* Run phyldog *)
     cmd "mpirun" [
             opt "-np" ident np ;
             string "phyldog";
             seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
             ];
+    *)
     ]
 
 let phyldog
