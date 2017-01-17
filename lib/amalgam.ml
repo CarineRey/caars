@@ -90,7 +90,7 @@ let normalize_fasta fasta_reads {threads ; memory } =
 let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_samples} =
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
-        match (s.run_trinity,s.given_assembly) with
+        match (s.run_trinity, s.given_assembly) with
         | (true,false) -> Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
@@ -126,7 +126,6 @@ let concat = function
     workflow ~descr:"fastX.concat" [
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
-
 
 
 let blast_dbs_of_norm_fasta norm_fasta =
@@ -465,7 +464,21 @@ let build_app configuration =
       )
   in
 
-  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams divided_memory in
+  let apytram_annotated_ref_fams_by_fam =
+  List.concat
+    (List.map configuration.families ~f:(fun fam ->
+    let query = concat (List.map configuration.all_apytram_ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
+    let blast_dbs = blast_dbs (*(s, w)*) in
+    let w = Apytram.apytram_multi_species ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
+    List.map configuration.apytram_samples ~f:(fun s ->
+      let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
+      (s, fam, w / selector [ apytram_filename ] )
+       )
+    )
+    )
+  in
+
+  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_memory in
 
   let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
@@ -495,56 +508,61 @@ let build_app configuration =
   in
   let repo =
     List.concat [
-      [[ "configuration" ] %>  configuration_dir ]
+      [[ "tmp" ; "configuration" ] %>  configuration_dir ]
       ;
-      List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "raw_fasta" sample_fasta))
+      List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "tmp/rna_seq/raw_fasta" sample_fasta))
       ;
-      List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "norm_fasta" norm_fasta))
+      List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "tmp/rna_seq/norm_fasta" norm_fasta))
       ;
       List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-          [ "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
         )
       ;
       List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-          [ "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
         )
       ;
       List.map trinity_assemblies_stats ~f:(fun (s,trinity_assembly_stats) ->
-          [ "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
+          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
         )
       ;
       List.map trinity_orfs_stats ~f:(fun (s,trinity_orfs_stats) ->
-          [ "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
+          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
         )
       ;
       List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
-          [ "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
+          [ "tmp" ; "trinity_blast_annotation" ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
         )
       ;
        List.map ref_blast_dbs ~f:(fun (ref_species, blast_db) ->
-          [ "ref_blast_db" ; ref_species ] %> blast_db
+          [ "tmp" ; "trinity_blast_annotation" ; "ref_blast_db" ; ref_species ] %> blast_db
         )
       ;
       List.map blast_dbs ~f:(fun (s,blast_db) ->
-          [ "blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
+          [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
         )
       ;
-      List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+     (* List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
+          [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+        )
+      ;
+      *)
+      List.map apytram_annotated_ref_fams_by_fam ~f:(fun (s, fam, apytram_result) ->
+          [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams_by_fam" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
         )
       ;
       List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+          [ "tmp" ; "apytram_assembly" ; "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
         )
       ;
       List.map apytram_checked_families ~f:(fun (s, fam, apytram_result) ->
-          [ "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
+          [ "tmp" ; "apytram_assembly" ; "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
         )
       ;
-      [["apytram_results" ] %> apytram_results_dir]
+      [["tmp" ; "apytram_assembly" ;"apytram_results" ] %> apytram_results_dir]
       ;
       List.map merged_families ~f:(fun (fam, merged_family) ->
-          [ "merged_families" ; fam  ] %> merged_family
+          [ "tmp" ; "merged_families" ; fam  ] %> merged_family
         )
       ;
       [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
