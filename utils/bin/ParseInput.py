@@ -123,7 +123,7 @@ for line in f:
                 logger.error("The given trinity assembly file %s does not exist for %s", path_assembly, rna_id)
                 sys.exit(1)
         if path_fastq_left == path_fastq_right and path_fastq_left != "-":
-	    logger.error("Left and right fastq files are identical, check sample sheet line of %s", ran_id)
+            logger.error("Left and right fastq files are identical, check sample sheet line of %s", rna_id)
             sys.exit(1) 
         if sp in All_Species and ref_species in All_Species:
             if run_apytram.strip() in ["y", "yes", "Y", "Yes"]:
@@ -272,6 +272,7 @@ for f in glob.glob("%s/*" %ali_dir):
     Nb_Family += 1
     AliDict_i, err = read_ali_file(f)
     Nb_seqs = len(AliDict_i.keys())
+    Nb_sp = len(set([Seq2Sp_dict[s] for s in AliDict_i.keys()]))
     if  Extention != "fa":
         logger.error("%s is not a fasta file with Family.fa as filename. (Detected extention %s)", f, Extention)
         sys.exit(1)
@@ -283,6 +284,11 @@ for f in glob.glob("%s/*" %ali_dir):
         sys.exit(1)
     if Nb_seqs < 3:
         logger.error("%s has less than 3 sequences. (%s sequences detected in: %s)", Family, Nb_seqs, f)
+        if Nb_sp < 3:
+            logger.error("AND %s has less than 3 species. (%s species detected in: %s)", Family, Nb_sp, f)
+        sys.exit(1)
+    if Nb_sp < 3:
+        logger.error("%s has less than 3 species. (%s species detected in: %s)", Family, Nb_sp, f)
         sys.exit(1)
     # Check all sequence name in Seq2SpDict
     if not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
