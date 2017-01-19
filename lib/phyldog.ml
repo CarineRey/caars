@@ -84,7 +84,7 @@ let phyldog_by_fam
               opt "-optdir" seq [ ident config_dir ] ;
               ];
     let script = [%bistro {|
-    nb_species=`wc -l {{ident (config_dir // "listSpecies.txt")}} `
+    nb_species=`wc -l < {{ident (config_dir // "listSpecies.txt")}} `
     filename=`basename {{ dep tree }}`
     family=${filename%.*}
     if [ $nb_species -gt 2 ]
