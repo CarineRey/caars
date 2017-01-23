@@ -85,6 +85,7 @@ let apytram
         option (opt "-fa" string ) fasta ;
         option (opt "-q" dep ) query ;
         option (opt "-i" int ) i ;
+        option (opt "-e" float ) evalue ;
         option (opt "-id" float ) id ;
         option (opt "-fid" float ) fid ;
         option (opt "-mal" float ) mal ;
@@ -119,7 +120,6 @@ let apytram_multi_species
     ?only_best_file
     ?out_by_species
     ?write_even_empty
-    ?evalue
     ?id
     ?fid
     ?mal
