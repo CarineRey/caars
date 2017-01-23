@@ -317,10 +317,11 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let ali = merged_family / selector [ fam ^ ".fa" ] in
     let tree = merged_family / selector [ fam ^ ".tree" ] in
     let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
-    let treefile = configuration.species_tree_file in
+    let sptreefile = configuration.species_tree_file in
+    let profileNJ_tree = (ProfileNJ.profileNJ ~sptreefile ~link ~tree ~threshold:1.0 ) / selector [ fam ^ ".tree" ] in
     let threads = Pervasives.min 2 configuration.threads in
     let memory = Pervasives.(configuration.memory / configuration.threads) in
-    (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~link ~tree ali, merged_family)
+    (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene:true ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =
@@ -388,11 +389,11 @@ let phyldog_of_merged_families_dirs configuration merged_families_dirs =
   let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
   let treedir = merged_families_dirs / selector [ "Merged_tree" ] in
   let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in
-  let treefile = configuration.species_tree_file in
+  let sptreefile = configuration.species_tree_file in
   let threads_max = (List.length configuration.families) + 1 in
   let threads = Pervasives.min threads_max configuration.threads in
   let memory = configuration.memory in
-  Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~treefile ~linkdir ~treedir seqdir
+  Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~sptreefile ~linkdir ~treedir seqdir
 
 
 
