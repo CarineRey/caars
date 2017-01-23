@@ -470,7 +470,7 @@ let build_app configuration =
     (List.map configuration.families ~f:(fun fam ->
     let query = concat (List.map configuration.all_apytram_ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
     let blast_dbs = blast_dbs (*(s, w)*) in
-    let w = Apytram.apytram_multi_species ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
+    let w = Apytram.apytram_multi_species ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
     List.map configuration.apytram_samples ~f:(fun s ->
       let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
       (s, fam, w / selector [ apytram_filename ] )
