@@ -459,7 +459,7 @@ let build_app configuration =
         let query = configuration_dir / ref_fams s.ref_species fam in
         let blast_db = List.Assoc.find_exn blast_dbs s in
         let db_type = sample_fastq_orientation s.sample_fastq in
-        let w = Apytram.apytram ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~memory:divided_memory ~query db_type blast_db in
+        let w = Apytram.apytram ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~memory:divided_memory ~query db_type blast_db in
         let apytram_filename = "apytram." ^ s.ref_species ^ "." ^ fam ^ ".fasta" in
         (s, fam, w / selector [ apytram_filename ] )
       )

@@ -114,6 +114,7 @@ let apytram
 
 let apytram_multi_species
     ?i
+    ?evalue
     ?no_best_file
     ?only_best_file
     ?out_by_species
@@ -157,6 +158,7 @@ let apytram_multi_species
     cmd "apytram.py" [
         opt "-q" seq [dep query ; string ":"; string fam] ;
         option (opt "-i" int ) i ;
+        option (opt "-e" float ) evalue;
         option (opt "-id" float ) id ;
         option (opt "-fid" float ) fid ;
         option (opt "-mal" float ) mal ;
