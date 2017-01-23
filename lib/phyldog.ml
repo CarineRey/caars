@@ -44,7 +44,7 @@ type phylotree
 let phyldog_by_fam
     ?datatype
     ?dataformat
-    ?treefile
+    ?sptreefile
     ?topospecies
     ?dlopt
     ?equgenomes
@@ -70,7 +70,7 @@ let phyldog_by_fam
     cmd "PhyldogPrepDataByFam.py" [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
-              option (opt "-species_tree_file" string) treefile ;
+              option (opt "-species_tree_file" string) sptreefile ;
               option (flag string "-topospecies") topospecies ;
               option (opt "-dlopt" string) dlopt ;
               option (opt "-timelimit" int) timelimit ;
@@ -109,7 +109,7 @@ let phyldog_by_fam
 let phyldog
     ?datatype
     ?dataformat
-    ?treefile
+    ?sptreefile
     ?topospecies
     ?dlopt
     ?equgenomes
@@ -135,7 +135,7 @@ let phyldog
     cmd "PhyldogPrepData.py" [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
-              option (opt "-species_tree_file" string) treefile ;
+              option (opt "-species_tree_file" string) sptreefile ;
               option (flag string "-topospecies") topospecies ;
               option (opt "-dlopt" string) dlopt ;
               option (opt "-timelimit" int) timelimit ;
