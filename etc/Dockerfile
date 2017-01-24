@@ -90,6 +90,12 @@ WORKDIR /opt/phylomerge
 RUN bash ./compile
 ENV PATH /opt/phylomerge:$PATH
 
+#### install profileNJ
+RUN pip install --upgrade pip
+RUN pip install ete3
+RUN pip install profileNJ
+
+
 #### install amalgam
 RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
 WORKDIR /usr/local/amalgam/
