@@ -94,15 +94,13 @@ ENV PATH /opt/phylomerge:$PATH
 RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
 WORKDIR /usr/local/amalgam/
 
-RUN git fetch origin && git checkout -b html-output origin/html-output
-
 RUN make
 ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
 ENV PYTHONPATH /usr/local/amalgam/utils/lib
 
 #### install multi_species version of apytram
-WORKDIR /opt/apytram
-RUN git fetch origin && git checkout -b multi_species origin/multi_species
+#WORKDIR /opt/apytram
+#RUN git fetch origin && git checkout -b multi_species origin/multi_species
 
 #### build a working directory
 RUN mkdir -p /data
