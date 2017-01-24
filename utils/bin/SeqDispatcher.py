@@ -393,6 +393,7 @@ def read_fasta(fasta_string):
                 sequence_list = []
                 fasta_dict[name] = sequence
             name = line.replace(">lcl|", "").strip().split()[0] # remove the ">lcl|"
+            name = name.replace(">","")
         elif name != "":
             sequence_list.append(line)
         else:
