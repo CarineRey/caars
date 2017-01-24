@@ -97,7 +97,7 @@ class Blast(object):
                 )
             if self.max_hsps_per_subject:
                 command.extend(
-                ["-max_hsps_per_subject", str(self.max_hsps_per_subject)]
+                ["-max_hsps", str(self.max_hsps_per_subject)]
                 )
             if self.Task:
                 command.extend(["-task", self.Task])
