@@ -178,6 +178,7 @@ if not os.path.isfile(args.input):
     logger.error(args.input + " (-q) is not a file.")
     end(1)
 
+
 if not os.path.isfile(args.ref_transcriptome):
     logger.error(args.ref_transcriptome + " (-t) is not a file.")
     end(1)
@@ -193,8 +194,9 @@ BashProcess = subprocess.Popen(["grep", "-e", "^>", args.input],
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
 OutBashProcess = BashProcess.communicate()
-if not  OutBashProcess[1]:
+if not OutBashProcess[1]:
     QueryNames = OutBashProcess[0].strip().replace(">", "").split("\n")
+    logger.debug("query: %s", "\n".join(QueryNames))
 else:
     logger.error(OutBashProcess[1])
     end(1)
@@ -283,9 +285,15 @@ OutputFile.write("")
 OutputFile.close()
 
 # Write blast ouptut in BlastOutputFile if the file does not exist
-(out, err) = BlastnProcess.launch(BlastOutputFile)
-if err:
-    end(1)
+logger.debug("%s : %s", FastaFile, os.stat(FastaFile).st_size)
+
+if os.stat(FastaFile).st_size == 0:
+    logger.info("Empty query file")
+    end(0)
+else:
+    (out, err) = BlastnProcess.launch(BlastOutputFile)
+    if err:
+        end(1)
 
 if not os.stat(BlastOutputFile).st_size:
     logger.info("Blast found no hit")
