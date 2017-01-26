@@ -66,7 +66,7 @@ RUN tar -zxf sratoolkit.2.5.2-ubuntu64.tar.gz
 RUN rm sratoolkit.2.5.2-ubuntu64.tar.gz
 ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
 
-#### install TranDecoder
+#### install TransDecoder
 WORKDIR /opt
 RUN apt-get install -qy unzip
 RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.0.zip
