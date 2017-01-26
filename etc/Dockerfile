@@ -24,7 +24,7 @@ RUN echo "deb http://biopp.univ-montp2.fr/repos/apt/ Trusty main" >> /etc/apt/so
 ##### install phyldog
 RUN apt-get install -y cmake g++-4.9
 
-RUN git clone git://pbil-dev.univ-lyon1.fr/phyldog /opt/phyldog && \
+RUN git clone https://github.com/Boussau/PHYLDOG /opt/phyldog && \
     mkdir /opt/phyldog/build && \
     apt-get install -y libboost-all-dev
 
