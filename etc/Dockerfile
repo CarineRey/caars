@@ -28,16 +28,33 @@ RUN git clone git://pbil-dev.univ-lyon1.fr/phyldog /opt/phyldog && \
     mkdir /opt/phyldog/build && \
     apt-get install -y libboost-all-dev
 
-WORKDIR /root/usr/bin
-RUN wget http://www.libpll.org/Downloads/libpll-1.0.11.tar.gz && \
-    tar xvzf libpll-1.0.11.tar.gz
 
-WORKDIR /root/usr/bin/libpll-1.0.11
-ENV CXX /usr/bin/g++-4.9
-RUN ./configure && make install
+######### libpll-1.0.11
+##  WORKDIR /root/usr/bin
+##  RUN wget http://www.libpll.org/Downloads/libpll-1.0.11.tar.gz && \
+##      tar xvzf libpll-1.0.11.tar.gz
+##  
+##  WORKDIR /root/usr/bin/libpll-1.0.11
+##  ENV CXX /usr/bin/g++-4.9
+##  RUN ./configure && make install
+##  
+##  WORKDIR /opt/phyldog/build
+##  RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install
+#########
+
+######### libpll-1.0.2
+
+WORKDIR /root/usr/bin
+RUN wget http://www.libpll.org/Downloads/libpll-1.0.2-sse3-64.tar.gz && \
+    tar xvzf libpll-1.0.2-sse3-64.tar.gz && rm libpll-1.0.2-sse3-64.tar.gz
 
 WORKDIR /opt/phyldog/build
-RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install
+RUN cmake .. -DCMAKE_LIBRARY_PATH=/root/usr/bin/libpll-1.0.2-sse3-64/ -DCMAKE_INCLUDE_PATH=/root/usr/bin/libpll-1.0.2-sse3-64/include/ -DBOOST_LIBRARYDIR=/root/usr/bin/libpll-1.0.2-sse3-64/ &&  make install
+#########
+
+
+
+
 
 ##### install fastree
 RUN apt-get install -qy fasttree  # pranck
