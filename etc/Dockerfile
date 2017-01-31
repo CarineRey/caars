@@ -113,9 +113,9 @@ RUN wget http://www.libpll.org/Downloads/libpll-1.0.2-sse3-64.tar.gz && \
 WORKDIR /opt/libpll-1.0.2-sse3-64/
 RUN cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
 
-RUN git clone https://github.com/Boussau/PHYLDOG /opt/phyldog && \
-    mkdir /opt/phyldog/build
-WORKDIR /opt/phyldog/build
+RUN git clone https://github.com/Boussau/PHYLDOG /usr/local/phyldog && \
+    mkdir /usr/local/phyldog/build
+WORKDIR /usr/local/phyldog/build
 
 ENV LD_LIBRARY_PATH /usr/local/lib/
 RUN cmake ..  &&  make install
