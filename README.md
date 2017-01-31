@@ -33,17 +33,30 @@ Warning, the container is in development, if you have any problem don't hesitate
 
 ### Dependencies
 
-* apytram
-* blast+
-* Trinity
-* phyldog
-* phylomerge
+* apytram:
+    * exonerate
+    * mafft >=7
+    * blast+ >= 2.6
+* blast+ >= 2.6
 * exonerate
 * mafft
+* Trinity >=2.3
+
+* Transdecoder
+
+* phyldog:
+    * pll 
+    * boost
+    * bpp
+    
+* phylomerge:
+    * bpp
+    
 * profileNJ
-* python 2
 
-
+* python 2:
+    * ete2
+    * ete3
 
 ```
 # to get sources
