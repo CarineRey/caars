@@ -21,7 +21,7 @@ docker run -t -i -v $pwd:$pwd carinerey/amalgam
 
 And you're done!
 
-You **must** use the -v option to share your working directory between your computer and the the virtual environment in the docker container. Indeed, amalgam builds links with absolute path which be break if you don't use the same directory tree.
+You **must** use the -v option to share your working directory between your computer and the virtual environment in the docker container. Indeed, amalgam builds links with absolute path which will be break if you don't use the same directory tree.
 
 amalgam can be call directly in the docker container terminal.
 
@@ -33,30 +33,45 @@ Warning, the container is in development, if you have any problem don't hesitate
 
 ### Dependencies
 
-* apytram:
-    * exonerate
-    * mafft >=7
-    * blast+ >= 2.6
-* blast+ >= 2.6
-* exonerate
-* mafft
-* Trinity >=2.3
+* OCaml >= 4.03.0
+    * oasis
+    * solvuu-build
+    * ocamlgraph
+    * bistro
 
-* Transdecoder
+* apytram >= 1.0
+    * exonerate >= 2.2.0
+    * mafft >=7.1
+     * blast+ >= 2.6
+   * python = 2.7
+
+* Trinity >=2.3
+    * Java >= 1.8 (OpenJRE works)
+    * Bowtie >= 2 (tested with 2.2.9)
 
 * phyldog:
-    * pll 
-    * boost
-    * bpp
-    
-* phylomerge:
-    * bpp
-    
-* profileNJ
+    * libPLL >= 1.0.2 sequential
+    * boost 1.55 < . > 1.49 (waiting for PSMN's validation on 1.63)
+    * bpp >= 2.2.0 (Bio++)
 
-* python 2:
+* PhyloMerge (0.2 from 2017/01)
+    * bpp >= 2.2.0 (Bio++)
+
+* Transdecoder >= 3.0.1
+
+* SRAToolKit >= 2.8.1-2
+
+* FastTree >= 2.1.7 (Warning: The executable must be fasttree and not FastTree)
+
+* python 2.7 (with pip and setuptools)
+    * PyQt4
+    * SciPy
+    * MySQLdb
+    * lxml
     * ete2
     * ete3
+    * profileNJ
+    * pandas
 
 ```
 # to get sources
@@ -68,7 +83,7 @@ cd amalgam
 make
 
 # to test all dependencies
-make test 
+make test
 ```
 
 # Usage
@@ -76,7 +91,7 @@ make test
 Example:
 
 ```
-amalgam_app.byte  --outdir OUTPUT_DIR --sample-sheet sample_sheet.tsv --species-tree /home/user/data/species_tree.nw --alignment-dir GENE_FAMILIES_MSA_DIR --seq2sp-dir GENE_FAMILIES_SEQ2SP_DIR --np 2 --memory 5 
+amalgam_app.byte  --outdir OUTPUT_DIR --sample-sheet sample_sheet.tsv --species-tree /home/user/data/species_tree.nw --alignment-dir GENE_FAMILIES_MSA_DIR --seq2sp-dir GENE_FAMILIES_SEQ2SP_DIR --np 2 --memory 5
 ```
 
 Amalgam will work in a directory named ```_bistro``` build in the current directory.
@@ -90,7 +105,7 @@ cp -rL OUTPUT_DIR OK_OUTPUT_DIR
 ```
 
 ```
-amalgam_app.byte 
+amalgam_app.byte
 
 === flags ===
 
@@ -128,7 +143,7 @@ amalgam needs in input a sample sheet file.
 This file is composed of 10 tabulated delimited columns with headers:
   * Sample ID: an unique identifiant (3 capital letters is recommended)
   * Sample species name: the species of the sample
-  * Reference species name: A reference species to annotate the sample. 
+  * Reference species name: A reference species to annotate the sample.
   * Path for a single-end RNA-seq run : Single fastq file path
   * Path for a double-end RNA-seq run : Left fastq file path
   * Path for a double-end RNA-seq run : Right fastq file path
@@ -136,9 +151,9 @@ This file is composed of 10 tabulated delimited columns with headers:
   * Run trinity on data : Yes or No
   * Path to a given trinity assembly : fasta file path
   * Run apytram on data : Yes or No
- 
+
  Column order must be conserved and also the header line.
-  
+
 An example:
 
 id	|species	|ref_species	|path_fastq_single	|path_fastq_left	|path_fastq_right	|orientation	|run_trinity	|path_assembly	|run_apytram
