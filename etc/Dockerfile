@@ -13,32 +13,6 @@ RUN apt-get install -qy python-setuptools \
 
 RUN pip install ete2
 
-#### install bpp
-WORKDIR /opt
-RUN echo "deb http://biopp.univ-montp2.fr/repos/apt/ Trusty main" >> /etc/apt/sources.list;\
-    wget http://biopp.univ-montp2.fr/repos/apt/conf/biopp.gpg.key; \
-    apt-key add biopp.gpg.key; \
-	apt-get update ; \
-    apt-get install -qy libbpp-phyl-dev
-
-##### install phyldog
-RUN apt-get install -y cmake g++-4.9
-
-RUN git clone git://pbil-dev.univ-lyon1.fr/phyldog /opt/phyldog && \
-    mkdir /opt/phyldog/build && \
-    apt-get install -y libboost-all-dev
-
-WORKDIR /root/usr/bin
-RUN wget http://www.libpll.org/Downloads/libpll-1.0.11.tar.gz && \
-    tar xvzf libpll-1.0.11.tar.gz
-
-WORKDIR /root/usr/bin/libpll-1.0.11
-ENV CXX /usr/bin/g++-4.9
-RUN ./configure && make install
-
-WORKDIR /opt/phyldog/build
-RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install
-
 ##### install fastree
 RUN apt-get install -qy fasttree  # pranck
 
@@ -49,7 +23,7 @@ RUN tar -zxf sratoolkit.2.5.2-ubuntu64.tar.gz
 RUN rm sratoolkit.2.5.2-ubuntu64.tar.gz
 ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
 
-#### install TranDecoder
+#### install TransDecoder
 WORKDIR /opt
 RUN apt-get install -qy unzip
 RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.0.zip
@@ -84,6 +58,16 @@ RUN opam pin add -y solvuu-build https://github.com/solvuu/solvuu-build.git#45df
 RUN opam install ocamlgraph
 RUN opam pin add bistro --dev-repo
 
+
+#### install bpp
+WORKDIR /opt
+RUN echo "deb http://biopp.univ-montp2.fr/repos/apt/ Trusty main" >> /etc/apt/sources.list;\
+    wget http://biopp.univ-montp2.fr/repos/apt/conf/biopp.gpg.key; \
+    apt-key add biopp.gpg.key; \
+	apt-get update ; \
+    apt-get install -qy libbpp-phyl-dev
+
+
 ##### install phylomerge
 RUN git clone https://github.com/boussau/phylomerge/ /opt/phylomerge
 WORKDIR /opt/phylomerge
@@ -103,6 +87,40 @@ WORKDIR /usr/local/amalgam/
 RUN make
 ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
 ENV PYTHONPATH /usr/local/amalgam/utils/lib
+
+
+
+##### install phyldog
+RUN apt-get install -y cmake g++-4.9 libboost-all-dev
+
+######### libpll-1.0.11
+##  WORKDIR /root/usr/bin
+##  RUN wget http://www.libpll.org/Downloads/libpll-1.0.11.tar.gz && \
+##      tar xvzf libpll-1.0.11.tar.gz
+##  
+##  WORKDIR /root/usr/bin/libpll-1.0.11
+##  ENV CXX /usr/bin/g++-4.9
+##  RUN ./configure && make install
+##  
+##  WORKDIR /opt/phyldog/build
+##  RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install
+#########
+
+######### libpll-1.0.2
+WORKDIR /opt/
+RUN wget http://www.libpll.org/Downloads/libpll-1.0.2-sse3-64.tar.gz && \
+    tar xvzf libpll-1.0.2-sse3-64.tar.gz && rm libpll-1.0.2-sse3-64.tar.gz
+WORKDIR /opt/libpll-1.0.2-sse3-64/
+RUN cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
+
+RUN git clone https://github.com/Boussau/PHYLDOG /usr/local/phyldog && \
+    mkdir /usr/local/phyldog/build
+WORKDIR /usr/local/phyldog/build
+
+ENV LD_LIBRARY_PATH /usr/local/lib/
+RUN cmake ..  &&  make install
+#########
+
 
 #### install multi_species version of apytram
 #WORKDIR /opt/apytram
