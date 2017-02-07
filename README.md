@@ -33,17 +33,21 @@ Warning, the container is in development, if you have any problem don't hesitate
 
 ### Dependencies
 
-* OCaml >= 4.03.0
-    * oasis
-    * solvuu-build
-    * ocamlgraph
-    * bistro
+* Transdecoder >= 3.0.1
 
-* apytram >= 1.0
-    * exonerate >= 2.2.0
-    * mafft >=7.1
-     * blast+ >= 2.6
-   * python = 2.7
+* SRAToolKit >= 2.8.1-2
+
+* FastTree >= 2.1.7 (Warning: The executable must be fasttree and not FastTree)
+
+* Python 2.7 (with pip and setuptools)
+    * PyQt4
+    * SciPy
+    * MySQLdb
+    * lxml
+    * ete2
+    * ete3
+    * profileNJ
+    * pandas
 
 * Trinity >=2.3
     * Java >= 1.8 (OpenJRE works)
@@ -57,21 +61,19 @@ Warning, the container is in development, if you have any problem don't hesitate
 * PhyloMerge (0.2 from 2017/01)
     * bpp >= 2.2.0 (Bio++)
 
-* Transdecoder >= 3.0.1
+* apytram >= 1.0
+    * exonerate >= 2.2.0
+    * mafft >=7.1
+        * blast+ >= 2.6
+    * python = 2.7
+    * Trinity >=2.3
 
-* SRAToolKit >= 2.8.1-2
+* OCaml >= 4.03.0
+    * bistro
+        * oasis
+        * solvuu-build
+        * ocamlgraph
 
-* FastTree >= 2.1.7 (Warning: The executable must be fasttree and not FastTree)
-
-* python 2.7 (with pip and setuptools)
-    * PyQt4
-    * SciPy
-    * MySQLdb
-    * lxml
-    * ete2
-    * ete3
-    * profileNJ
-    * pandas
 
 ```
 # to get sources
