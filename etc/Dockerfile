@@ -13,13 +13,13 @@ RUN apt-get install -qy python-setuptools \
 
 RUN pip install ete2
 
-##### install fastree
-RUN apt-get install -qy fasttree  # pranck
+##### install fasttree
+RUN apt-get install -qy fasttree
 
 #### install sratoolkit
 WORKDIR /opt/
 RUN wget "http://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.5.2/sratoolkit.2.5.2-ubuntu64.tar.gz"
-RUN tar -zxf sratoolkit.2.5.2-ubuntu64.tar.gz
+RUN tar zxf sratoolkit.2.5.2-ubuntu64.tar.gz
 RUN rm sratoolkit.2.5.2-ubuntu64.tar.gz
 ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
 
@@ -34,8 +34,8 @@ ENV PATH /opt/TransDecoder-3.0.0/:$PATH
 
 #### install opam
 WORKDIR /root/
-RUN apt-get update && apt-get install -y \
-    aspcud bzip2 curl wget git  curl make m4 unzip gcc \
+RUN apt-get update && apt-get install -qy \
+    aspcud bzip2 curl wget git curl make m4 unzip gcc \
     pkg-config libncurses5-dev libgdbm-dev
 
 RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /root/usr/bin 4.03.0
@@ -91,12 +91,12 @@ ENV PYTHONPATH /usr/local/amalgam/utils/lib
 
 
 ##### install phyldog
-RUN apt-get install -y cmake g++-4.9 libboost-all-dev
+RUN apt-get install -qy cmake g++-4.9 libboost-all-dev
 
 ######### libpll-1.0.11
 ##  WORKDIR /root/usr/bin
 ##  RUN wget http://www.libpll.org/Downloads/libpll-1.0.11.tar.gz && \
-##      tar xvzf libpll-1.0.11.tar.gz
+##      tar xzf libpll-1.0.11.tar.gz
 ##  
 ##  WORKDIR /root/usr/bin/libpll-1.0.11
 ##  ENV CXX /usr/bin/g++-4.9
@@ -109,7 +109,7 @@ RUN apt-get install -y cmake g++-4.9 libboost-all-dev
 ######### libpll-1.0.2
 WORKDIR /opt/
 RUN wget http://www.libpll.org/Downloads/libpll-1.0.2-sse3-64.tar.gz && \
-    tar xvzf libpll-1.0.2-sse3-64.tar.gz && rm libpll-1.0.2-sse3-64.tar.gz
+    tar xzf libpll-1.0.2-sse3-64.tar.gz && rm libpll-1.0.2-sse3-64.tar.gz
 WORKDIR /opt/libpll-1.0.2-sse3-64/
 RUN cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
 
