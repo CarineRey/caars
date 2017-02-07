@@ -100,7 +100,7 @@ mafft is already packaged. See [System-wide installation](#system-wide-installat
 
 Blast+ is distributed as binary. Get it from [NCBI](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
 
-`̀``
+```
 mkdir -p /applis/PSMN/generic/Blast/
 wget ftp://ftp.ncbi.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-x64-linux.tar.gz
 tar zxf ncbi-blast-2.6.0+-x64-linux.tar.gz
