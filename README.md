@@ -30,8 +30,6 @@ Warning, the container is in development, if you have any problem don't hesitate
 ## complete installation
 
 See INSTALL.md or INSTAL-HPC.md
-[ To be completed ]
-
 
 # Usage
 
