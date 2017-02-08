@@ -15,7 +15,11 @@ apt-get install python-setuptools python-qt4 python-scipy python-mysqldb python-
 
 ## Installation on non-standard locations
 
-Here we describe a painfully, but complete, installation of amalgam and all it's dependencies (out of order). We will use [PSMN](http://www.ens-lyon.fr/PSMN/)'s case study as an example. PSMN use ```/applis/PSMN/``` as root filetree for all non-standard installations.
+Here we describe a painfully, but complete, installation of amalgam and all it's dependencies (out of order). 
+
+We will use [PSMN](http://www.ens-lyon.fr/PSMN/)'s case study as an example. PSMN use ```/applis/PSMN/``` as root filetree for all non-standard installations, on a NFS share on cluster's nodes. 
+
+(TODO: user used in this document has read-write-execute rights on /applis/PSMN, explain differences between debian7/ & generic/)
 
 ### Python 2.7
 
@@ -46,7 +50,7 @@ export PREFIX=""
 
 ### Transdecoder >= 3.0.1
 
-Get it from [https://github.com/TransDecoder/TransDecoder](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it build cd-hit.
+Get it from [https://github.com/TransDecoder/TransDecoder](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it build cd-hit, so there is a 'make' step.
 
 ```sh
 mkdir -p /applis/PSMN/debian7/TransDecoder
@@ -134,6 +138,11 @@ TOBECONTINUED.
 
 successfully tested with 2.2.9.
 
+##### Building Trinity
+
+#### Install apytram
+
+
 ### PhyloMerge (0.2 from 2017/01)
     * bpp >= 2.2.0 (Bio++)
 
@@ -158,7 +167,7 @@ cd ocaml-4.04.0
 make world
 make bootstrap
 make opt
-su make install
+make install
 ```
 
 Add:
@@ -177,12 +186,12 @@ See [https://opam.ocaml.org/](https://opam.ocaml.org/) for help.
 
 ```sh
 wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh
-su ./opam_installer.sh /applis/PSMN/debian7/OCaml/4.04.0/bin
+./opam_installer.sh /applis/PSMN/debian7/OCaml/4.04.0/bin
 ```
 
 * Init opam
 
-as user:
+as standard user:
 
 ```sh
 opam init
@@ -191,13 +200,13 @@ eval `opam config env`
 
 * Install amalgam OCaml depencies:
 
-as user:
+as standard user:
 
 ```sh
 opam pin add bistro --dev-repo
 ```
 
-opam should install bistro's dependencies:
+opam should automagically install bistro's dependencies:
 
 * oasis
 * solvuu-build

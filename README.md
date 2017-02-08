@@ -64,7 +64,7 @@ Warning, the container is in development, if you have any problem don't hesitate
 * apytram >= 1.0
     * exonerate >= 2.2.0
     * mafft >=7.1
-        * blast+ >= 2.6
+    * blast+ >= 2.6
     * python = 2.7
     * Trinity >=2.3
 
