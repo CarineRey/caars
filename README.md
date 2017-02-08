@@ -29,64 +29,9 @@ Warning, the container is in development, if you have any problem don't hesitate
 
 ## complete installation
 
+See INSTALL.md or INSTAL-HPC.md
 [ To be completed ]
 
-### Dependencies
-
-* Transdecoder >= 3.0.1
-
-* SRAToolKit >= 2.8.1-2
-
-* FastTree >= 2.1.7 (Warning: The executable must be fasttree and not FastTree)
-
-* Python 2.7 (with pip and setuptools)
-    * PyQt4
-    * SciPy
-    * MySQLdb
-    * lxml
-    * ete2
-    * ete3
-    * profileNJ
-    * pandas
-
-* Trinity >=2.3
-    * Java >= 1.8 (OpenJRE works)
-    * Bowtie >= 2 (tested with 2.2.9)
-
-* phyldog:
-    * libPLL >= 1.0.2 sequential
-    * boost 1.55 < . > 1.49 (waiting for PSMN's validation on 1.63)
-    * bpp >= 2.2.0 (Bio++)
-
-* PhyloMerge (0.2 from 2017/01)
-    * bpp >= 2.2.0 (Bio++)
-
-* apytram >= 1.0
-    * exonerate >= 2.2.0
-    * mafft >=7.1
-        * blast+ >= 2.6
-    * python = 2.7
-    * Trinity >=2.3
-
-* OCaml >= 4.03.0
-    * bistro
-        * oasis
-        * solvuu-build
-        * ocamlgraph
-
-
-```
-# to get sources
-git clone https://github.com/CarineRey/amalgam
-
-
-# to install amalgam
-cd amalgam
-make
-
-# to test all dependencies
-make test
-```
 
 # Usage
 
@@ -196,4 +141,65 @@ bash Launch_amalgam2.sh
 
 # To remove outputs
 make clean_test2
+```
+
+
+
+[To be removed]
+
+### Dependencies
+
+* Transdecoder >= 3.0.1
+
+* SRAToolKit >= 2.8.1-2
+
+* FastTree >= 2.1.7 (Warning: The executable must be fasttree and not FastTree)
+
+* Python 2.7 (with pip and setuptools)
+    * PyQt4
+    * SciPy
+    * MySQLdb
+    * lxml
+    * ete2
+    * ete3
+    * profileNJ
+    * pandas
+
+* Trinity >=2.3
+    * Java >= 1.8 (OpenJRE works)
+    * Bowtie >= 2 (tested with 2.2.9)
+
+* phyldog:
+    * libPLL >= 1.0.2 sequential
+    * boost 1.55 < . > 1.49 (waiting for PSMN's validation on 1.63)
+    * bpp >= 2.2.0 (Bio++)
+
+* PhyloMerge (0.2 from 2017/01)
+    * bpp >= 2.2.0 (Bio++)
+
+* apytram >= 1.0
+    * exonerate >= 2.2.0
+    * mafft >=7.1
+        * blast+ >= 2.6
+    * python = 2.7
+    * Trinity >=2.3
+
+* OCaml >= 4.03.0
+    * bistro
+        * oasis
+        * solvuu-build
+        * ocamlgraph
+
+
+```
+# to get sources
+git clone https://github.com/CarineRey/amalgam
+
+
+# to install amalgam
+cd amalgam
+make
+
+# to test all dependencies
+make test
 ```
