@@ -19,7 +19,7 @@ Here we describe a painfully, but complete, installation of amalgam and all it's
 
 We will use [PSMN](http://www.ens-lyon.fr/PSMN/)'s case study as an example. PSMN use ```/applis/PSMN/``` as root filetree for all non-standard installations, on a NFS share on cluster's nodes. 
 
-(TODO: user used in this document has read-write-execute rights on /applis/PSMN, explain differences between debian7/ & generic/)
+(TODO #DOC: user used in this document has read-write-execute rights on /applis/PSMN, explain differences between debian7/ & generic/)
 
 ### Python 2.7
 
@@ -50,7 +50,7 @@ export PREFIX=""
 
 ### Transdecoder >= 3.0.1
 
-Get it from [https://github.com/TransDecoder/TransDecoder](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it build cd-hit, so there is a 'make' step.
+Get it from [github](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it build cd-hit, so there is a 'make' step.
 
 ```sh
 mkdir -p /applis/PSMN/debian7/TransDecoder
@@ -64,7 +64,7 @@ Add ```/applis/PSMN/debian7/TransDecoder/v3.0.1``` and ```/applis/PSMN/debian7/T
 
 ### SRAToolKit >= 2.8.1-2
 
-SRAToolKit is ditributed as binary. Get it from [https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software)
+SRAToolKit is ditributed as binary. Get it from [NCBI](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software)
 
 ```sh
 mkdir -p /applis/PSMN/generic/SRAToolkit
@@ -77,7 +77,7 @@ Add ```/applis/PSMN/generic/SRAToolkit/sratoolkit.2.8.1-2-centos_linux64``` to `
 
 ### FastTree >= 2.1.7
 
-FastTree is distributed as binary. Get it from [http://www.microbesonline.org/fasttree/](http://www.microbesonline.org/fasttree/). 
+FastTree is distributed as binary. Get it from [microbesonline](http://www.microbesonline.org/fasttree/). 
 
 ```sh
 mkdir -p /applis/PSMN/generic/FastTree/2.1.9/
@@ -105,7 +105,8 @@ mafft is already packaged. See [System-wide installation](#system-wide-installat
 Blast+ is distributed as binary. Get it from [NCBI](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
 
 ```
-mkdir -p /applis/PSMN/generic/Blast/
+mkdir -p /applis/PSMN/generic/Blast
+cd /applis/PSMN/generic/Blast/
 wget ftp://ftp.ncbi.nih.gov/blast/executables/blast+/2.6.0/ncbi-blast-2.6.0+-x64-linux.tar.gz
 tar zxf ncbi-blast-2.6.0+-x64-linux.tar.gz
 mv blast-2.6.0+ 2.6.0+
@@ -115,11 +116,13 @@ Add ```/applis/PSMN/generic/Blast/2.6.0+/bin``` to ```PATH```.
 
 #### Trinity >=2.3
 
-Trinity can be downloaded on [github](https://github.com/trinityrnaseq/trinityrnaseq/releases). You'll need to install Java 1.8 (at least JRE 1.8u0) first.
+Trinity can be downloaded on [github](https://github.com/trinityrnaseq/trinityrnaseq/releases). 
+
+You'll need to install both Java 1.8 (at least JRE 1.8u0) and Bowtie2 (successfully tested with 2.2.9) first.
 
 ##### Java >= 1.8
 
-You can get Java from [java.com](http://javadl.oracle.com/webapps/download/).
+Get Java from [java.com](http://javadl.oracle.com/webapps/download/).
 
 ```sh
 mkdir -p /applis/PSMN/generic/java
@@ -132,29 +135,43 @@ Add:
 * ```/applis/PSMN/generic/java/jre1.8.0_77``` to ```JAVAHOME```,
 * ```/applis/PSMN/generic/java/jre1.8.0_77/bin``` to ```PATH```.
 
-TOBECONTINUED.
-
 ##### Bowtie >= 2
 
-successfully tested with 2.2.9.
+Bowtie2 is provided as binary and can be dowloaded on [sourceforge](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml).
+
+```sh
+mkdir -p /applis/PSMN/generic/Bowtie/2.2.9
+cd /applis/PSMN/generic/Bowtie/2.2.9
+wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.2.9/bowtie2-2.2.9-linux-x86_64.zip
+unzip bowtie2-2.2.9-linux-x86_64.zip
+mv bowtie2-2.2.9 x86_64
+```
+
+Add ```/applis/PSMN/generic/Bowtie/2.2.9/x86_64/``` to ```PATH```
 
 ##### Building Trinity
 
+Trinity has to be builded "in-place".
+
+TOBECONTINUED.
+
 #### Install apytram
 
+TOBECONTINUED.
 
 ### PhyloMerge (0.2 from 2017/01)
     * bpp >= 2.2.0 (Bio++)
 
+TODO
 
 ### phyldog:
     * libPLL >= 1.0.2 sequential
-    * boost 1.55 < . > 1.49 (waiting for PSMN's validation on 1.63)
+    * boost 1.55 < . > 1.49 (waiting for PSMN's validation with 1.63)
     * bpp >= 2.2.0 (Bio++)
 
 **WARNING**: phyldog, bpp, boost and mpi must be build with the same compiler.
 
-
+TODO
 
 ### OCaml
 
@@ -176,7 +193,7 @@ Add:
 * ```/applis/PSMN/debian7/OCaml/4.04.0/lib``` to ```LD_LIBRARY_PATH```, 
 * ```/applis/PSMN/debian7/OCaml/4.04.0/man``` to ```MANTPATH```. 
 
-Use whatever-you-want environment tool :o) (as Module Environment, LMode, personnal rc files, etc.)
+Use whatever-you-want environment tool :o) (as Module Environment, LMode, personnal rc-files, etc.)
 
 #### opam
 
@@ -198,7 +215,7 @@ opam init
 eval `opam config env`
 ```
 
-* Install amalgam OCaml depencies:
+* Install amalgam's OCaml depencies:
 
 as standard user:
 
