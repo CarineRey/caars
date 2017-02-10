@@ -26,13 +26,15 @@ RUN apt-get install --no-install-recommends -qy unzip \
 # to install phyldog
                         cmake \
                         g++-4.9 \
-                        libboost-all-dev
+                        libboost-all-dev \
+                        ssh \ #mpi needs something to communicate (rsh, ssh other)
+# to install fasttree
+                        fasttree
 
 
 RUN pip install ete2
 
-##### install fasttree
-RUN apt-get install -qy fasttree
+
 
 #### install sratoolkit
 WORKDIR /opt/
@@ -65,9 +67,6 @@ ENV MANPATH /root/.opam/4.03.0/man
 ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
 
 ##### install bistro
-#RUN opam pin add -y oasis git://github.com/ocaml/oasis.git#opam/testing
-#RUN opam pin add -y solvuu-build https://github.com/solvuu/solvuu-build.git#45dfffef8587d45ec9166615418749372ff4a0e8
-#RUN opam install ocamlgraph
 RUN opam pin add bistro --dev-repo
 
 
