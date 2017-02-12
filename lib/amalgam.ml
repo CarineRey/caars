@@ -332,7 +332,7 @@ let realign_merged_families merged_and_reconciled_families configuration =
     (fam, Aligner.mafft ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
     )
 
-let merged_families_distributor merged_reconciled_and_realigned_families =
+let merged_families_distributor merged_reconciled_and_realigned_families configuration=
   let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
   let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","Reconciled_Gene_tree")] in
   let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in
@@ -352,17 +352,23 @@ let merged_families_distributor merged_reconciled_and_realigned_families =
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
               )
               ;
-              List.map extension_list_reconciled ~f:(fun (ext,dirin,dirout) ->
-                let input = reconciled_w / selector [ dirin ^ f ^ ext ] in
-                let output = dest // dirout // (f ^ ext)  in
-                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-              )
-              ;
-              List.map extension_list_realigned ~f:(fun (ext,dir) ->
-                let input = realigned_w in
-                let output = dest // dir // (f ^ ext)  in
-                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-              );
+              (*if configuration.run_reconciliation then
+                List.concat [
+                  List.map extension_list_reconciled ~f:(fun (ext,dirin,dirout) ->
+                    let input = reconciled_w / selector [ dirin ^ f ^ ext ] in
+                    let output = dest // dirout // (f ^ ext)  in
+                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    )
+                  ;
+                  List.map extension_list_realigned ~f:(fun (ext,dir) ->
+                    let input = realigned_w in
+                    let output = dest // dir // (f ^ ext)  in
+                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+              	  )
+                ;]
+              else
+                  []
+              ;*)
               ]
 
             |> seq ~sep:"\n"
@@ -491,7 +497,7 @@ let build_app configuration =
 
   let merged_reconciled_and_realigned_families = realign_merged_families merged_and_reconciled_families configuration in
 
-  let merged_reconciled_and_realigned_families_dirs = merged_families_distributor merged_reconciled_and_realigned_families in
+  let merged_reconciled_and_realigned_families_dirs = merged_families_distributor merged_reconciled_and_realigned_families configuration in
 
   let reconstructed_sequences = get_reconstructed_sequences merged_reconciled_and_realigned_families_dirs configuration in
 
