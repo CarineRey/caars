@@ -179,6 +179,7 @@ let fastool ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
   in
   workflow ~descr:"fastq to fasta" ~np:1 [
     cmd "ls" [ dep dep_input ];
+    cmd "ls" [ dep fastq ];
     cmd "sh" [ file_dump script ];
   ]
 
