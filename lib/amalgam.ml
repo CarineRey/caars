@@ -388,7 +388,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
               )
               ;
-              (*if configuration.run_reconciliation then
+              if configuration.run_reconciliation then
                 List.concat [
                   List.map extension_list_reconciled ~f:(fun (ext,dirin,dirout) ->
                     let input = reconciled_w / selector [ dirin ^ f ^ ext ] in
@@ -404,7 +404,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 ;]
               else
                   []
-              ;*)
+              ; 
               ]
 
             |> seq ~sep:"\n"
