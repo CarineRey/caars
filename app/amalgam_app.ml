@@ -38,15 +38,16 @@ open Bistro.EDSL
 open Bistro_bioinfo.Std
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory () =
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory reconcile () =
   let logger =
     Bistro_logger.tee
       (Bistro_console_logger.create ())
       (Bistro_html_logger.create "report.html")
   in
+  let run_reconciliation = Option.value ~default:true reconcile in 
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
-  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~outdir in
+  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~outdir in
   let amalgam_app = Amalgam.build_app configuration in
   Bistro_app.(
     run ~logger ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) amalgam_app
@@ -62,6 +63,7 @@ let spec =
   +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
+  +> flag "--reconcile"       (optional bool)   ~doc:"(BOOL if false: Not run final Reconciliation step (Default:true)"
 
 let command =
   Command.basic

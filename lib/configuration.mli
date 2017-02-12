@@ -29,6 +29,7 @@ type t = {
   outdir : string ;
   threads : int;
   memory : int;
+  run_reconciliation : bool;
 }
 
 val load : 
@@ -38,5 +39,6 @@ val load :
   seq2sp_dir:string ->
   np:int ->
   memory:int ->
+  run_reconciliation:bool ->
   outdir:string ->
   t

@@ -30,6 +30,7 @@ type t = {
   outdir : string ;
   threads : int;
   memory : int;
+  run_reconciliation : bool;
 }
 
 let parse_fastq_path = function
@@ -111,7 +112,7 @@ let families_of_alignments_dir alignments_dir =
   |> Array.to_list
 
 
-let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~outdir =
+let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~outdir =
   let threads = match np with
     | x when x > 1 -> np
     | _ -> failwith "The number of CPUs must be at least 2"
@@ -165,5 +166,6 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       seq2sp_dir ;
       threads;
       memory ;
-      outdir;
+      run_reconciliation ;
+      outdir ;
     }
