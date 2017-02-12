@@ -54,6 +54,42 @@ let ref_blast_dbs_of_configuration_dir {all_ref_species} configuration_dir =
     )
 
 
+let path_of_string s = String.split ~on:'/' s
+
+
+let abs2rel_path f c =
+    let f_b = Filename.basename f in
+    let f_dir = Filename.dirname f in
+    let _ = print_string f_dir in
+    let _ = print_string "\n" in
+    let _ = print_string c in
+    let _ = print_string "\n" in
+
+
+    let l_current_dir = path_of_string c in
+    let l_file = path_of_string f_dir in
+
+    let rec aux l_a l_r e = match (l_a, l_r, e) with
+      | (ha::ta, hr::tr, true) when ha = hr -> (aux ta tr true)
+      | (ha::ta, hr::tr, true) -> "../" :: (aux (ha::ta) tr false)
+      | ([], hr::tr, true) -> "../" :: (aux [] tr false)
+      | (ha::ta, [], _ ) ->  ha :: "/" ::  (aux ta [] false)
+      | (l_a, hr::tr, false) -> "../" :: (aux l_a tr false)
+      | ([], [], _) -> ["/"]
+    in
+
+    let p = aux l_file l_current_dir true in
+    let _ = print_string  (String.concat ( List.concat [ p; [f_b]; ["\n"] ])) in
+    String.concat ( List.concat [ p; [f_b]])
+
+
+let input_check_abs_rel_path f =
+    if Filename.is_relative f then
+        input f
+    else
+        let c_dir = Sys.getcwd () in
+        input (abs2rel_path f c_dir)
+
 let fastq_to_fasta_conversion {all_ref_samples} dep_input =
   List.filter_map all_ref_samples ~f:(fun s ->
       let run_conversion = match (s.run_apytram,s.run_trinity, s.given_assembly) with
@@ -63,7 +99,7 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
         |(false,false,_)    -> false
       in
       if run_conversion then
-        let sample_fastq = sample_fastq_map input s.sample_fastq in
+        let sample_fastq = sample_fastq_map input_check_abs_rel_path s.sample_fastq in
         let sample_fastq_to_sample_fasta = function
           | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool  ~dep_input w , o )
           | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool ~dep_input lw , Trinity.fastool ~dep_input rw , o)
@@ -96,7 +132,7 @@ let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_sam
       );
     List.filter_map trinity_samples ~f:(fun s ->
         if s.given_assembly then
-          Some (s, input s.path_assembly)
+          Some (s, input_check_abs_rel_path s.path_assembly)
         else
           None
       )
