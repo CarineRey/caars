@@ -452,6 +452,7 @@ if __name__ == '__main__':
     fopt.write("output.numbered.tree.file=$(RESULT)OutputSpeciesTree_ConsensusNumbered.tree\n")
     fopt.write("output.lineages.tree.file=$(RESULT)lineageNumbers.tree\n")
     fopt.write("output.events.file=$(RESULT)events.txt\n")
+    fopt.write("output.orthologs.file=$(RESULT)orthologs.txt\n")
     fopt.write("\n######## Second, options ########\n")
     if TOPOSPECIES:
         fopt.write("optimization.topology=yes\n")
