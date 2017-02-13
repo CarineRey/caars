@@ -103,10 +103,10 @@ let parse_rna_conf_file path =
 let families_of_alignments_dir alignments_dir =
   Sys.readdir alignments_dir
   |> Array.filter ~f:(fun f ->
-    if Filename.check_suffix f ".fa" || Filename.check_suffix f ".fasta" then
+    if Filename.check_suffix f ".fa" then
       true
     else
-      (printf "Warning: %s is not a fasta file (extention must be .fa or .fasta)\n" f ; false)
+      (printf "Warning: %s is not a fasta file (extention must be .fa)\n" f ; false)
     )
   |> Array.map ~f:(fun f -> fst (String.lsplit2_exn f ~on:'.')) (* Il y a obligatoirement un point dans le nom du fichier fasta *)
   |> Array.to_list
@@ -146,11 +146,15 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
     in
     uniq all_sorted
   in
+  let families = families_of_alignments_dir alignments_dir in
+  let _ = (printf "%i families.\n" (List.length families); ())  in
 
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
   else if Filename.is_relative species_tree_file then
     failwith {|amalgam needs the absolute path of the species tree.|}
+  else if families = [] then
+    failwith ({|No files with .fa extention in |} ^ alignments_dir)
   else
     {
       config_rna_seq;
@@ -159,7 +163,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       all_ref_samples = filter_samples (fun s -> s.run_apytram || s.run_trinity);
       all_ref_species = filter_ref_species;
       all_apytram_ref_species = filter_apytram_ref_species;
-      families = families_of_alignments_dir alignments_dir;
+      families;
       sample_sheet ;
       species_tree_file ;
       alignments_dir ;
