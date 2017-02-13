@@ -89,7 +89,7 @@ let phyldog_by_fam
     family=${filename%.*}
     if [ $nb_species -gt 2 ]
     then
-     mpirun -np {{ ident np  }} phyldog param={{ident (config_dir // "GeneralOptions.txt")}}
+     mpirun -np {{ ident np  }} -mca btl sm,self phyldog param={{ident (config_dir // "GeneralOptions.txt")}}
     else
      nw2nhx.py {{ dep tree }} >  {{ ident results_genes }}"$family".ReconciledTree
     fi
