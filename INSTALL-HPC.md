@@ -9,7 +9,7 @@ Like standard locations, or distribution packages.
 Some (rare) dependencies may be installed via distribution packages. Example, on Debian based distributions:
 
 ```sh
-apt-get install python-setuptools python-qt4 python-scipy python-mysqldb python-lxml python-pip fasttree exonerate mafft
+apt-get install python-setuptools python-qt4 python-scipy python-mysqldb python-lxml python-pip fasttree exonerate mafft openmpi-bin openmpi-checkpoint libopenmpi-dev
 
 ```
 
@@ -17,21 +17,28 @@ apt-get install python-setuptools python-qt4 python-scipy python-mysqldb python-
 
 Here we describe a painfully, but complete, installation of amalgam and all it's dependencies (out of order). 
 
-We will use [PSMN](http://www.ens-lyon.fr/PSMN/)'s case study as an example. PSMN use ```/applis/PSMN/``` as root filetree for all non-standard installations, on a NFS share on cluster's nodes. 
+We will use [PSMN](http://www.ens-lyon.fr/PSMN/)'s case study as an example.
 
-(TODO #DOC: user used in this document has read-write-execute rights on /applis/PSMN, explain differences between debian7/ & generic/)
+* PSMN use Debian 7 as it's base system,
+* PSMN use ```/applis/PSMN/``` as root filetree for all non-standard installations, on a NFS share mounted on all cluster's nodes,
+* PSMN discriminate between distributed binaries (/applis/PSMN/generic/) and compiled programs (/applis/PSMN/debian7/),
+* PSMN use a dedicated user, with write permissions on ```/applis/PSMN/``` filetree, to install programs.
+
+For each addition to environment variables (such as PATH, PYTHONPATH, etc.), use whatever-you-want environment tool :o) (such as Module Environment, LMode, personnal rc-files, etc.).
 
 ### Python 2.7
 
-With a site-packages on a non-standard location:
+With a site-packages on PSMN's non-standard location:
 
 ```sh
 export PYTHONPATH="/applis/PSMN/debian7/python/2.7/site-packages"
+export LD_LIBRARY_PATH="/usr/lib/atlas-base:$LD_LIBRARY_PATH"
 export SITE="/applis/PSMN/debian7/python/2.7/site-packages" PREFIX="/applis/PSMN/debian7/python/2.7"
 
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade pip
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade setuptools
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade PyQt4
+python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade numpy
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade scipy
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade MySQLdb
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade lxml
@@ -50,7 +57,7 @@ export PREFIX=""
 
 ### Transdecoder >= 3.0.1
 
-Get it from [github](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it build cd-hit, so there is a 'make' step.
+Get it from [github](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it build it's own 'cd-hit', so there is a 'make' step.
 
 ```sh
 mkdir -p /applis/PSMN/debian7/TransDecoder
@@ -68,7 +75,7 @@ SRAToolKit is ditributed as binary. Get it from [NCBI](https://trace.ncbi.nlm.ni
 
 ```sh
 mkdir -p /applis/PSMN/generic/SRAToolkit
-cd /applis/PSMN/generic/SRAToolkitfasttree
+cd /applis/PSMN/generic/SRAToolkit/
 wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.8.1-2/sratoolkit.2.8.1-2-centos_linux64.tar.gz
 tar xzf sratoolkit.2.8.1-2-centos_linux64.tar.gz
 ```
@@ -141,7 +148,7 @@ Bowtie2 is provided as binary and can be dowloaded on [sourceforge](http://bowti
 
 ```sh
 mkdir -p /applis/PSMN/generic/Bowtie/2.2.9
-cd /applis/PSMN/generic/Bowtie/2.2.9
+cd /applis/PSMN/generic/Bowtie/2.2.9/
 wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/2.2.9/bowtie2-2.2.9-linux-x86_64.zip
 unzip bowtie2-2.2.9-linux-x86_64.zip
 mv bowtie2-2.2.9 x86_64
@@ -151,35 +158,158 @@ Add ```/applis/PSMN/generic/Bowtie/2.2.9/x86_64/``` to ```PATH```
 
 ##### Building Trinity
 
-Trinity has to be builded "in-place".
+Trinity has to be builded "in-place", meaning there's no install, you have to build it where you want to install it.
 
-TOBECONTINUED.
+```sh
+mkdir -p /applis/PSMN/debian7/Trinity
+cd /applis/PSMN/debian7/Trinity/
+wget https://github.com/trinityrnaseq/trinityrnaseq/archive/Trinity-v2.3.2.tar.gz
+tar zxf Trinity-v2.3.2.tar.gz
+mv trinityrnaseq-Trinity-v2.3.2 2.3.2 && cd 2.3.2/
+make
+make plugins
+```
+
+Add ```/applis/PSMN/debian7/Trinity/2.3.2:/applis/PSMN/debian7/Trinity/2.3.2/trinity-plugins/```  to ```PATH```
 
 #### Install apytram
 
-TOBECONTINUED.
+The simpliest way is to get the latest development version of apytram, with git clone.
+
+```sh
+mkdir -p /applis/PSMN/generic/apytram
+cd /applis/PSMN/generic/apytram/
+git clone https://github.com/CarineRey/apytram.git dev
+```
+
+Add:
+* ```/applis/PSMN/generic/apytram/dev``` to ```PATH```,
+* ```/applis/PSMN/generic/apytram/dev/ApytramLib``` to ```PYTHONPATH```.
+
+You can test if your apytram installation match all the requirements by using ```test_apytram_configuration.py```, or by running ```make test``` into apytram directory (/applis/PSMN/generic/apytram/dev/). See [apytram Wiki](https://github.com/CarineRey/apytram/wiki) for more informations.
+
 
 ### PhyloMerge (0.2 from 2017/01)
-    * bpp >= 2.2.0 (Bio++)
 
-TODO
+PhyloMerge has a dependency on Bio++ libraries.
 
-### phyldog:
-    * libPLL >= 1.0.2 sequential
-    * boost 1.55 < . > 1.49 (waiting for PSMN's validation with 1.63)
-    * bpp >= 2.2.0 (Bio++)
+#### Bio++
 
-**WARNING**: phyldog, bpp, boost and mpi must be build with the same compiler.
+Get Bio++ installer from [univ-montp2.fr](http://biopp.univ-montp2.fr/wiki/index.php/Main_Page). Here's the version 2.2.0 installation example.
 
-TODO
+```sh
+mkdir -p /applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2
+mkdir -p ~/builds/biopp
+cd ~/builds/biopp/
+wget http://biopp.univ-montp2.fr/Download/bpp-setup.sh
+```
 
-### OCaml
+Modify ```PATH_INSTALL``` in ```bpp-setup.sh``` file with your favorite text editor (MS PowerPoint©, for example).
 
-Get latest OCaml from [http://ocaml.org/](http://ocaml.org/). Untar and build:
+```
+PATH_INSTALL=/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2
+```
+
+Then run ```./bpp-setup.sh```. It will download, build and install Bio++ libraries.
+
+Add:
+* ```/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/bin``` to ```PATH```,
+* ```/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/include``` to ```INCLUDE``` and```CPATH```,
+* ```/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/lib``` to ```LD_LIBRARY_PATH```, ```LD_RUN_PATH``` and```LIBRARY_PATH```.
+
+#### Install PhyloMerge
+
+Get PhyloMerge latest version from [github](https://github.com/boussau/phylomerge/).
+
+```sh
+mkdir -p /applis/PSMN/debian7/PhyloMerge/0.2/
+cd ~/builds/
+git clone https://github.com/boussau/phylomerge/ phylomerge
+cd phylomerge/
+g++ -s -pipe -o phylomerge PhyloMerge.cpp -I/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/include -L. -L/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/lib -O3 -fopenmp -std=c++0x /applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/lib/libbpp-phyl.a /applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/lib/libbpp-seq.a /applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/lib/libbpp-core.a --static
+```
+After successfull build:
+
+```sh
+cp phylomerge /applis/PSMN/debian7/PhyloMerge/0.2/
+```
+
+Add ```/applis/PSMN/debian7/PhyloMerge/0.2/``` to ```PATH```.
+
+### PHYLDOG 1.1.0
+
+**WARNING**: PHYLDOG, bpp, boost and mpi must be build with the same compiler. On Debian 7, it's gcc 4.7.2.
+
+#### OpenMPI >= 1.4.5
+
+OpenMPI is already packaged. See [System-wide installation](#system-wide-installation).
+
+#### Bio++ >= 2.2.0
+
+Bio++ is already installed! See [Bio++](Bio++).
+
+#### libPLL >= 1.0.2
+
+The 'Phylogenetic Likelihood Library' can be downloaded from [libpll.org](http://www.libpll.org/). PHYLDOG works well with sequential version.
+
+```sh
+mkdir /applis/PSMN/generic/Libs/libpll/1.0.2/sse3
+cd /applis/PSMN/generic/Libs/libpll/1.0.2/sse3/
+wget http://www.libpll.org/Downloads/libpll-1.0.2-sse3-64.tar.gz
+tar xzf libpll-1.0.2-sse3-64.tar.gz
+mv libpll-1.0.2-sse3-64 seq
+```
+
+Add:
+* ```/applis/PSMN/generic/Libs/libpll/1.0.2/sse3/seq/include``` to ```INCLUDE``` and```CPATH```,
+* ```/applis/PSMN/generic/Libs/libpll/1.0.2/sse3/seq/lib``` to ```LD_LIBRARY_PATH```, ```LD_RUN_PATH``` and```LIBRARY_PATH```.
+
+#### Boost > 1.49.0 & <= 1.55.0
+
+Get Boost libraries form [boost.org](http://www.boost.org/). You will need an old version, latest know working is [1.55.0](https://sourceforge.net/projects/boost/files/boost/1.55.0/).
+
+
+```sh
+mkdir -p /applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2
+cd ~/builds/
+wget https://downloads.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.tar.bz2
+tar -zjvf boost_1_55_0.tar.bz2
+cd boost_1_55_0/
+./bootstrap.sh --prefix=/applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2 --with-libraries=all
+./b2
+./b2 install --prefix=/applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2
+```
+
+Add:
+* ```/applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2``` to ```BOOST_ROOT```
+* ```/applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2/include``` to ```INCLUDE``` and```CPATH```,
+* ```/applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2lib``` to ```LD_LIBRARY_PATH```, ```LD_RUN_PATH``` and```LIBRARY_PATH```.
+
+
+#### Install PHYLDOG
+
+Get PHYLDOG from [github](https://github.com/Boussau/PHYLDOG).
+
+```sh
+mkdir -p /applis/PSMN/debian7/PHYLDOG/1.1.0/gcc-4.7.2/bin
+cd ~/builds/
+git clone https://github.com/Boussau/PHYLDOG phyldog
+cd phyldog/
+mkdir build && cd build/
+cmake -DBUILD_STATIC=ON .. -DCMAKE_LIBRARY_PATH="/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/lib;/applis/PSMN/generic/Libs/libpll/1.0.2/sse3/seq/lib;/usr/lib/openmpi/lib" -DCMAKE_INCLUDE_PATH="/applis/PSMN/debian7/Libs/bpp/2.2.0/gcc-4.7.2/include;/applis/PSMN/generic/Libs/libpll/1.0.2/sse3/seq/include;/usr/lib/openmpi/include" -DBOOST_LIBRARYDIR="/applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2/lib" -DBOOST_ROOT="/applis/PSMN/debian7/Libs/Boost/1.55.0/gcc-4.7.2/" -DCMAKE_INSTALL_PREFIX=/applis/PSMN/debian7/PHYLDOG/1.1.0/gcc-4.7.2
+make
+make install
+```
+
+Add ```/applis/PSMN/debian7/PHYLDOG/1.1.0/gcc-4.7.2/bin``` to ```PATH```.
+
+### OCaml >= 4.03.0
+
+Get latest OCaml from [ocaml.org](http://ocaml.org/). Untar and build:
 
 ```sh
 tar xvf ocaml-4.04.0.tar.gz
-cd ocaml-4.04.0
+cd ocaml-4.04.0/
 ./configure -prefix /applis/PSMN/debian7/OCaml/4.04.0
 make world
 make bootstrap
@@ -188,36 +318,28 @@ make install
 ```
 
 Add:
-
 * ```/applis/PSMN/debian7/OCaml/4.04.0/bin``` to ```PATH```, 
 * ```/applis/PSMN/debian7/OCaml/4.04.0/lib``` to ```LD_LIBRARY_PATH```, 
 * ```/applis/PSMN/debian7/OCaml/4.04.0/man``` to ```MANTPATH```. 
 
-Use whatever-you-want environment tool :o) (as Module Environment, LMode, personnal rc-files, etc.)
 
 #### opam
 
-* Install opam (OCaml Package Manager): 
-
-See [https://opam.ocaml.org/](https://opam.ocaml.org/) for help.
+opam is OCaml Package Manager. See [ocaml.org](https://opam.ocaml.org/) for help.
 
 ```sh
 wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh
 ./opam_installer.sh /applis/PSMN/debian7/OCaml/4.04.0/bin
 ```
 
-* Init opam
-
-as standard user:
+* Init opam as standard user:
 
 ```sh
 opam init
 eval `opam config env`
 ```
 
-* Install amalgam's OCaml depencies:
-
-as standard user:
+* Install amalgam's OCaml depencies as standard user:
 
 ```sh
 opam pin add bistro --dev-repo
@@ -229,4 +351,21 @@ opam should automagically install bistro's dependencies:
 * solvuu-build
 * ocamlgraph
 
+### Amalgam developement version
+
+Finally (at last), install amalgam from [github](https://github.com/CarineRey/amalgam).
+
+```sh
+mkdir -p /applis/PSMN/debian7/amalgam
+cd /applis/PSMN/debian7/amalgam/
+git clone https://github.com/carinerey/amalgam dev
+cd dev/
+make
+```
+
+Add:
+* ```/applis/PSMN/debian7/amalgam/utils/bin:/applis/PSMN/debian7/amalgam``` to ```PATH```,
+* ```/applis/PSMN/debian7/amalgam/lib``` to ```PYTHONPATH```.
+
+Et voilà! You're done.
 

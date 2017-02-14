@@ -1,6 +1,50 @@
 # amalgam 
 
-**WORK IN PROGRESS**
+**WORK IN PROGRESS** **INCOMPLETE**
+
+## Dependencies tree
+
+* Transdecoder >= 3.0.1
+
+* SRAToolKit >= 2.8.1-2
+
+* FastTree >= 2.1.7 (Warning: The executable must be fasttree and not FastTree)
+
+* Python 2.7 (with pip and setuptools)
+    * PyQt4
+    * SciPy
+    * MySQLdb
+    * lxml
+    * ete2
+    * ete3
+    * profileNJ
+    * pandas
+
+* Trinity >=2.3
+    * Java >= 1.8 (OpenJRE works)
+    * Bowtie >= 2 (tested with 2.2.9)
+
+* phyldog >= 1.1.0
+    * libPLL >= 1.0.2 sequential
+    * boost from 1.49 to 1.55 (versions >1.55 won't do for now)
+    * bpp >= 2.2.0 (Bio++)
+
+* PhyloMerge (0.2 from 2017/01)
+    * bpp >= 2.2.0 (Bio++)
+
+* apytram >= 1.0
+    * exonerate >= 2.2.0
+    * mafft >=7.1
+    * blast+ >= 2.6
+    * python = 2.7
+    * Trinity >=2.3
+
+* OCaml >= 4.03.0
+    * bistro
+        * oasis
+        * solvuu-build
+        * ocamlgraph
+
 
 ## dependencies installation via distribution packages
 
@@ -12,11 +56,12 @@ Some (rare) dependencies may be installed via distribution packages. Example, on
 apt-get install python-setuptools python-qt4 python-scipy python-mysqldb python-lxml python-pip fasttree exonerate mafft
 
 ```
-You may be need to have root right (use for instance ```sudo```)
+You may need root rights (use for instance ```sudo```)
 
 ## Installation on non-standard locations
 
 Here we describe a painfully, but complete, installation of amalgam and all it's dependencies (out of order).
+
 ### Python 2.7
 
 With a site-packages on a non-standard location:

@@ -29,7 +29,7 @@ Warning, the container is in development, if you have any problem don't hesitate
 
 ## complete installation
 
-See INSTALL.md or INSTAL-HPC.md
+See [INSTALL.md](INSTALL.md) or [INSTALL-HPC.md](INSTALL-HPC.md).
 
 # Usage
 
@@ -167,9 +167,9 @@ make clean_test2
     * Java >= 1.8 (OpenJRE works)
     * Bowtie >= 2 (tested with 2.2.9)
 
-* phyldog:
+* phyldog >= 1.1.0
     * libPLL >= 1.0.2 sequential
-    * boost 1.55 < . > 1.49 (waiting for PSMN's validation on 1.63)
+    * boost 1.55 <= . >= 1.49
     * bpp >= 2.2.0 (Bio++)
 
 * PhyloMerge (0.2 from 2017/01)
@@ -178,7 +178,7 @@ make clean_test2
 * apytram >= 1.0
     * exonerate >= 2.2.0
     * mafft >=7.1
-        * blast+ >= 2.6
+    * blast+ >= 2.6
     * python = 2.7
     * Trinity >=2.3
 
