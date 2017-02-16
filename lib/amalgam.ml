@@ -321,7 +321,8 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let profileNJ_tree = (ProfileNJ.profileNJ ~sptreefile ~link ~tree ~threshold:1.0 ) / selector [ fam ^ ".tree" ] in
     let threads = Pervasives.min 2 configuration.threads in
     let memory = Pervasives.(configuration.memory / configuration.threads) in
-    (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene:true ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    let topogene = configuration.refinetree in
+    (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =
@@ -368,7 +369,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 ;]
               else
                   []
-              ; 
+              ;
               ]
 
             |> seq ~sep:"\n"
@@ -515,62 +516,67 @@ let build_app configuration =
   in
   let repo =
     List.concat [
-      [[ "tmp" ; "configuration" ] %>  configuration_dir ]
-      ;
-      List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "tmp/rna_seq/raw_fasta" sample_fasta))
-      ;
-      List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "tmp/rna_seq/norm_fasta" norm_fasta))
-      ;
-      List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
-        )
-      ;
-      List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
-        )
-      ;
-      List.map trinity_assemblies_stats ~f:(fun (s,trinity_assembly_stats) ->
-          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
-        )
-      ;
-      List.map trinity_orfs_stats ~f:(fun (s,trinity_orfs_stats) ->
-          [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
-        )
-      ;
-      List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
-          [ "tmp" ; "trinity_blast_annotation" ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
-        )
-      ;
-       List.map ref_blast_dbs ~f:(fun (ref_species, blast_db) ->
-          [ "tmp" ; "trinity_blast_annotation" ; "ref_blast_db" ; ref_species ] %> blast_db
-        )
-      ;
-      List.map blast_dbs ~f:(fun (s,blast_db) ->
-          [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
-        )
-      ;
-     (* List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
-        )
-      ;
-      *)
-      List.map apytram_annotated_ref_fams_by_fam ~f:(fun (s, fam, apytram_result) ->
-          [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams_by_fam" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
-        )
-      ;
-      List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
-          [ "tmp" ; "apytram_assembly" ; "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
-        )
-      ;
-      List.map apytram_checked_families ~f:(fun (s, fam, apytram_result) ->
-          [ "tmp" ; "apytram_assembly" ; "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
-        )
-      ;
-      [["tmp" ; "apytram_assembly" ;"apytram_results" ] %> apytram_results_dir]
-      ;
-      List.map merged_families ~f:(fun (fam, merged_family) ->
-          [ "tmp" ; "merged_families" ; fam  ] %> merged_family
-        )
+      if configuration.debug then
+      List.concat [
+        [[ "tmp" ; "configuration" ] %>  configuration_dir ]
+        ;
+        List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "tmp/rna_seq/raw_fasta" sample_fasta))
+        ;
+        List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "tmp/rna_seq/norm_fasta" norm_fasta))
+        ;
+        List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+          )
+        ;
+        List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
+            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+          )
+        ;
+        List.map trinity_assemblies_stats ~f:(fun (s,trinity_assembly_stats) ->
+            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
+          )
+        ;
+        List.map trinity_orfs_stats ~f:(fun (s,trinity_orfs_stats) ->
+            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
+          )
+        ;
+        List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
+            [ "tmp" ; "trinity_blast_annotation" ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ s.ref_species ] %> trinity_annotated_fams
+          )
+        ;
+         List.map ref_blast_dbs ~f:(fun (ref_species, blast_db) ->
+            [ "tmp" ; "trinity_blast_annotation" ; "ref_blast_db" ; ref_species ] %> blast_db
+          )
+        ;
+        List.map blast_dbs ~f:(fun (s,blast_db) ->
+            [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
+          )
+        ;
+       (* List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
+            [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+          )
+        ;
+        *)
+        List.map apytram_annotated_ref_fams_by_fam ~f:(fun (s, fam, apytram_result) ->
+            [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams_by_fam" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+          )
+        ;
+        List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
+            [ "tmp" ; "apytram_assembly" ; "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+          )
+        ;
+        List.map apytram_checked_families ~f:(fun (s, fam, apytram_result) ->
+            [ "tmp" ; "apytram_assembly" ; "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
+          )
+        ;
+        [["tmp" ; "apytram_assembly" ;"apytram_results" ] %> apytram_results_dir]
+        ;
+        List.map merged_families ~f:(fun (fam, merged_family) ->
+            [ "tmp" ; "merged_families" ; fam  ] %> merged_family
+          )
+      ]
+      else
+      []
       ;
       [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
       ;

@@ -30,6 +30,8 @@ type t = {
   threads : int;
   memory : int;
   run_reconciliation : bool;
+  refinetree : bool;
+  debug : bool;
 }
 
 val load : 
@@ -40,5 +42,7 @@ val load :
   np:int ->
   memory:int ->
   run_reconciliation:bool ->
+  refinetree:bool ->
+  debug:bool ->
   outdir:string ->
   t
