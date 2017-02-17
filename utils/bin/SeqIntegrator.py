@@ -479,13 +479,7 @@ if args.filter_threshold > 0:
             sequenceTokeep.append(seqR_name)
         else:
             sequenceTodiscard.append(seqR_name)
-            logger.info("%s will be discarded because its alignemnt lenght (%s) is < to %s", seqR_name, ali_len, args.filter_threshold)
-    [TO BE CONTINUED]
-    
-    
-            
-
-                    
+            logger.info("%s will be discarded because its alignemnt lenght (%s) is < to %s", seqR_name, ali_len, args.filter_threshold)            
         
         
         
