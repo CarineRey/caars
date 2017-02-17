@@ -339,11 +339,20 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
   let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in
   workflow ~descr:"build_output_directory" ~version:1 [
     mkdir_p tmp;
+
     mkdir_p (dest // "Merged_fasta");
-    mkdir_p (dest // "Realigned_fasta");
     mkdir_p (dest // "Merged_tree");
-    mkdir_p (dest // "Reconciled_Gene_tree");
     mkdir_p (dest // "Sp2Seq_link");
+    if configuration.run_reconciliation then
+       mkdir_p (dest // "Reconciled_Gene_tree")
+    else
+        mkdir_p tmp
+    ;
+    if configuration.refineali && configuration.run_reconciliation then
+      mkdir_p (dest // "Realigned_fasta")
+    else
+      mkdir_p tmp
+    ;
     let script = Bistro.Expr.(
       List.map merged_reconciled_and_realigned_families ~f:(fun (f, realigned_w, reconciled_w, merged_w) ->
           List.concat[
@@ -361,11 +370,14 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
                     )
                   ;
-                  List.map extension_list_realigned ~f:(fun (ext,dir) ->
-                    let input = realigned_w in
-                    let output = dest // dir // (f ^ ext)  in
-                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-              	  )
+                  if configuration.refineali then
+                    List.map extension_list_realigned ~f:(fun (ext,dir) ->
+                        let input = realigned_w in
+                        let output = dest // dir // (f ^ ext)  in
+                        seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    )
+                  else
+                    []
                 ;]
               else
                   []

@@ -31,6 +31,7 @@ type t = {
   memory : int;
   run_reconciliation : bool;
   refinetree : bool;
+  refineali : bool;
   debug : bool;
 }
 
@@ -43,6 +44,7 @@ val load :
   memory:int ->
   run_reconciliation:bool ->
   refinetree:bool ->
+  refineali:bool ->
   debug:bool ->
   outdir:string ->
   t

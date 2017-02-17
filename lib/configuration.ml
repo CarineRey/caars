@@ -32,6 +32,7 @@ type t = {
   memory : int;
   run_reconciliation : bool;
   refinetree : bool;
+  refineali : bool;
   debug : bool;
 }
 
@@ -114,7 +115,7 @@ let families_of_alignments_dir alignments_dir =
   |> Array.to_list
 
 
-let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~debug ~outdir =
+let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~debug ~outdir =
   let threads = match np with
     | x when x > 1 -> np
     | _ -> failwith "The number of CPUs must be at least 2"
@@ -174,6 +175,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       memory ;
       run_reconciliation ;
       refinetree ;
+      refineali ;
       debug ;
       outdir ;
     }
