@@ -235,17 +235,32 @@ if len(Target2FamilyTable['Target']) != len(Target2FamilyTable['Target'].unique(
 
 ### Check that there is a target database, otherwise build it
 logger.info("Check that there is a target database, otherwise build it")
+
+Databases = []
+
 if not args.database:
-    DatabaseName = "%s/Target_DB" %TmpDirName
+    Databases.append("%s/Target_DB" %TmpDirName)
 else:
-    DatabaseName = args.database
-CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "", "")
-if not CheckDatabase_BlastdbcmdProcess.is_database():
-    logger.info("Database %s does not exist", DatabaseName)
+    Databases.extend(args.database.split(","))
+
+Not_correct_database = False
+for DatabaseName in Databases:
+    CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "", "")
+    if not CheckDatabase_BlastdbcmdProcess.is_database():
+        logger.info("Database %s does not exist", DatabaseName)
+        Not_correct_database = True
+
+if Not_correct_database:
     #Build blast formated database from a fasta file
     if not os.path.isfile(TargetFile):
-        logger.error("The fasta file (-t) does not exist.")
-        end(1)
+       logger.error("The fasta file (-t) does not exist.")
+       end(1)
+
+    if len(Databases) > 1:
+        DatabaseName = "%s/Target_DB" %TmpDirName
+        Databases = [DatabaseName]
+        logger.info("Databases given in input are incorrect, a new database will be built in %s from %s", DatabaseName, TargetFile)
+
     if os.path.isdir(os.path.dirname(DatabaseName)):
         logger.info("Database directory exists")
     else:
@@ -259,19 +274,20 @@ if not CheckDatabase_BlastdbcmdProcess.is_database():
         end(1)
 
 
-CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "", "")
-if not CheckDatabase_BlastdbcmdProcess.is_database():
-    logger.error("Problem in the database building")
-    logger.info("Database %s does not exist", DatabaseName)
-    end(1)
-else:
-    logger.info("Database %s exists", DatabaseName)
+for DatabaseName in Databases:
+    CheckDatabase_BlastdbcmdProcess = BlastPlus.Blastdbcmd(DatabaseName, "", "")
+    if not CheckDatabase_BlastdbcmdProcess.is_database():
+        logger.error("Problem in the database building")
+        logger.info("Database %s does not exist", DatabaseName)
+        end(1)
+    else:
+        logger.info("Database %s exists", DatabaseName)
 
 ### Blast the query fasta on the target database
 logger.info("Blast the query fasta on the target database")
 start_blast_time = time.time()
-BlastOutputFile = "%s/Queries_Targets.blast" % (TmpDirName)
-BlastnProcess = BlastPlus.Blast("blastn", DatabaseName, FastaFile)
+BlastOutputFile = "%s/Queries_Targets.blast" %(TmpDirName)
+BlastnProcess = BlastPlus.Blast("blastn", FastaFile, db_list=Databases)
 BlastnProcess.Evalue = Evalue
 BlastnProcess.Task = "blastn"
 BlastnProcess.max_target_seqs = 100

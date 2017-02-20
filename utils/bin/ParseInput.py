@@ -112,39 +112,52 @@ logger.info("Sp : %s", All_Species)
 RefSpTrinity = []
 RefSpApytram = []
 RnaSp = []
-f = open(config_file, "r")
-HeaderConf = f.readline()
-for line in f:
-    line_list = line.split("\t")
-    if len(line_list) == 10:
-        (rna_id, sp, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
-        if path_assembly != "-":
-            if not os.path.isfile(path_assembly):
-                logger.error("The given trinity assembly file %s does not exist for %s", path_assembly, rna_id)
-                sys.exit(1)
-        if path_fastq_left == path_fastq_right and path_fastq_left != "-":
-            logger.error("Left and right fastq files are identical, check sample sheet line of %s", rna_id)
-            sys.exit(1) 
-        if sp in All_Species and ref_species in All_Species:
-            if run_apytram.strip() in ["y", "yes", "Y", "Yes"]:
-                RefSpApytram.extend(ref_species.split(","))
-            if run_trinity.strip() in ["y", "yes", "Y", "Yes"]:
-                RefSpTrinity.extend(ref_species.split(","))
-            if sp not in RnaSp:
-                RnaSp.append(sp)
-            if orientation not in ["FR", "RF", "F", "R", "US", "UP"]:
-                logger.error("orientation must be  in [FR,RF,F,R,US,UP] and not: %s", orientation)
-                sys.exit(1)
-        else:
-            logger.error("%s or %s are not in the species tree.\nSpecies in the species tree:%s", sp, ref_species, "\n\t".join(All_Species))
-            sys.exit(1)
 
-    else:
-        logger.error("Config file has not 10 elements in line:\n%s", line)
-        sys.exit(1)
-logger.info("Ref Trinity : %s", RefSpTrinity)
-logger.info("Ref Apytram : %s", RefSpApytram)
-logger.info("Rna species : %s", RnaSp)
+error_nb = 0
+
+with open(config_file, "r") as f:
+    HeaderConf = f.readline()
+    for line in f:
+        line_list = line.split("\t")
+        if len(line_list) == 10:
+            (rna_id, sp, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
+            if path_assembly != "-":
+                if not os.path.isfile(path_assembly):
+                    error_nb += 1
+                    logger.error("The given trinity assembly file %s does not exist for %s", path_assembly, rna_id)
+            if path_fastq_left == path_fastq_right and path_fastq_left != "-":
+                error_nb += 1
+                logger.error("Left and right fastq files are identical, check sample sheet line of %s", rna_id)
+            for ref in ref_species.split(","):
+                if not ref in All_Species:
+                    error_nb += 1
+                    logger.error("%s is not in the species tree.\nSpecies in the species tree:\n\t%s", ref, "\n\t".join(All_Species))
+            if sp in All_Species:
+                if run_apytram.strip() in ["y", "yes", "Y", "Yes"]:
+                    RefSpApytram.extend(ref_species.split(","))
+                if run_trinity.strip() in ["y", "yes", "Y", "Yes"]:
+                    RefSpTrinity.extend(ref_species.split(","))
+                if sp not in RnaSp:
+                    RnaSp.append(sp)
+                if orientation not in ["FR", "RF", "F", "R", "US", "UP"]:
+                    error_nb += 1
+                    logger.error("orientation must be  in [FR,RF,F,R,US,UP] and not: %s", orientation)
+            else:
+                error_nb += 1
+                logger.error("%s is not in the species tree.\nSpecies in the species tree:\n\t%s", sp, "\n\t".join(All_Species))
+
+        else:
+            logger.error("Config file has not 10 elements in line:\n%s", line)
+            error_nb += 1
+
+
+    logger.info("Ref Trinity : %s", RefSpTrinity)
+    logger.info("Ref Apytram : %s", RefSpApytram)
+    logger.info("Rna species : %s", RnaSp)
+
+if error_nb > 0:
+    logger.error("%s errors\n", error_nb)
+    sys.exit(1)
 
 ### Read all files in seq2sp_dir
 Seq2Sp_dict = {}

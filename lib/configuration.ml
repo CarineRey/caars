@@ -4,7 +4,7 @@ open Commons
 type rna_sample = {
   id : string ;
   species : string ;
-  ref_species : string ;
+  ref_species : string list;
   sample_fastq : string sample_fastq ;
   run_trinity : bool ;
   run_transdecoder : bool ;
@@ -21,7 +21,7 @@ type t = {
   trinity_samples : rna_sample list ;
   all_ref_samples : rna_sample list ;
   all_ref_species : string list ;
-  all_apytram_ref_species : string list ;
+  all_apytram_ref_species : string list list;
   families : string list;
   sample_sheet : string ;
   species_tree_file : string ;
@@ -54,6 +54,8 @@ let parse_orientation id = function
 let parse_line_fields_of_rna_conf_file = function
   | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
      let run_transdecoder = true in
+
+     let ref_species = List.sort compare (String.split ~on:',' ref_species) in
      let run_trinity = match run_trinity with
        | "yes" | "Yes" | "y" | "Y" -> true
        | "no" | "No" | "n" | "N" -> false
@@ -130,10 +132,11 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   let id_list = List.map config_rna_seq ~f:(fun s -> s.id) in
   let filter_ref_species = List.filter_map config_rna_seq ~f:(fun s ->
       if (s.run_apytram || s.run_trinity) then
-        Some s.ref_species
+        Some (s.ref_species:string list)
       else
         None
     )
+    |> List.concat
   in
   let filter_apytram_ref_species =
     let all_sorted = List.sort compare (List.filter_map config_rna_seq ~f:(fun s ->

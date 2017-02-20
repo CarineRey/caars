@@ -63,10 +63,14 @@ class Makeblastdb(object):
             self.logger.error(err)
         return (out, err)
 
-
 class Blast(object):
     """Define a object to lauch a blast on a local database"""
-    def __init__(self, Program, Database, QueryFile):
+    def __init__(self, Program, QueryFile, db_prefix="", db_list=[]):
+        if db_prefix:
+            Database = db_prefix
+        else:
+            Database = " ".join(db_list)
+
         self.logger = logging.getLogger('main.lib.BlastPlus.Blast')
         self.Program = Program
         self.Database = Database
@@ -160,3 +164,4 @@ class Blastdbcmd(object):
        # If no error the database exist
             Out = True
         return Out
+
