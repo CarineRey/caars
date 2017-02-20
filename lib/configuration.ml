@@ -34,6 +34,7 @@ type t = {
   refinetree : bool;
   refineali : bool;
   debug : bool;
+  ali_sister_threshold : float;
 }
 
 let parse_fastq_path = function
@@ -115,7 +116,7 @@ let families_of_alignments_dir alignments_dir =
   |> Array.to_list
 
 
-let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~debug ~outdir =
+let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~debug ~outdir =
   let threads = match np with
     | x when x > 1 -> np
     | _ -> failwith "The number of CPUs must be at least 2"
@@ -178,4 +179,5 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       refineali ;
       debug ;
       outdir ;
+      ali_sister_threshold ;
     }

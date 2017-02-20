@@ -33,6 +33,7 @@ type t = {
   refinetree : bool;
   refineali : bool;
   debug : bool;
+  ali_sister_threshold : float;
 }
 
 val load : 
@@ -45,6 +46,7 @@ val load :
   run_reconciliation:bool ->
   refinetree:bool ->
   refineali:bool ->
+  ali_sister_threshold:float ->
   debug:bool ->
   outdir:string ->
   t

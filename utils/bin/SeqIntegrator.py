@@ -45,7 +45,6 @@ import subprocess
 
 import PhyloPrograms
 import Aligner
-import FastaReader
 
 from ete2 import Tree
 
@@ -81,8 +80,6 @@ Options.add_argument('--realign_ali', action='store_true', default=False,
                     help="Realign the ali even if no sequences to add. (default: False)")
 Options.add_argument('--resolve_polytomy', action='store_true', default=False,
                     help="resolve polytomy. (default: False)")
-Options.add_argument('--filter_threshold', type=float, default=0,
-                    help="Sequence with a percentage of alignement with is sister sequence is discarded (default: 0)")
 Options.add_argument('-tmp', type=str,
                     help="Directory to stock all intermediary files for the job. (default: a directory in /tmp which will be removed at the end)",
                     default="")
@@ -424,109 +421,6 @@ if not os.path.isfile(FinalTreeFilename):
 if not os.path.getsize(FinalTreeFilename):
     logger.error("%s is empty. There was an issue with the previous step.", FinalTreeFilename)
     end(1)
-    
-if args.filter_threshold > 0:
-    logger.info("All sequences with a percentage of alignement with its sister sequence under %s will be discarded.", args.filter_threshold)
-    sequenceTodiscard = []
-    sequenceTokeep = []
-    
-    #Read fasta
-    prefilter_fasta = FastaReader.Fasta()
-    prefilter_fasta.read_fasta(FastaFilename = LastAli)
-    
-    #Read tree
-    tree = Tree(FinalTreeFilename)
-    
-    #Read seq2sp
-    list_refineseq = []
-    list_otherseq = []
-    seq2sp_dict = {}
-    with open(FinalSp2Seq,"r") as sp2seqFile:
-        lines = sp2seqFile.read().strip().split("\n")
-        for line in lines:
-            (sp, seq) = line .split(":")
-            seq2sp_dict[seq] = sp
-            if sp in SpToRefine:
-                list_refineseq.append(seq)
-            else:
-                list_otherseq.append(seq)
-    
-
-    for seqR_name in list_refineseq:
-        m = 10000
-        closest_name = ""
-        # get the closest sequence not in sp to refine
-        for seqO_name in list_otherseq:
-            d = tree.get_distance(seqR_name, seqO_name)
-            if d <= m:
-                closest_name = seqO_name
-        
-        seqR_sequence = prefilter_fasta.get(seqR_name)
-        closest_sequence = prefilter_fasta.get(closest_name) 
-        
-        #Count number of aligned position
-        l=0
-        c=0
-        for i in range(len(closest_sequence)):
-            if closest_sequence[i] != "-":
-                l +=1
-                if seqR_sequence[i] != "-":
-                    c+=1
-        
-        ali_len = c/float(l) *100
-        
-        if ali_len > args.filter_threshold:
-            sequenceTokeep.append(seqR_name)
-        else:
-            sequenceTodiscard.append(seqR_name)
-            logger.info("%s will be discarded because its alignemnt lenght (%s) is < to %s", seqR_name, ali_len, args.filter_threshold)            
-        
-        
-        
-    
-    
-    
-    
-
-
-### Built a tree with the final alignment
-logger.info("Built a tree with the final alignment")
-FinalFasttreeProcess = PhyloPrograms.Fasttree(LastAli)
-FinalFasttreeProcess.Nt = True
-FinalFasttreeProcess.Gtr = True
-FinalFasttreeProcess.Gamma = True
-FinalFasttreeProcess.OutputTree = "%s.tree" %OutPrefixName
-
-if os.path.isfile(LastAli):
-    FinalFasttreeProcess.get_output()
-else:
-    logger.error("%s is not a file. There was an issue with the previous step.", LastAli)
-    end(1)
-
-### Resolve Polytomy
-FinalTreeFilename = FinalFasttreeProcess.OutputTree
-if not os.path.isfile(FinalTreeFilename):
-    logger.error("%s is not a file. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
-if not os.path.getsize(FinalTreeFilename):
-    logger.error("%s is empty. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
-
-if args.resolve_polytomy:
-    logger.info("Resolve polytomy in %s", FinalTreeFilename)
-    t = Tree(FinalTreeFilename)
-    t.resolve_polytomy(recursive=True)
-    t.write(format=0, outfile=FinalTreeFilename)
-
-if not os.path.isfile(FinalTreeFilename):
-    FinalFasttreeProcess.get_output()
-    logger.error("%s is not a file. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
-
-if not os.path.getsize(FinalTreeFilename):
-    logger.error("%s is empty. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
-    
 
 logger.debug("--- %s seconds ---", str(time.time() - start_time))
 end(0)

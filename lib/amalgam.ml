@@ -248,15 +248,13 @@ let parse_apytram_results apytram_annotated_ref_fams =
 let seq_integrator
     ?realign_ali
     ?resolve_polytomy
-    ?log
     ?(species_to_refine_list = [])
     ~family
     ~trinity_fam_results_dirs
     ~apytram_results_dir
     ~alignment_sp2seq
     alignment
-  : _ directory workflow
-  =
+  : _ directory workflow =
 
   let get_trinity_file_list extension dirs =
     List.map  dirs ~f:(fun (s,dir) ->
@@ -296,6 +294,35 @@ let seq_integrator
   ]
 
 
+let seq_filter
+    ?realign_ali
+    ?resolve_polytomy
+    ?(species_to_refine_list = [])
+    ~filter_threshold
+    ~family
+    ~alignment
+    ~tree
+    ~sp2seq
+    : _ directory workflow  =
+
+  let tmp_merge = dest // "tmp" in
+
+  workflow ~version:3 ~descr:("SeqFilter.py:" ^ family) [
+    mkdir_p tmp_merge ;
+    cmd "SeqFilter.py"  [
+      opt "-tmp" ident tmp_merge;
+      opt "-log" seq [ tmp_merge ; string ("/SeqFilter." ^ family ^ ".log" )] ;
+      opt "-ali" dep alignment ;
+      opt "-t" dep tree;
+      opt "--filter_threshold" float filter_threshold;
+      option (flag string "--realign_ali") realign_ali;
+      option (flag string "--resolve_polytomy") resolve_polytomy;
+      opt "-sp2seq" dep sp2seq  ;
+      opt "-out" seq [ dest ; string "/" ; string family] ;
+      opt "-sptorefine" (seq ~sep:",") (List.map species_to_refine_list ~f:(fun sp -> string sp) );
+    ]
+  ]
+
 
 let merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir =
   List.map configuration.families ~f:(fun family ->
@@ -308,12 +335,31 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
-
-      (family, seq_integrator ~realign_ali:true ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment )
+      
+      let w = seq_integrator ~realign_ali:true ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment in
+      
+      let wf = if configuration.ali_sister_threshold > 0. then
+                 let filter_threshold = configuration.ali_sister_threshold in
+                 let tree = w / selector [family ^ ".tree"] in
+                 let alignment = w / selector [family ^ ".fa"] in
+                 let sp2seq = w / selector [family ^ ".sp2seq.txt"] in
+                 seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family ~tree ~alignment ~sp2seq
+               else
+                 w
+               in
+      (family, w, wf )
     )
 
+
+
+
 let phyldog_by_fam_of_merged_families merged_families configuration =
-  List.map  merged_families ~f:(fun (fam, merged_family) ->
+  List.map  merged_families ~f:(fun (fam, merged_without_filter_family, merged_and_filtered_family) ->
+    let merged_family = if configuration.ali_sister_threshold > 0. then
+                            merged_and_filtered_family
+                        else
+                            merged_without_filter_family
+                        in
     let ali = merged_family / selector [ fam ^ ".fa" ] in
     let tree = merged_family / selector [ fam ^ ".tree" ] in
     let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
@@ -583,8 +629,14 @@ let build_app configuration =
         ;
         [["tmp" ; "apytram_assembly" ;"apytram_results" ] %> apytram_results_dir]
         ;
-        List.map merged_families ~f:(fun (fam, merged_family) ->
-            [ "tmp" ; "merged_families" ; fam  ] %> merged_family
+        List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
+            [ "tmp" ; "merged_families" ; fam  ] %> merged_family;
+            
+          )
+        ;
+        List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
+            [ "tmp" ; "merged_filtered_families" ; fam  ] %> merged_and_filtered_family;
+            
           )
       ]
       else
