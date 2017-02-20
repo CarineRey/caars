@@ -74,7 +74,7 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
         None
     )
 
-let normalize_fasta fasta_reads {threads ; memory } =
+let normalize_fasta fasta_reads memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
       let max_cov = 50 in
       let normalization_dir = Trinity.fasta_read_normalization max_cov ~threads ~memory fasta_sample in
@@ -87,21 +87,13 @@ let normalize_fasta fasta_reads {threads ; memory } =
     )
 
 
-let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_samples; apytram_samples} =
+let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} trinity_memory trinity_threads =
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
-        let threads = if (List.length apytram_samples > 0) && (threads > 1) then
-                        threads - 1
-                      else
-                        threads
-                      in
-        let memory = if (List.length apytram_samples > 0) && (memory > 4) then
-                        Pervasives.(memory * 80 / 100)
-                      else
-                        memory
-                      in
+        let threads = trinity_threads in
+        let memory = trinity_memory in
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:s.species ~no_normalization:true ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:s.species ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
@@ -345,9 +337,9 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
-      
+
       let w = seq_integrator ~realign_ali:true ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment in
-      
+
       let wf = if configuration.ali_sister_threshold > 0. then
                  let filter_threshold = configuration.ali_sister_threshold in
                  let tree = w / selector [family ^ ".tree"] in
@@ -376,7 +368,7 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let sptreefile = configuration.species_tree_file in
     let profileNJ_tree = (ProfileNJ.profileNJ ~sptreefile ~link ~tree ~threshold:1.0 ) / selector [ fam ^ ".tree" ] in
     let threads = Pervasives.min 2 configuration.threads in
-    let memory = Pervasives.(configuration.memory / configuration.threads) in
+    let memory = Pervasives.min 1 (Pervasives.(configuration.memory / configuration.threads)) in
     let topogene = configuration.refinetree in
     (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
@@ -506,7 +498,26 @@ let output_of_phyldog phyldog merged_families families =
 
 let build_app configuration =
 
-  let divided_memory = Pervasives.(configuration.memory / configuration.threads) in
+  let allocation_apytram = 80 in
+  let allocation_trinity = 100 - allocation_apytram in
+
+  let (apytram_memory, trinity_memory, trinity_threads) =
+    if (List.length configuration.apytram_samples > 0) && (List.length configuration.trinity_samples > 0) then
+      (Pervasives.( max 1 (configuration.memory * allocation_apytram / 100) ), Pervasives.(max 1 (configuration.memory * allocation_trinity / 100) ), Pervasives.( max 1 (configuration.threads * allocation_trinity / 100 )))
+    else
+      (configuration.memory ,configuration.memory , configuration.threads )
+    in
+
+  let (normalization_memory, normalization_threads) =
+     let nb_samples = List.length configuration.all_ref_samples in
+     (Pervasives.(configuration.memory / nb_samples ), Pervasives.(configuration.threads / nb_samples ))
+    in
+
+ (* let () = printf "%i %i %i\n" configuration.memory configuration.threads (List.length configuration.all_ref_samples) in
+  let () = printf "%i %i %i\n" apytram_memory trinity_memory trinity_threads in
+ *)
+
+  let divided_memory = Pervasives.(apytram_memory / configuration.threads) in
 
   let configuration_dir = parse_input configuration in
 
@@ -514,9 +525,9 @@ let build_app configuration =
 
   let fasta_reads = fastq_to_fasta_conversion configuration configuration_dir in
 
-  let norm_fasta = normalize_fasta fasta_reads configuration in
+  let norm_fasta = normalize_fasta fasta_reads normalization_memory normalization_threads in
 
-  let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration in
+  let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration trinity_memory trinity_threads in
 
   let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration in
 
@@ -641,12 +652,12 @@ let build_app configuration =
         ;
         List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
             [ "tmp" ; "merged_families" ; fam  ] %> merged_family;
-            
+
           )
         ;
         List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
             [ "tmp" ; "merged_filtered_families" ; fam  ] %> merged_and_filtered_family;
-            
+
           )
       ]
       else
