@@ -302,7 +302,7 @@ for f in glob.glob("%s/*" %ali_dir):
     for seq in AliDict_i.keys():
         sp = Seq2Sp_dict[seq]
         if SeenSeq2SpDict.has_key(seq):
-            logger.error("Sequence name:%s is not unique")
+            logger.error("Sequence name:%s is not unique", seq)
             sys.exit(1)
         SeenSeq2SpDict[seq] = sp
         SeenSeq2SpDict_i[seq] = sp
