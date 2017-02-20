@@ -64,6 +64,7 @@ let config_trinity_fasta_paired_or_single = function
 let trinity_fasta
     ?(descr = "")
     ?full_cleanup
+    ?no_normalization
     ~threads
     ?(memory = 1)
     (sample_fasta : fasta workflow sample_fasta)
@@ -80,6 +81,7 @@ let trinity_fasta
             opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
             opt "--CPU" ident np ;
             option (flag string "--full_cleanup") full_cleanup ;
+            option (flag string "--no_normalize_reads") no_normalization ;
             config_trinity_fasta_paired_or_single sample_fasta;
             string "--seqType fa" ;
             opt "--output" seq [ ident dest ; string "/trinity"] ;

@@ -101,7 +101,7 @@ let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_sam
                         memory
                       in
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:s.species ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:s.species ~no_normalization:true ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
