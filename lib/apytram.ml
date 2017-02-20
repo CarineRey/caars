@@ -154,7 +154,7 @@ let apytram_multi_species
     in
 
 
-    workflow  ~version:4 ~descr:("apytram.py " ^ fam ^ " ")~np:threads ~mem:(memory * 1024) [
+    workflow  ~version:4 ~descr:("apytram.py:" ^ fam ^ " ")~np:threads ~mem:(memory * 1024) [
     cmd "apytram.py" [
         opt "-q" seq [dep query ; string ":"; string fam] ;
         option (opt "-i" int ) i ;

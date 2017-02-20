@@ -153,7 +153,7 @@ let seq_dispatcher
     ~ref_transcriptome
     ~threads
     ~seq2fam : fasta workflow =
-  workflow ~np:threads ~version:9 ~descr:"SeqDispatcher.py" [
+  workflow ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_species ^ " ") [
     mkdir_p tmp;
     cmd "SeqDispatcher.py"  [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
@@ -207,7 +207,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
 let checkfamily ?ref_db ~(input:fasta workflow) ~family ~ref_transcriptome ~seq2fam : fasta workflow =
   let tmp_checkfamily = dest // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
-  workflow ~version:8 ~descr:"CheckFamily.py" [
+  workflow ~version:8 ~descr:("CheckFamily.py:" ^ family ^ " ") [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
     cmd "CheckFamily.py"  [
@@ -278,7 +278,7 @@ let seq_integrator
 
   let tmp_merge = dest // "tmp" in
 
-  workflow ~version:11 ~descr:"SeqIntegrator.py" [
+  workflow ~version:10 ~descr:("SeqIntegrator.py:" ^ family ^ " ") [
     mkdir_p tmp_merge ;
     cmd "SeqIntegrator.py"  [
       opt "-tmp" ident tmp_merge;
@@ -307,7 +307,7 @@ let seq_filter
 
   let tmp_merge = dest // "tmp" in
 
-  workflow ~version:3 ~descr:("SeqFilter.py:" ^ family) [
+  workflow ~version:3 ~descr:("SeqFilter.py:" ^ family ^ " ") [
     mkdir_p tmp_merge ;
     cmd "SeqFilter.py"  [
       opt "-tmp" ident tmp_merge;
