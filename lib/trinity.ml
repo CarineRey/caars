@@ -62,12 +62,18 @@ let config_trinity_fasta_paired_or_single = function
        seq ~sep: " " [ string "--left" ; dep lw ; string "--right" ; dep rw ; paired_stranded_or_unstranded o]
 
 let trinity_fasta
+    ?(descr = "")
     ?full_cleanup
     ~threads
     ?(memory = 1)
     (sample_fasta : fasta workflow sample_fasta)
     : fasta workflow =
-    workflow ~descr:"Trinity" ~np:threads ~mem:(1024 * memory) [
+    let descr = if descr = "" then
+                  descr
+                else
+                  ":" ^ descr ^ " "
+    in
+    workflow ~descr:("Trinity" ^ descr) ~np:threads ~mem:(1024 * memory) [
         mkdir_p dest;
         cmd "Trinity" [
             string "--no_version_check";

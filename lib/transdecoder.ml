@@ -40,6 +40,7 @@ open Bistro_bioinfo.Std
 
 
 let transdecoder
+  ?(descr = "")
   ?only_best_orf
   ?only_top_strand
   ?pep_min_length
@@ -47,6 +48,11 @@ let transdecoder
   ~threads
   ?(memory = 1)
   (fasta:fasta workflow) : fasta workflow =
+  let descr = if descr = "" then
+                  descr
+                else
+                  ":" ^ descr ^ " "
+  in
   let script = [%bistro{|
         if ! [ -x "$(command -v TransDecoder.LongOrfs)" ]; then   echo 'Transdecoder.LongOrfs is not installed.' >&2; exit 1; fi
         if ! [ -x "$(command -v TransDecoder.Predict)" ]; then   echo 'TransDecoder.Predict is not installed.' >&2; exit 1; fi
@@ -57,7 +63,7 @@ let transdecoder
         mv tmp orfs.cds
         |}]
   in
-  workflow ~descr:"Transdecoder" ~np:threads ~mem:(1024 * memory) [
+  workflow ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     cd dest;
     cmd "sh" [ file_dump script ]; 

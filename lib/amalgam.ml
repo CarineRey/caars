@@ -87,11 +87,21 @@ let normalize_fasta fasta_reads {threads ; memory } =
     )
 
 
-let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_samples} =
+let trinity_assemblies_of_norm_fasta norm_fasta { memory ; threads ; trinity_samples; apytram_samples} =
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
+        let threads = if (List.length apytram_samples > 0) && (threads > 1) then
+                        threads - 1
+                      else
+                        threads
+                      in
+        let memory = if (List.length apytram_samples > 0) && (memory > 4) then
+                        Pervasives.(memory * 80 / 100)
+                      else
+                        memory
+                      in
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, Trinity.trinity_fasta ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:s.species ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
@@ -107,7 +117,7 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
       match (s.run_transdecoder,s.given_assembly) with
       | (true,false) -> let pep_min_length = 50 in
         let retain_long_orfs = 150 in
-        (s, Transdecoder.transdecoder ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly)
+        (s, Transdecoder.transdecoder ~descr:("Assembly." ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly)
       | (false, _ ) -> (s, trinity_assembly)
       | (true, true) -> (s, trinity_assembly)
     )
@@ -198,7 +208,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
       if s.run_transdecoder then
         let pep_min_length = 20 in
         let retain_long_orfs = 150 in
-        let filtered_orf = Transdecoder.transdecoder ~only_top_strand:true ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~threads:1 ~memory apytram_result_fasta in
+        let filtered_orf = Transdecoder.transdecoder ~descr:("Apytram." ^ f) ~only_top_strand:true ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~threads:1 ~memory apytram_result_fasta in
         (s, f, filtered_orf)
       else
         (s, f, apytram_result_fasta)
