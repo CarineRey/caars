@@ -157,7 +157,7 @@ def read_seq2species_file(Seq2Sp_dict, File):
             if not Seq2Sp_dict.has_key(seq):
                 Seq2Sp_dict[seq] = sp.replace("\n", "")
             else:
-                logger.error("ERROR : Sequence name \"%s\" is not unique")
+                logger.error("ERROR : Sequence name \"%s\" is not unique", seq)
                 sys.exit(1)
         f.close()
     return Seq2Sp_dict
