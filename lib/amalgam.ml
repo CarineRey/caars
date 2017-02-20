@@ -125,7 +125,7 @@ let concat = function
   | [] -> raise (Invalid_argument "fastX concat: empty list")
   | x :: [] -> x
   | fXs ->
-    workflow ~descr:"fastX.concat" [
+    workflow ~descr:"concat" [
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
