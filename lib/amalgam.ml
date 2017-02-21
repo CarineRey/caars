@@ -65,8 +65,8 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
       if run_conversion then
         let sample_fastq = sample_fastq_map input s.sample_fastq in
         let sample_fastq_to_sample_fasta = function
-          | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool  ~dep_input w , o )
-          | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool ~dep_input lw , Trinity.fastool ~dep_input rw , o)
+          | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species) ~dep_input w , o )
+          | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_left") ~dep_input lw , Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_right") ~dep_input rw , o)
         in
         let sample_fasta = sample_fastq_to_sample_fasta sample_fastq in
         Some (s,sample_fasta)
@@ -77,7 +77,7 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
 let normalize_fasta fasta_reads memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
       let max_cov = 50 in
-      let normalization_dir = Trinity.fasta_read_normalization max_cov ~threads ~memory fasta_sample in
+      let normalization_dir = Trinity.fasta_read_normalization ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample in
 
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
@@ -93,7 +93,7 @@ let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} trinity_memory
         let threads = trinity_threads in
         let memory = trinity_memory in
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:s.species ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
@@ -109,7 +109,7 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
       match (s.run_transdecoder,s.given_assembly) with
       | (true,false) -> let pep_min_length = 50 in
         let retain_long_orfs = 150 in
-        (s, Transdecoder.transdecoder ~descr:("Assembly." ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly)
+        (s, Transdecoder.transdecoder ~descr:("Assembly." ^ s.id ^ "_" ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly)
       | (false, _ ) -> (s, trinity_assembly)
       | (true, true) -> (s, trinity_assembly)
     )
@@ -117,15 +117,15 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
 
 let assemblies_stats_of_fasta =
   List.map  ~f:(fun (s,assembly) ->
-  (s, Trinity.assembly_stats assembly)
+  (s, Trinity.assembly_stats ~descr:(s.id ^ "_" ^ s.species) assembly)
   )
 
 
-let concat = function
+let concat ?(descr="") = function
   | [] -> raise (Invalid_argument "fastX concat: empty list")
   | x :: [] -> x
   | fXs ->
-    workflow ~descr:"concat" [
+    workflow ~descr:("concat" ^ descr) [
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
@@ -137,7 +137,7 @@ let blast_dbs_of_norm_fasta norm_fasta =
         let dbtype = "nucl" in
         let fasta_to_norm_fasta_sample = function
           | Fasta_Single_end (w, _ ) -> w
-          | Fasta_Paired_end (lw, rw , _) -> concat [ lw ; rw ]
+          | Fasta_Paired_end (lw, rw , _) -> concat ~descr:(":" ^ s.id ^ ".fasta_lr") [ lw ; rw ]
         in
         let fasta = fasta_to_norm_fasta_sample norm_fasta in
         Some (s, BlastPlus.makeblastdb ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta)
@@ -154,7 +154,7 @@ let seq_dispatcher
     ~ref_transcriptome
     ~threads
     ~seq2fam : fasta workflow =
-  workflow ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_species ^ " ") [
+  workflow ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species ^ " ") [
     mkdir_p tmp;
     cmd "SeqDispatcher.py"  [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
@@ -178,8 +178,9 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
       let query = trinity_assembly in
       let query_species= s.species in
       let query_id = s.id in
-      let ref_transcriptome = concat (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
-      let seq2fam = concat (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
+      let descr_ref = ":" ^(String.concat ~sep:"_" s.ref_species) in
+      let ref_transcriptome = concat ~descr:(descr_ref ^ ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
+      let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
       let r =
         seq_dispatcher
           ~s2s_tab_by_family:true
@@ -233,8 +234,9 @@ let checkfamily
 let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs =
   List.map apytram_orfs_ref_fams ~f:(fun (s, f, apytram_orfs_fasta) ->
     let input = apytram_orfs_fasta in
-    let ref_transcriptome = concat (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
-    let seq2fam = concat (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
+    let descr_ref = ":" ^(String.concat ~sep:"_" s.ref_species) in
+    let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
+    let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
     let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
     (s, f, checked_families_fasta)
@@ -372,11 +374,11 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let tree = merged_family / selector [ fam ^ ".tree" ] in
     let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
     let sptreefile = configuration.species_tree_file in
-    let profileNJ_tree = (ProfileNJ.profileNJ ~sptreefile ~link ~tree ~threshold:1.0 ) / selector [ fam ^ ".tree" ] in
+    let profileNJ_tree = (ProfileNJ.profileNJ ~descr:(":" ^ fam) ~sptreefile ~link ~tree ~threshold:1.0 ) / selector [ fam ^ ".tree" ] in
     let threads = Pervasives.min 2 configuration.threads in
     let memory = Pervasives.min 1 (Pervasives.(configuration.memory / configuration.threads)) in
     let topogene = configuration.refinetree in
-    (fam, Phyldog.phyldog_by_fam ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    (fam, Phyldog.phyldog_by_fam ~descr:(":" ^ fam) ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =
@@ -384,7 +386,7 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let ali = merged_w / selector [ fam ^ ".fa" ] in
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
     let threads = 1 in
-    (fam, Aligner.mafft ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
+    (fam, Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
@@ -563,9 +565,9 @@ let build_app configuration =
     let pairs = List.cartesian_product configuration.all_apytram_ref_species configuration.families in
     List.concat
     (List.map pairs ~f:(fun (ref_species, fam) ->
-    let query = concat (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
-    let blast_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, w) -> if s.ref_species = ref_species then Some (s, w) else None) in
     let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) in
+    let query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
+    let blast_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, w) -> if s.ref_species = ref_species then Some (s, w) else None) in
     let w = Apytram.apytram_multi_species ~descr ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
     List.filter_map configuration.apytram_samples ~f:(fun s ->
       if s.ref_species = ref_species then
