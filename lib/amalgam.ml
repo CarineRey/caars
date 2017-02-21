@@ -200,7 +200,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
       if s.run_transdecoder then
         let pep_min_length = 20 in
         let retain_long_orfs = 150 in
-        let filtered_orf = Transdecoder.transdecoder ~descr:("Apytram." ^ f) ~only_top_strand:true ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~threads:1 ~memory apytram_result_fasta in
+        let filtered_orf = Transdecoder.transdecoder ~descr:("Apytram." ^ s.id ^ "." ^ f) ~only_top_strand:true ~retain_long_orfs ~pep_min_length ~only_best_orf:true ~threads:1 ~memory apytram_result_fasta in
         (s, f, filtered_orf)
       else
         (s, f, apytram_result_fasta)
