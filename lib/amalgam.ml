@@ -78,7 +78,6 @@ let normalize_fasta fasta_reads memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
       let max_cov = 50 in
       let normalization_dir = Trinity.fasta_read_normalization ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample in
-
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
         | Fasta_Paired_end (lw, rw , o) -> Fasta_Paired_end ( normalization_dir / selector ["left.norm.fa"] , normalization_dir / selector ["right.norm.fa"], o )
@@ -518,7 +517,7 @@ let build_app configuration =
 
   let (normalization_memory, normalization_threads) =
      let nb_samples = List.length configuration.all_ref_samples in
-     (Pervasives.(configuration.memory / nb_samples ), Pervasives.(configuration.threads / nb_samples ))
+     (Pervasives.( max 1 (configuration.memory / nb_samples) ), Pervasives.(max 1 (configuration.threads / nb_samples) ))
     in
 
  (* let () = printf "%i %i %i\n" configuration.memory configuration.threads (List.length configuration.all_ref_samples) in
