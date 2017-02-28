@@ -86,11 +86,9 @@ let normalize_fasta fasta_reads memory threads =
     )
 
 
-let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} trinity_memory trinity_threads =
+let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} memory threads =
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
-        let threads = trinity_threads in
-        let memory = trinity_memory in
         match (s.run_trinity, s.given_assembly) with
         | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
@@ -170,8 +168,7 @@ let seq_dispatcher
     ]
   ]
 
-let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs configuration =
-  let threads = configuration.threads in
+let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs threads=
   List.map ~f:(fun (s,trinity_assembly) ->
       let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
       let query = trinity_assembly in
@@ -542,7 +539,7 @@ let build_app configuration =
 
   let trinity_orfs_stats = assemblies_stats_of_fasta trinity_orfs in
 
-  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs configuration trinity_orfs in
+  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs normalization_threads trinity_orfs in
 
   let reads_blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 

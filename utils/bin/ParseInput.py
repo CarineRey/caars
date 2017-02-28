@@ -200,7 +200,7 @@ def read_ali_file(FastaFile):
             elif re.match('>', line):
                 name = line[1:-1]
             else:
-                AliDict.setdefault(name, []).append(line)
+                AliDict.setdefault(name, []).append(line.replace("\n", "")
         f.close()
     if AliDict.has_key(0):
         err = 1
