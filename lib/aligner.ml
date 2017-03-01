@@ -5,6 +5,7 @@ open Bistro_bioinfo.Std
 
 
 let mafft
+  ?(descr="")
   ~treein
   ~auto
   ?maxiterate
@@ -23,7 +24,7 @@ let mafft
        mafft --treein tmp.mafft {{ dep fa }} > {{ ident dest }}
        |} ]
   in
-  workflow ~descr:"mafft" ~version:2 ~np:threads [
+  workflow ~descr:("mafft"^descr) ~version:2 ~np:threads [
   cd tmp;
   cmd "sh" [ file_dump script ];
   ]

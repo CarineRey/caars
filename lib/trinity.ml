@@ -154,11 +154,17 @@ let config_output_fasta_paired_or_single = function
                       ]
 
 let fasta_read_normalization
+    ?(descr = "")
     max_cov
     ~threads
     ?(memory = 1)
     (fasta : fasta workflow sample_fasta)
     : fasta directory workflow =
+  let descr = if descr = "" then
+                  descr
+                else
+                  ":" ^ descr ^ " "
+  in
   let script = [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
@@ -169,7 +175,7 @@ let fasta_read_normalization
 
     |}]
   in
-  workflow ~descr:"fasta_read_normalization" ~version:2 ~np:threads ~mem:(1024 * memory) [
+  workflow ~descr:("fasta_read_normalization" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp ;
     cd tmp;
@@ -177,7 +183,12 @@ let fasta_read_normalization
     ]
 
 
-let fastool ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
+let fastool ?(descr="") ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
+  let descr = if descr = "" then
+                  descr
+                else
+                  ":" ^ descr ^ " "
+  in
   let script = [%bistro {|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
@@ -185,14 +196,19 @@ let fastool ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
     $FASTOOL_PATH --illumina-trinity --to-fasta  {{ dep fastq }} > {{ ident dest }}
     |} ]
   in
-  workflow ~descr:"fastq to fasta" ~np:1 [
+  workflow ~descr:("fastq2fasta" ^ descr) ~np:1 [
     cmd "ls" [ dep dep_input ];
     cmd "ls" [ dep fastq ];
     cmd "sh" [ file_dump script ];
   ]
 
 
-let assembly_stats (fasta:fasta workflow) : assembly_stats workflow =
+let assembly_stats ?(descr="") (fasta:fasta workflow) : assembly_stats workflow =
+   let descr = if descr = "" then
+                  descr
+                else
+                  ":" ^ descr ^ " "
+   in
    let script = [%bistro {|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
@@ -206,6 +222,6 @@ let assembly_stats (fasta:fasta workflow) : assembly_stats workflow =
     fi
     |} ]
   in
-  workflow ~descr:"assembly stats trinity" ~np:1 [
+  workflow ~descr:("assembly_stats_trinity" ^ descr) ~np:1 [
     cmd "sh" [ file_dump script ];
   ]

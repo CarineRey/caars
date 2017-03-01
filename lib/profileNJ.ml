@@ -42,6 +42,7 @@ type phyldog_configuration = [`phyldog_configuration] directory
 type phylotree
 
 let profileNJ
+    ?(descr="")
     ~sptreefile
     ~threshold
     ~link
@@ -61,7 +62,7 @@ let profileNJ
     |} ]
     in
 
-    workflow ~descr:"profileNJ" ~version:3 ~np:1 ~mem:(1024) [
+    workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) [
     mkdir_p tmp;
     mkdir_p dest;
     cd tmp;

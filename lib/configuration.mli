@@ -3,7 +3,7 @@ open Commons
 type rna_sample = {
   id : string ;
   species : string ;
-  ref_species : string ;
+  ref_species : string list;
   sample_fastq : string sample_fastq ;
   run_trinity : bool ;
   run_transdecoder : bool ;
@@ -20,7 +20,7 @@ type t = {
   trinity_samples : rna_sample list ;
   all_ref_samples : rna_sample list ;
   all_ref_species : string list ;
-  all_apytram_ref_species : string list ;
+  all_apytram_ref_species : string list list;
   families : string list;
   sample_sheet : string ;
   species_tree_file : string ;
