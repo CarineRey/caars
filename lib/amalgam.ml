@@ -77,7 +77,7 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
 let normalize_fasta fasta_reads memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
       let max_cov = 50 in
-      let normalization_dir = Trinity.fasta_read_normalization ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample in
+      let normalization_dir = precious (Trinity.fasta_read_normalization ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample) in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
         | Fasta_Paired_end (lw, rw , o) -> Fasta_Paired_end ( normalization_dir / selector ["left.norm.fa"] , normalization_dir / selector ["right.norm.fa"], o )
@@ -90,7 +90,7 @@ let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} memory threads
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (true,false) -> Some (s, precious (Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta))
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
@@ -106,7 +106,7 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
       match (s.run_transdecoder,s.given_assembly) with
       | (true,false) -> let pep_min_length = 50 in
         let retain_long_orfs = 150 in
-        (s, Transdecoder.transdecoder ~descr:("Assembly." ^ s.id ^ "_" ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly)
+        (s, precious(Transdecoder.transdecoder ~descr:("Assembly." ^ s.id ^ "_" ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly))
       | (false, _ ) -> (s, trinity_assembly)
       | (true, true) -> (s, trinity_assembly)
     )
@@ -137,7 +137,7 @@ let blast_dbs_of_norm_fasta norm_fasta =
           | Fasta_Paired_end (lw, rw , _) -> concat ~descr:(":" ^ s.id ^ ".fasta_lr") [ lw ; rw ]
         in
         let fasta = fasta_to_norm_fasta_sample norm_fasta in
-        Some (s, BlastPlus.makeblastdb ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta)
+        Some (s, precious( BlastPlus.makeblastdb ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta))
       else
         None
     )
@@ -188,7 +188,7 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
           ~ref_db
           ~threads
       in
-      (s, r)
+      (s, precious r)
     )
 
 let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams memory =
@@ -235,7 +235,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
     let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
-    (s, f, checked_families_fasta)
+    (s, f, precious checked_families_fasta)
     )
 
 let parse_apytram_results apytram_annotated_ref_fams =
@@ -353,7 +353,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
                else
                  w
                in
-      (family, w, wf )
+      (family, w, precious wf )
     )
 
 
@@ -523,7 +523,7 @@ let build_app configuration =
 
   let divided_memory = Pervasives.(apytram_memory / configuration.threads) in
 
-  let configuration_dir = parse_input configuration in
+  let configuration_dir = precious (parse_input configuration) in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
@@ -580,7 +580,7 @@ let build_app configuration =
 
   let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
-  let apytram_results_dir = parse_apytram_results apytram_checked_families in
+  let apytram_results_dir = precious(parse_apytram_results apytram_checked_families) in
 
   let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
 
