@@ -76,7 +76,7 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
 
 let normalize_fasta fasta_reads memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
-      let max_cov = 50 in
+      let max_cov = 20 in
       let normalization_dir = precious (Trinity.fasta_read_normalization ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample) in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
