@@ -23,8 +23,8 @@ let sp2seq_link fam : (output, sp2seq_link) selector =
 
 type configuration_dir = [ `configuration ]
 
-let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir; memory } : configuration_dir directory workflow=
-  workflow ~np:1 ~descr:"Parse input" ~version:9 ~mem:(memory * 1024) [
+let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir} memory : configuration_dir directory workflow =
+  workflow ~np:1 ~descr:"Parse input" ~version:10 ~mem:(memory * 1024) [
     cmd "ParseInput.py"  [ string sample_sheet ;
                            string species_tree_file;
                            string alignments_dir;
@@ -521,9 +521,9 @@ let build_app configuration =
   let () = printf "%i %i %i\n" apytram_memory trinity_memory trinity_threads in
  *)
 
-  let divided_memory = Pervasives.(apytram_memory / configuration.threads) in
+  let divided_memory = Pervasives.(max 1 (apytram_memory / configuration.threads)) in
 
-  let configuration_dir = precious (parse_input configuration) in
+  let configuration_dir = precious (parse_input configuration divided_memory) in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
