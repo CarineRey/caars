@@ -20,6 +20,7 @@ let mafft
          n=`echo $i | cut -f 2 -d ":"`
          sed "s/$s/$n/" tmp.tree -i
        done
+       nw2nhx.py tmp.tree > tmp.tree
        newick2mafft.rb tmp.tree > tmp.mafft
        mafft --treein tmp.mafft {{ dep fa }} > {{ ident dest }}
        |} ]
@@ -28,9 +29,6 @@ let mafft
   cd tmp;
   cmd "sh" [ file_dump script ];
   ]
-
-
-
 
 
 (*  workflow ~descr:"mafft" ~np:threads [
