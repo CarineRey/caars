@@ -131,13 +131,14 @@ let blast_dbs_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
       if s.run_apytram then
         let parse_seqids = true in
+        let hash_index = true in
         let dbtype = "nucl" in
         let fasta_to_norm_fasta_sample = function
           | Fasta_Single_end (w, _ ) -> w
           | Fasta_Paired_end (lw, rw , _) -> concat ~descr:(":" ^ s.id ^ ".fasta_lr") [ lw ; rw ]
         in
         let fasta = fasta_to_norm_fasta_sample norm_fasta in
-        Some (s, precious( BlastPlus.makeblastdb ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta))
+        Some (s, precious( BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta))
       else
         None
     )
