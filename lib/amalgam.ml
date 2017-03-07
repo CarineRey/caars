@@ -24,7 +24,7 @@ let sp2seq_link fam : (output, sp2seq_link) selector =
 type configuration_dir = [ `configuration ]
 
 let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir} memory : configuration_dir directory workflow =
-  workflow ~np:1 ~descr:"Parse input" ~version:10 ~mem:(memory * 1024) [
+  workflow ~np:1 ~descr:"Parse input" ~version:11 ~mem:(memory * 1024) [
     cmd "ParseInput.py"  [ string sample_sheet ;
                            string species_tree_file;
                            string alignments_dir;
