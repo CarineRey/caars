@@ -55,6 +55,7 @@ let ref_blast_dbs_of_configuration_dir {all_ref_species} configuration_dir =
 
 
 let fastq_to_fasta_conversion {all_ref_samples} dep_input =
+  let dep_input = None in
   List.filter_map all_ref_samples ~f:(fun s ->
       let run_conversion = match (s.run_apytram,s.run_trinity, s.given_assembly) with
         |(true,_,_)         -> true
@@ -107,8 +108,8 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
       | (true,false) -> let pep_min_length = 50 in
         let retain_long_orfs = 150 in
         (s, precious(Transdecoder.transdecoder ~descr:("Assembly." ^ s.id ^ "_" ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly))
-      | (false, _ ) -> (s, trinity_assembly)
-      | (true, true) -> (s, trinity_assembly)
+      | (false, _ ) ->  (s, precious trinity_assembly)
+      | (true, true) -> (s, precious trinity_assembly)
     )
 
 

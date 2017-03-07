@@ -183,13 +183,18 @@ let fasta_read_normalization
     ]
 
 
-let fastool ?(descr="") ~dep_input (fastq : _ fastq workflow) :  fasta workflow =
+let fastool ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta workflow =
+  let (check_input, w_input) = match dep_input with
+                      | Some w -> (true, dep w)
+                      | None -> (false, ident dest)
+                    in
   let descr = if descr = "" then
                   descr
                 else
                   ":" ^ descr ^ " "
   in
   let script = [%bistro {|
+    {{flag seq [string "ls "; w_input] check_input }}
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
     FASTOOL_PATH=$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool
@@ -197,7 +202,6 @@ let fastool ?(descr="") ~dep_input (fastq : _ fastq workflow) :  fasta workflow 
     |} ]
   in
   workflow ~descr:("fastq2fasta" ^ descr) ~np:1 [
-    cmd "ls" [ dep dep_input ];
     cmd "sh" [ file_dump script ];
   ]
 
