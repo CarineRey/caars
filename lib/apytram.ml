@@ -167,6 +167,7 @@ let apytram_multi_species
         option (opt "-len" float ) len ;
         option (opt "-flen" float ) flen ;
         option (opt "-required_coverage" float ) required_coverage ;
+        option (opt "-time_max" int ) time_max ;
         option (flag string "--stats") stats ;
         option (flag string "--no_best_file") no_best_file ;
         option (flag string "--write_even_empty") write_even_empty ;

@@ -565,7 +565,8 @@ let build_app configuration =
     let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) in
     let query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
     let blast_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, w) -> if s.ref_species = ref_species then Some (s, w) else None) in
-    let w = Apytram.apytram_multi_species ~descr ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
+    let time_max = 18000 * List.length blast_dbs in
+    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
     List.filter_map configuration.apytram_samples ~f:(fun s ->
       if s.ref_species = ref_species then
           let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
