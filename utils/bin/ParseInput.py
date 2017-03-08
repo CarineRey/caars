@@ -270,7 +270,7 @@ def write_seq_ref_apytram(Ref_dic_trinity, AliDict_i, Family):
         for name in Ref_dic_trinity[sp]:
             seq = ''.join(AliDict_i[name]).replace("-", "")
             string.extend([">", name, "\n",
-                           '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60))])
+                           '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60)),"\n"])
 
         f = open(GeneFamily_File, "w")
         f.write("".join(string))
