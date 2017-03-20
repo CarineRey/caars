@@ -92,14 +92,18 @@ else: # we create the directory
 Seq2Sp_dict = {}
 
 def read_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
+    logger.debug("Read %s", File)
     fam = os.path.basename(File).split('.')[0]
     if os.path.isfile(File):
         f = open(File, "r")
         for line in f:
             line = line.replace("\n", "")
-            (sp, seq) = line.split(":")
-            if sp in RefinedSpecies:
-                Seq2Sp_dict[seq] = (sp, fam)
+            if line.replace(":","") == line:
+                logger.debug("Line (%s) has a problem", line)
+            else:
+                (sp, seq) = line.split(":")
+                if sp in RefinedSpecies:
+                    Seq2Sp_dict[seq] = (sp, fam)
         f.close()
     return Seq2Sp_dict
 
@@ -108,6 +112,7 @@ for f in glob.glob("%s/*sp2seq.txt" %sp2seq_dir):
 
 ### Read all alignment in alignment_dir
 def read_ali_file(FastaFile, Seq2Sp_dict, AliDict):
+    logger.debug("Read %s", FastaFile)
     name = ""
     if os.path.isfile(FastaFile):
         f = open(FastaFile, "r")
