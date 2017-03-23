@@ -286,7 +286,7 @@ let seq_integrator
 
   let tmp_merge = dest // "tmp" in
 
-  workflow ~version:10 ~descr:("SeqIntegrator.py:" ^ family ^ " ") [
+  workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family ^ " ") [
     mkdir_p tmp_merge ;
     cmd "SeqIntegrator.py"  [
       opt "-tmp" ident tmp_merge;

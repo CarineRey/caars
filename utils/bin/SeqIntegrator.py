@@ -282,16 +282,28 @@ if StartingFastaFiles and Sp2SeqFiles:
 
     ### Add the fasta file to the existing alignment
     logger.info("Add the fasta file to the existing alignment")
-    MafftProcess = Aligner.Mafft(StartingAlignment)
-    MafftProcess.AddOption = StartingFasta
+    MafftProcessAdd = Aligner.Mafft(StartingAlignment)
+    MafftProcessAdd.AddOption = StartingFasta
+    MafftProcessAdd.AdjustdirectionOption = False
+    MafftProcessAdd.QuietOption = True
+    MafftProcessAdd.OutputFile = "%s/StartMafft.fa" %TmpDirName
+    if os.path.isfile(StartingAlignment) and os.path.isfile(StartingFasta):
+        (out, err) = MafftProcessAdd.launch()
+    else:
+        logger.error("%s or %s is not a file", StartingAlignment, StartingFasta)
+        end(1)
+
+    ### Realign the combined alignment
+    logger.info("Realign the combined alignment")
+    MafftProcess = Aligner.Mafft(MafftProcessAdd.OutputFile)
     MafftProcess.AdjustdirectionOption = False
     MafftProcess.Maxiterate = 1000
     MafftProcess.QuietOption = True
-    MafftProcess.OutputFile = "%s/StartMafft.fa" %TmpDirName
-    if os.path.isfile(StartingAlignment) and os.path.isfile(StartingFasta):
+    MafftProcess.OutputFile = "%s/StartMafftRealign.0.fa" %TmpDirName
+    if os.path.isfile(MafftProcessAdd.OutputFile):
         (out, err) = MafftProcess.launch()
     else:
-        logger.error("%s or %s is not a file", StartingAlignment, StartingFasta)
+        logger.error("%s is not a file", MafftProcessAdd.OutputFile)
         end(1)
 
     if args.no_merge:
@@ -364,7 +376,20 @@ if StartingFastaFiles and Sp2SeqFiles:
                 ali, StartTreeFilename, PhylomergeProcess.TaxonToSequence)
                 end(1)
 
-            ali = PhylomergeProcess.OutputSequenceFile
+            ### Realign the merged alignment
+            logger.info("Realign the merged alignment (%s)", i)
+            MafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
+            MafftProcess.AdjustdirectionOption = False
+            MafftProcess.Maxiterate = 1000
+            MafftProcess.QuietOption = True
+            MafftProcess.OutputFile = "%s/StartMafftRealign.%s.fa" %(TmpDirName,i)
+            if os.path.isfile(PhylomergeProcess.OutputSequenceFile):
+                (out, err) = MafftProcess.launch()
+            else:
+                logger.error("%s is not a file", MafftProcessAdd.OutputFile)
+                end(1)
+
+            ali = MafftProcess.OutputFile
             sp2seq = Int1Sp2Seq
             NbSeq_current_iter = count_lines(sp2seq)
 
