@@ -194,6 +194,8 @@ TmpAli = "%s/tmp.fa" %TmpDirName
 FinalAli = "%s.fa" %OutPrefixName
 FinalTree = "%s.tree" %OutPrefixName
 FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
+FinalSummary = "%s.filter_summary.txt" %OutPrefixName
+FinalDiscarded = "%s.discarded.fa" %OutPrefixName
 
 
 def write_in_file(String,Filename,mode = "w"):
@@ -214,6 +216,39 @@ def cp(In, Out):
         logger.error(err)
 
     return (out, err)
+
+
+
+def count_aligned_pos(seq, ref):
+    res = 0
+    if len(seq) == len(ref):
+        l=0
+        c=0
+        for i in range(len(ref)):
+            if ref[i] != "-":
+                l +=1
+                if seq[i] != "-":
+                    c+=1
+        if l == 0:
+            pass
+        else:
+            res = c/float(l) *100
+
+    return res
+
+
+def get_closest_seq(tree, seq_test, list_otherseq):
+    m = 100000000
+    closest_name = ""
+    d=0
+    # get the closest sequence not in sp to refine
+    for seqO_name in list_otherseq:
+        d = tree.get_distance(seq_test, seqO_name)
+        if d <= m:
+            closest_name = seqO_name
+            m = d
+            #logger.debug("closest sequences: %s (%s)", closest_name, d)
+    return (closest_name, d)
 
 class Fasta(object):
     def __init__(self):
@@ -299,6 +334,7 @@ if args.filter_threshold > 0:
     logger.info("All sequences with a percentage of alignement with its sister sequence under %s will be discarded.", args.filter_threshold)
     sequenceTodiscard = []
     sequenceTokeep = []
+    AliLenSummary = []
 
     #Read fasta
     prefilter_fasta = Fasta()
@@ -324,37 +360,46 @@ if args.filter_threshold > 0:
     sequenceTokeep.extend(list_otherseq)
 
     for seqR_name in list_refineseq:
-        m = 10000
-        closest_name = ""
-        # get the closest sequence not in sp to refine
-        for seqO_name in list_otherseq:
-            d = tree.get_distance(seqR_name, seqO_name)
-            if d <= m:
-                closest_name = seqO_name
+        logger.debug("Look at %s", seqR_name)
+        (closest_name, d) = get_closest_seq(tree, seqR_name, list_otherseq)
+        logger.debug("final closest sequences: %s (%s)", closest_name, d)
 
         seqR_sequence = prefilter_fasta.get(seqR_name)
         closest_sequence = prefilter_fasta.get(closest_name)
 
         #Count number of aligned position
-        l=0
-        c=0
-        for i in range(len(closest_sequence)):
-            if closest_sequence[i] != "-":
-                l +=1
-                if seqR_sequence[i] != "-":
-                    c+=1
-
-        ali_len = c/float(l) *100
+        ali_len = count_aligned_pos(seqR_sequence, closest_sequence)
 
         if ali_len > args.filter_threshold:
             sequenceTokeep.append(seqR_name)
+            AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_len), str(args.filter_threshold), "K"]))
+            logger.debug("%s will be kept because its alignemnt lenght (%s) (with %s)  is > to %s", seqR_name, ali_len, closest_name, args.filter_threshold)
         else:
-            sequenceTodiscard.append(seqR_name)
-            logger.info("%s will be discarded because its alignemnt lenght (%s) is < to %s", seqR_name, ali_len, args.filter_threshold)
+            logger.info("%s will be discarded because its alignemnt lenght (%s) (with %s)  is < to %s", seqR_name,  ali_len, closest_name, args.filter_threshold)
+            list_otherseq.remove(closest_name)
+            (closest_name, d) = get_closest_seq(tree, seqR_name, list_otherseq)
+            closest_sequence = prefilter_fasta.get(closest_name)
+            logger.info("Test again with the second closest sequence (%s)", closest_name)
+            ali_len = count_aligned_pos(seqR_sequence, closest_sequence)
+            if ali_len  < args.filter_threshold:
+                sequenceTodiscard.append(seqR_name)
+                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_len), str(args.filter_threshold), "D"]))
+                logger.info("(Sd test) %s will be discarded because its alignemnt lenght (%s) (with %s)  is < to %s", seqR_name,  ali_len, closest_name, args.filter_threshold)
+            else:
+                sequenceTokeep.append(seqR_name)
+                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_len), str(args.filter_threshold), "K2"]))
+                logger.debug("(Sd test) %s will be kept because its alignemnt lenght (%s) (with %s)  is > to %s", seqR_name, ali_len, closest_name, args.filter_threshold)
 
     #Filter fasta and sp2seq
+    with open(FinalSummary,"w") as SummaryFile:
+        SummaryFile.write("\n".join(AliLenSummary)+"\n")
+    
     if len(sequenceTodiscard) > 0:
         filteredfasta = prefilter_fasta.filter_fasta(sequenceTokeep)
+
+        discardedfasta = prefilter_fasta.filter_fasta(sequenceTodiscard)
+        discardedfasta.write_fasta(FinalDiscarded)
+        
         lines = []
         for (seq, sp) in seq2sp_dict.items():
             if seq not in sequenceTodiscard:
@@ -420,13 +465,15 @@ if args.filter_threshold > 0:
             end(1)
 
     else:
+        with open(FinalDiscarded, "w") as F:
+            F.write("")
         cp(StartingAli, FinalAli)
         cp(StartingSp2Seq, FinalSp2Seq)
         cp(StartingTree, FinalTree)
         end(0)
 
 else:
-    logger.warning("No threshol, input files will be output files.")
+    logger.warning("No threshold, input files will be output files.")
     cp(StartingAli, FinalAli)
     cp(StartingSp2Seq, FinalSp2Seq)
     cp(StartingTree, FinalTree)
