@@ -322,10 +322,6 @@ class Sequence(object):
     def __init__(self,):
         self.Name = ""
         self.Sequence = ""
-
-        ### Caracteristics
-        self.Complement = False
-
     def __str__(self):
         return(">" + self.Name + "\n" + '\n'.join(self.Sequence[i:i+60] for i in range(0, len(self.Sequence), 60)) + "\n")
 
@@ -398,6 +394,7 @@ if args.filter_threshold > 0:
         filteredfasta = prefilter_fasta.filter_fasta(sequenceTokeep)
 
         discardedfasta = prefilter_fasta.filter_fasta(sequenceTodiscard)
+        discardedfasta = discardedfasta.dealign_fasta()
         discardedfasta.write_fasta(FinalDiscarded)
         
         lines = []

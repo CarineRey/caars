@@ -315,7 +315,7 @@ let seq_filter
 
   let tmp_merge = dest // "tmp" in
 
-  workflow ~version:4 ~descr:("SeqFilter.py:" ^ family ^ " ") [
+  workflow ~version:5 ~descr:("SeqFilter.py:" ^ family ^ " ") [
     mkdir_p tmp_merge ;
     cmd "SeqFilter.py"  [
       opt "-tmp" ident tmp_merge;
@@ -389,6 +389,7 @@ let realign_merged_families merged_and_reconciled_families configuration =
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
   let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
+  let extension_list_filtered = [(".discarded.fa","Filter_summary");(".filter_summary.txt","Filter_summary")] in
   let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","Reconciled_Gene_tree")] in
   let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in
   workflow ~descr:"build_output_directory" ~version:1 [
@@ -397,6 +398,12 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     mkdir_p (dest // "Merged_fasta");
     mkdir_p (dest // "Merged_tree");
     mkdir_p (dest // "Sp2Seq_link");
+
+    if configuration.ali_sister_threshold > 0. then
+        mkdir_p (dest // "Filter_summary")
+    else
+        mkdir_p tmp
+    ;
     if configuration.run_reconciliation then
        mkdir_p (dest // "Reconciled_Gene_tree")
     else
@@ -415,6 +422,15 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 let output = dest // dir // (f ^ ext)  in
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
               )
+              ;
+              if configuration.ali_sister_threshold > 0. then
+                List.map extension_list_filtered ~f:(fun (ext,dir) ->
+                    let input = merged_w / selector [ f ^ ext ] in
+                    let output = dest // dir // (f ^ ext)  in
+                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                )
+              else
+                []
               ;
               if configuration.run_reconciliation then
                 List.concat [
