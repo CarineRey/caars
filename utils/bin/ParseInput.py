@@ -285,7 +285,14 @@ for f in glob.glob("%s/*" %ali_dir):
     Nb_Family += 1
     AliDict_i, err = read_ali_file(f)
     Nb_seqs = len(AliDict_i.keys())
-    Nb_sp = len(set([Seq2Sp_dict[s] for s in AliDict_i.keys()]))
+    SpeciesList = []
+    for s in AliDict_i.keys():
+        if s in Seq2Sp_dict:
+            SpeciesList.append(Seq2Sp_dict[s])
+        else:
+            logger.error("No sequence called %s in %s/*.tsv", s, seq2sp_dir)
+            sys.exit(1)
+    Nb_sp = len(set(SpeciesList))
     if  Extention != "fa":
         logger.error("%s is not a fasta file with Family.fa as filename. (Detected extention %s)", f, Extention)
         sys.exit(1)
