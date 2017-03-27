@@ -23,12 +23,20 @@ let sp2seq_link fam : (output, sp2seq_link) selector =
 
 type configuration_dir = [ `configuration ]
 
-let parse_input { sample_sheet ; species_tree_file ; alignments_dir ; seq2sp_dir} memory : configuration_dir directory workflow =
+let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~families ~memory : configuration_dir directory workflow =
+  let families_out = dest // "families.txt" in
+  let script = Bistro.Expr.(
+      List.map families ~f:(fun f -> string f)
+      |> seq ~sep:"\n"
+      )
+      in
   workflow ~np:1 ~descr:"Parse input" ~version:12 ~mem:(memory * 1024) [
-    cmd "ParseInput.py"  [ string sample_sheet ;
-                           string species_tree_file;
-                           string alignments_dir;
-                           string seq2sp_dir;
+    mkdir_p dest;
+    cmd "cp" [ file_dump script; families_out];
+    cmd "ParseInput.py"  [ dep sample_sheet ;
+                           dep species_tree_file;
+                           dep alignments_dir;
+                           dep seq2sp_dir;
                            ident dest ;
                          ]
   ]
@@ -541,7 +549,12 @@ let build_app configuration =
 
   let divided_memory = Pervasives.(max 1 (apytram_memory / configuration.threads)) in
 
-  let configuration_dir = precious (parse_input configuration divided_memory) in
+  let configuration_dir = precious (parse_input ~sample_sheet:(input configuration.sample_sheet)
+                                                ~species_tree_file:(input configuration.species_tree_file)
+                                                ~alignments_dir:(input configuration.alignments_dir)
+                                                ~seq2sp_dir:(input configuration.seq2sp_dir)
+                                                ~families:configuration.families
+                                                ~memory:divided_memory) in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
