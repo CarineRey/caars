@@ -636,19 +636,25 @@ let build_app configuration =
     | Fasta_Single_end (w, _ ) -> [[ d ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
     | Fasta_Paired_end (lw, rw , _) -> [[ d ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ d ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> lw]
   in
-  let repo =
+  let repo = if configuration.just_parse_input then
+      [[ "Configuration" ] %>  configuration_dir ]
+      else
     List.concat [
+      [[ "Configuration" ] %>  configuration_dir ]
+        ;
+      List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+        [ "draft_assemblies" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+       )
+        ;
+      [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
+      ;
+      [["reconstructed_sequences"] %> reconstructed_sequences]
+      ;
       if configuration.debug then
       List.concat [
-        [[ "tmp" ; "configuration" ] %>  configuration_dir ]
-        ;
         List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "tmp/rna_seq/raw_fasta" sample_fasta))
         ;
         List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "tmp/rna_seq/norm_fasta" norm_fasta))
-        ;
-        List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
-          )
         ;
         List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
             [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
@@ -705,10 +711,6 @@ let build_app configuration =
       ]
       else
       []
-      ;
-      [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
-      ;
-      [["reconstructed_sequences"] %> reconstructed_sequences]
       ;
     ]
   in

@@ -38,7 +38,7 @@ open Bistro.EDSL
 open Bistro_bioinfo.Std
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory reconcile refinetree refineali ali_sister_threshold debug () =
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory reconcile refinetree refineali ali_sister_threshold debug just_parse_input () =
   let logger =
     Bistro_logger.tee
       (Bistro_console_logger.create ())
@@ -48,10 +48,11 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let refinetree = Option.value ~default:false refinetree in 
   let refineali = Option.value ~default:false refineali in 
   let debug = Option.value ~default:false debug in 
+  let just_parse_input = Option.value ~default:false just_parse_input in 
   let ali_sister_threshold = Option.value ~default:0.0 ali_sister_threshold in
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
-  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~debug ~refinetree ~refineali ~ali_sister_threshold ~outdir in
+  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
   let amalgam_app = Amalgam.build_app configuration in
   Bistro_app.(
     run ~logger ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~dag_dump:"dag.dot" ~keep_all:true amalgam_app
@@ -72,6 +73,7 @@ let spec =
   +> flag "--refineali"       (optional bool)   ~doc:"(BOOL if true: Refine MSA after the final Reconciliation step (Default:false)"
   +> flag "--mpast"           (optional float)  ~doc:"(FLOAT Minimal percentage of alignment of an Amalgam sequences on its (non amalgam) closest sequence to be kept in the final output"
   +> flag "--debug"           (optional bool)   ~doc:"(BOOL if true: Get intermediary files (Default:false)"
+  +> flag "--just-parse-input"(optional bool)   ~doc:"(BOOL if true: parse input and exit. Recommended to check all input files. (Default:false)"
 
 let command =
   Command.basic

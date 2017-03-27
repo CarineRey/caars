@@ -33,6 +33,7 @@ type t = {
   refinetree : bool;
   refineali : bool;
   debug : bool;
+  just_parse_input : bool;
   ali_sister_threshold : float;
 }
 
@@ -48,5 +49,6 @@ val load :
   refineali:bool ->
   ali_sister_threshold:float ->
   debug:bool ->
+  just_parse_input:bool ->
   outdir:string ->
   t
