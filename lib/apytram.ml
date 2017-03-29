@@ -72,7 +72,7 @@ let apytram_multi_species
     ?time_max
     ~query
     ~fam
-    db_blasts : output directory workflow =
+    (compressed_reads_dbs : compressed_read_db list) : apytram_output directory workflow =
 
     let memory = match memory with
       | 0 -> 1
@@ -80,13 +80,33 @@ let apytram_multi_species
       in
 
     let formated_db_blasts =
-      List.map db_blasts ~f:(fun (s, w) ->
-    seq [dep w ; string "/db:"; string s.id]
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.cluster_rep_blast_db ; string "/db:"; string db.s.id]
       )
     in
     let db_types =
-      List.map db_blasts ~f:(fun (s, _) ->
+      List.map compressed_reads_dbs ~f:(fun {s}->
     seq ~sep:":" [string (string_of_db_type (sample_fastq_orientation s.sample_fastq)); string s.id]
+      )
+    in
+    let formated_fasta =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.concat_fasta ; string ":"; string db.s.id]
+      )
+    in
+    let formated_fastaidx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.index_concat_fasta ; string ":"; string db.s.id]
+      )
+    in
+    let formated_cluster =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.reformated_cluster ; string ":"; string db.s.id]
+      )
+    in
+    let formated_clusteridx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.index_cluster ; string ":"; string db.s.id]
       )
     in
 
@@ -113,6 +133,11 @@ let apytram_multi_species
         opt "-threads" ident np ;
         opt "-d" ident (seq ~sep:"," formated_db_blasts) ;
         opt "-dt" ident (seq ~sep:"," db_types) ;
+        opt "-fa" ident (seq ~sep:"," formated_fasta) ;
+        opt "-idx" ident (seq ~sep:"," formated_fastaidx) ;
+        flag string "--UseIndex" true;
+        opt "-clstr" ident (seq ~sep:"," formated_cluster) ;
+        opt "-clstridx" ident (seq ~sep:"," formated_clusteridx) ;
         opt "-out" seq [ident dest ; string "/apytram"] ;
         opt "-log" seq [ident dest ; string "/apytram.log"] ;
         opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;

@@ -128,18 +128,54 @@ let concat ?(descr="") = function
     ]
 
 
+let build_biopythonindex ?(descr="") (fasta:fasta workflow)  : index workflow =
+  workflow ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
+    cmd "build_biopythonindex_fasta.py" [ ident dest; dep fasta ]
+  ]
+
+let reformat_cdhit_cluster ?(descr="") cluster : fasta workflow =
+  workflow ~version:1 ~descr:("reformat_cdhit_cluster2fasta.py" ^ descr) [
+    cmd "reformat_cdhit_cluster2fasta.py" [ dep cluster  ; ident dest]
+  ]
+
+let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta workflow) : cdhit directory workflow =
+  let out = dest // "cluster_rep.fa" in
+  workflow ~version:1 ~descr:("cdhitlap" ^ descr) [
+    mkdir_p dest;
+    cmd "cd-hit-lap" [ 
+        opt "-i" dep fasta;
+        opt "-o" ident out ;
+        option ( opt "-p" float ) p;
+        option ( opt "-m" float ) m;
+        option ( opt "-d" float ) d;
+        ]
+    ]
+
 let blast_dbs_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
       if s.run_apytram then
-        let parse_seqids = true in
-        let hash_index = true in
-        let dbtype = "nucl" in
+        let descr = (s.id ^ "_" ^ s.species) in
         let fasta_to_norm_fasta_sample = function
           | Fasta_Single_end (w, _ ) -> w
           | Fasta_Paired_end (lw, rw , _) -> concat ~descr:(":" ^ s.id ^ ".fasta_lr") [ lw ; rw ]
         in
-        let fasta = fasta_to_norm_fasta_sample norm_fasta in
-        Some (s, precious( BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta))
+        let concat_fasta = fasta_to_norm_fasta_sample norm_fasta in
+        (*Build biopython index*)
+        let index_concat_fasta = build_biopythonindex ~descr concat_fasta in
+        (*build overlapping read cluster*)
+        let cluster_repo = cdhitoverlap ~descr concat_fasta in
+        let rep_cluster_fasta = cluster_repo / selector  ["cluster_rep.fa"] in
+        let cluster = cluster_repo / selector  ["cluster_rep.fa.clstr"] in
+        (*reformat cluster*)
+        let reformated_cluster =  reformat_cdhit_cluster ~descr cluster in
+        (*build index for cluster*)
+        let index_cluster = build_biopythonindex ~descr reformated_cluster in
+        (*Build blast db of cluster representatives*)
+        let parse_seqids = true in
+        let hash_index = true in
+        let dbtype = "nucl" in
+        let cluster_rep_blast_db = precious( BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) rep_cluster_fasta) in
+        Some (s , {s; concat_fasta; index_concat_fasta; rep_cluster_fasta; reformated_cluster; index_cluster ; cluster_rep_blast_db} )
       else
         None
     )
@@ -586,9 +622,9 @@ let build_app configuration =
     (List.map pairs ~f:(fun (ref_species, fam) ->
     let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) in
     let query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
-    let blast_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, w) -> if s.ref_species = ref_species then Some (s, w) else None) in
-    let time_max = 18000 * List.length blast_dbs in
-    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
+    let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
+    let time_max = 18000 * List.length compressed_reads_dbs in
+    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~out_by_species:true ~memory:divided_memory ~fam ~query compressed_reads_dbs in
     List.filter_map configuration.apytram_samples ~f:(fun s ->
       if s.ref_species = ref_species then
           let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
@@ -669,7 +705,7 @@ let build_app configuration =
           )
         ;
         List.map reads_blast_dbs ~f:(fun (s,blast_db) ->
-            [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
+            [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db.cluster_rep_blast_db
           )
         ;
        (* List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
