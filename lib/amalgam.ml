@@ -154,7 +154,7 @@ let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta workflow) : cdhit directory w
 let blast_dbs_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
       if s.run_apytram then
-        let descr = (s.id ^ "_" ^ s.species) in
+        let descr = (":" ^ s.id ^ "_" ^ s.species) in
         let fasta_to_norm_fasta_sample = function
           | Fasta_Single_end (w, _ ) -> w
           | Fasta_Paired_end (lw, rw , _) -> concat ~descr:(":" ^ s.id ^ ".fasta_lr") [ lw ; rw ]
@@ -167,7 +167,7 @@ let blast_dbs_of_norm_fasta norm_fasta =
         let rep_cluster_fasta = cluster_repo / selector  ["cluster_rep.fa"] in
         let cluster = cluster_repo / selector  ["cluster_rep.fa.clstr"] in
         (*reformat cluster*)
-        let reformated_cluster =  reformat_cdhit_cluster ~descr cluster in
+        let reformated_cluster = reformat_cdhit_cluster ~descr cluster in
         (*build index for cluster*)
         let index_cluster = build_biopythonindex ~descr reformated_cluster in
         (*Build blast db of cluster representatives*)
