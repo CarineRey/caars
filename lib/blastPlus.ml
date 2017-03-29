@@ -36,8 +36,7 @@ open Core_kernel.Std
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
-
-type blast_db = [`blast_db] directory
+open Commons
 
 let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta workflow) : blast_db workflow =
     workflow ~descr:("makeblastdb:" ^ dbname ^ " ") ~np:1 [
