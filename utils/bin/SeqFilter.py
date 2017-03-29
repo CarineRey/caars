@@ -412,7 +412,7 @@ if args.filter_threshold > 0:
             filteredfasta.write_fasta(AfterfilteringFasta)
             ### Realign the final alignment
             MafftProcess = Aligner.Mafft(TmpAli)
-            MafftProcess.Maxiterate = 1000
+            MafftProcess.Maxiterate = 2
             MafftProcess.QuietOption = True
             MafftProcess.OutputFile = FinalAli
 

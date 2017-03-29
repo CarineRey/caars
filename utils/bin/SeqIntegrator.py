@@ -251,7 +251,7 @@ def cp(In, Out):
 if args.realign_ali:
     ### Realign the input alignment
     InitialMafftProcess = Aligner.Mafft(StartingAlignment)
-    InitialMafftProcess.Maxiterate = 1000
+    InitialMafftProcess.Maxiterate = 2
     InitialMafftProcess.QuietOption = True
     InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName, "RealignAli")
 
@@ -297,7 +297,7 @@ if StartingFastaFiles and Sp2SeqFiles:
     logger.info("Realign the combined alignment")
     MafftProcess = Aligner.Mafft(MafftProcessAdd.OutputFile)
     MafftProcess.AdjustdirectionOption = False
-    MafftProcess.Maxiterate = 1000
+    MafftProcess.Maxiterate = 2
     MafftProcess.QuietOption = True
     MafftProcess.OutputFile = "%s/StartMafftRealign.0.fa" %TmpDirName
     if os.path.isfile(MafftProcessAdd.OutputFile):
@@ -319,7 +319,7 @@ if StartingFastaFiles and Sp2SeqFiles:
         NbSeq_previous_iter = 0
         NbSeq_current_iter = count_lines(sp2seq)
         i = 0
-        while (NbSeq_current_iter != NbSeq_previous_iter):
+        while (NbSeq_current_iter > 1 & NbSeq_current_iter != NbSeq_previous_iter):
             logger.debug("%s iterations, %s NbSeq_current_iter, %s NbSeq_previous_iter", i, NbSeq_current_iter, NbSeq_previous_iter)
             i += 1
             NbSeq_previous_iter = NbSeq_current_iter
@@ -380,7 +380,7 @@ if StartingFastaFiles and Sp2SeqFiles:
             logger.info("Realign the merged alignment (%s)", i)
             MafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
             MafftProcess.AdjustdirectionOption = False
-            MafftProcess.Maxiterate = 1000
+            MafftProcess.Maxiterate = 2
             MafftProcess.QuietOption = True
             MafftProcess.OutputFile = "%s/StartMafftRealign.%s.fa" %(TmpDirName,i)
             if os.path.isfile(PhylomergeProcess.OutputSequenceFile):

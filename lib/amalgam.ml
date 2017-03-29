@@ -352,7 +352,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
 
-      let w = seq_integrator ~realign_ali:true ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment in
+      let w = seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment in
 
       let wf = if configuration.ali_sister_threshold > 0. then
                  let filter_threshold = configuration.ali_sister_threshold in
