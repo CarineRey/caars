@@ -127,7 +127,6 @@ let concat ?(descr="") = function
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
-
 let build_biopythonindex ?(descr="") (fasta:fasta workflow)  : index workflow =
   workflow ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
     cmd "build_biopythonindex_fasta.py" [ ident dest; dep fasta ]
@@ -142,7 +141,7 @@ let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta workflow) : cdhit directory w
   let out = dest // "cluster_rep.fa" in
   workflow ~version:1 ~descr:("cdhitlap" ^ descr) [
     mkdir_p dest;
-    cmd "cd-hit-lap" [ 
+    cmd "cd-hit-lap" [
         opt "-i" dep fasta;
         opt "-o" ident out ;
         option ( opt "-p" float ) p;
@@ -228,6 +227,38 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
       in
       (s, precious r)
     )
+
+
+let concat_without_error ?(descr="") l : fasta workflow =
+   let script = [%bistro{|
+        touch tmp
+        cat tmp {{ seq ~sep:"" l }} > tmp1
+        mv tmp1 {{ ident dest }}
+        |}]
+    in
+    workflow ~descr:("concat_without_error" ^ descr) [
+       mkdir_p tmp;
+       cd tmp;
+       cmd "sh" [ file_dump script];
+    ]
+
+let build_target_query ref_species family configuration trinity_annotated_fams =
+    let seq_dispatcher_results_dirs =
+        List.filter_map configuration.apytram_samples ~f:(fun s ->
+            if (s.ref_species = ref_species) && (s.run_trinity) then
+                Some (s , List.Assoc.find_exn trinity_annotated_fams s)
+            else
+                None
+            )
+    in
+    let get_trinity_annotated_fam_list =
+    List.concat (List.map seq_dispatcher_results_dirs ~f:(fun (s,dir) ->
+        [dep dir ; string ("/Trinity." ^ s.id ^ "." ^ s.species ^ "." ^ family ^ ".fa ")]
+      )
+    )
+    in
+    concat_without_error get_trinity_annotated_fam_list
+
 
 let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams memory =
   List.map apytram_annotated_ref_fams ~f:(fun (s, f, apytram_result_fasta) ->
@@ -395,9 +426,6 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       (family, w, precious wf )
     )
 
-
-
-
 let phyldog_by_fam_of_merged_families merged_families configuration =
   List.map  merged_families ~f:(fun (fam, merged_without_filter_family, merged_and_filtered_family) ->
     let merged_family = if configuration.ali_sister_threshold > 0. then
@@ -553,8 +581,6 @@ let output_of_phyldog phyldog merged_families families =
     cmd "bash" [ file_dump script ];
   ]
 
-
-
 let build_app configuration =
 
   let allocation_apytram = 80 in
@@ -616,13 +642,17 @@ let build_app configuration =
   in
 
 *)
+
+
   let apytram_annotated_ref_fams_by_fam =
 
     let pairs = List.cartesian_product configuration.all_apytram_ref_species configuration.families in
     List.concat
     (List.map pairs ~f:(fun (ref_species, fam) ->
     let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) in
-    let query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
+    let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
+    let target_query = build_target_query ref_species fam configuration trinity_annotated_fams in
+    let query = concat ~descr [guide_query; target_query] in
     let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
     let time_max = 18000 * List.length compressed_reads_dbs in
     let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_memory ~fam ~query compressed_reads_dbs in
