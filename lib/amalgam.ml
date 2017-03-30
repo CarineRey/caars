@@ -241,6 +241,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
     )
 
 let checkfamily
+  ?(descr="")
   ~ref_db
   ~(input:fasta workflow)
   ~family
@@ -249,7 +250,7 @@ let checkfamily
   : fasta workflow =
   let tmp_checkfamily = dest // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
-  workflow ~version:8 ~descr:("CheckFamily.py:" ^ family ^ " ") [
+  workflow ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
     cmd "CheckFamily.py"  [
@@ -272,7 +273,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
-    let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
+    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
     (s, f, precious checked_families_fasta)
     )
 
