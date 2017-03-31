@@ -257,7 +257,8 @@ let build_target_query ref_species family configuration trinity_annotated_fams =
       )
     )
     in
-    concat_without_error get_trinity_annotated_fam_list
+    let descr = ":" ^ family ^ ".seqdispatcher" in
+    concat_without_error ~descr get_trinity_annotated_fam_list
 
 
 let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams memory =
@@ -652,7 +653,7 @@ let build_app configuration =
     let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) in
     let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
     let target_query = build_target_query ref_species fam configuration trinity_annotated_fams in
-    let query = concat ~descr [guide_query; target_query] in
+    let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
     let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
     let time_max = 18000 * List.length compressed_reads_dbs in
     let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_memory ~fam ~query compressed_reads_dbs in
