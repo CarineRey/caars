@@ -584,7 +584,7 @@ let output_of_phyldog phyldog merged_families families =
 
 let build_app configuration =
 
-  let allocation_apytram = 80 in
+  (*let allocation_apytram = 80 in
   let allocation_trinity = 100 - allocation_apytram in
 
   let (apytram_memory, trinity_memory, trinity_threads) =
@@ -593,6 +593,8 @@ let build_app configuration =
     else
       (configuration.memory ,configuration.memory , configuration.threads )
     in
+  *)
+  let (apytram_memory, trinity_memory, trinity_threads) = (configuration.memory ,configuration.memory , configuration.threads ) in
 
   let (normalization_memory, normalization_threads) =
      let nb_samples = List.length configuration.all_ref_samples in
