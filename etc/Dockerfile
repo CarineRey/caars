@@ -12,7 +12,7 @@ RUN apt-get install --no-install-recommends -qy unzip \
                         python-mysqldb \
                         python-lxml \
                         python-pip \
-#To instlall Transdecoder
+#To install Transdecoder
                         libany-uri-escape-perl \
 #To install opam
                         bzip2 \

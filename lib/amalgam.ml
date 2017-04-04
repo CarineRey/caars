@@ -5,9 +5,6 @@ open Bistro_bioinfo.Std
 open Commons
 open Configuration
 
-type output = [ `amalgam_output ]
-
-type tabular
 
 let alignement_fasta fam : (output, fasta) selector =
   selector [ "Alignements" ; fam ^ ".fa" ]
@@ -15,13 +12,8 @@ let alignement_fasta fam : (output, fasta) selector =
 let gene_tree fam : (output, [`newick]) selector =
   selector [ "Gene_trees" ; fam ^ ".tree" ]
 
-type sp2seq_link
-
 let sp2seq_link fam : (output, sp2seq_link) selector =
   selector [ "Sp2Seq_link" ; fam ^ ".sp2seq.txt" ]
-
-
-type configuration_dir = [ `configuration ]
 
 let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~families ~memory : configuration_dir directory workflow =
   let families_out = dest // "families.txt" in
@@ -135,19 +127,54 @@ let concat ?(descr="") = function
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
+let build_biopythonindex ?(descr="") (fasta:fasta workflow)  : index workflow =
+  workflow ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
+    cmd "build_biopythonindex_fasta.py" [ ident dest; dep fasta ]
+  ]
+
+let reformat_cdhit_cluster ?(descr="") cluster : fasta workflow =
+  workflow ~version:1 ~descr:("reformat_cdhit_cluster2fasta.py" ^ descr) [
+    cmd "reformat_cdhit_cluster2fasta.py" [ dep cluster  ; ident dest]
+  ]
+
+let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta workflow) : cdhit directory workflow =
+  let out = dest // "cluster_rep.fa" in
+  workflow ~version:1 ~descr:("cdhitlap" ^ descr) [
+    mkdir_p dest;
+    cmd "cd-hit-lap" [
+        opt "-i" dep fasta;
+        opt "-o" ident out ;
+        option ( opt "-p" float ) p;
+        option ( opt "-m" float ) m;
+        option ( opt "-d" float ) d;
+        ]
+    ]
 
 let blast_dbs_of_norm_fasta norm_fasta =
   List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
       if s.run_apytram then
-        let parse_seqids = true in
-        let hash_index = true in
-        let dbtype = "nucl" in
+        let descr = (":" ^ s.id ^ "_" ^ s.species) in
         let fasta_to_norm_fasta_sample = function
           | Fasta_Single_end (w, _ ) -> w
           | Fasta_Paired_end (lw, rw , _) -> concat ~descr:(":" ^ s.id ^ ".fasta_lr") [ lw ; rw ]
         in
-        let fasta = fasta_to_norm_fasta_sample norm_fasta in
-        Some (s, precious( BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) fasta))
+        let concat_fasta = fasta_to_norm_fasta_sample norm_fasta in
+        (*Build biopython index*)
+        let index_concat_fasta = build_biopythonindex ~descr concat_fasta in
+        (*build overlapping read cluster*)
+        let cluster_repo = cdhitoverlap ~descr concat_fasta in
+        let rep_cluster_fasta = cluster_repo / selector  ["cluster_rep.fa"] in
+        let cluster = cluster_repo / selector  ["cluster_rep.fa.clstr"] in
+        (*reformat cluster*)
+        let reformated_cluster = reformat_cdhit_cluster ~descr cluster in
+        (*build index for cluster*)
+        let index_cluster = build_biopythonindex ~descr reformated_cluster in
+        (*Build blast db of cluster representatives*)
+        let parse_seqids = true in
+        let hash_index = true in
+        let dbtype = "nucl" in
+        let cluster_rep_blast_db = precious( BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) rep_cluster_fasta) in
+        Some (s , {s; concat_fasta; index_concat_fasta; rep_cluster_fasta; reformated_cluster; index_cluster ; cluster_rep_blast_db} )
       else
         None
     )
@@ -201,6 +228,39 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
       (s, precious r)
     )
 
+
+let concat_without_error ?(descr="") l : fasta workflow =
+   let script = [%bistro{|
+        touch tmp
+        cat tmp {{ seq ~sep:"" l }} > tmp1
+        mv tmp1 {{ ident dest }}
+        |}]
+    in
+    workflow ~descr:("concat_without_error" ^ descr) [
+       mkdir_p tmp;
+       cd tmp;
+       cmd "sh" [ file_dump script];
+    ]
+
+let build_target_query ref_species family configuration trinity_annotated_fams =
+    let seq_dispatcher_results_dirs =
+        List.filter_map configuration.apytram_samples ~f:(fun s ->
+            if (s.ref_species = ref_species) && (s.run_trinity) then
+                Some (s , List.Assoc.find_exn trinity_annotated_fams s)
+            else
+                None
+            )
+    in
+    let get_trinity_annotated_fam_list =
+    List.concat (List.map seq_dispatcher_results_dirs ~f:(fun (s,dir) ->
+        [dep dir ; string ("/Trinity." ^ s.id ^ "." ^ s.species ^ "." ^ family ^ ".fa ")]
+      )
+    )
+    in
+    let descr = ":" ^ family ^ ".seqdispatcher" in
+    concat_without_error ~descr get_trinity_annotated_fam_list
+
+
 let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams memory =
   List.map apytram_annotated_ref_fams ~f:(fun (s, f, apytram_result_fasta) ->
       if s.run_transdecoder then
@@ -213,6 +273,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
     )
 
 let checkfamily
+  ?(descr="")
   ~ref_db
   ~(input:fasta workflow)
   ~family
@@ -221,7 +282,7 @@ let checkfamily
   : fasta workflow =
   let tmp_checkfamily = dest // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
-  workflow ~version:8 ~descr:("CheckFamily.py:" ^ family ^ " ") [
+  workflow ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
     cmd "CheckFamily.py"  [
@@ -244,7 +305,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
-    let checked_families_fasta = checkfamily ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
+    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
     (s, f, precious checked_families_fasta)
     )
 
@@ -365,9 +426,6 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
                in
       (family, w, precious wf )
     )
-
-
-
 
 let phyldog_by_fam_of_merged_families merged_families configuration =
   List.map  merged_families ~f:(fun (fam, merged_without_filter_family, merged_and_filtered_family) ->
@@ -524,11 +582,9 @@ let output_of_phyldog phyldog merged_families families =
     cmd "bash" [ file_dump script ];
   ]
 
-
-
 let build_app configuration =
 
-  let allocation_apytram = 80 in
+  (*let allocation_apytram = 80 in
   let allocation_trinity = 100 - allocation_apytram in
 
   let (apytram_memory, trinity_memory, trinity_threads) =
@@ -537,6 +593,8 @@ let build_app configuration =
     else
       (configuration.memory ,configuration.memory , configuration.threads )
     in
+  *)
+  let (apytram_memory, trinity_memory, trinity_threads) = (configuration.memory ,configuration.memory , configuration.threads ) in
 
   let (normalization_memory, normalization_threads) =
      let nb_samples = List.length configuration.all_ref_samples in
@@ -587,16 +645,20 @@ let build_app configuration =
   in
 
 *)
+
+
   let apytram_annotated_ref_fams_by_fam =
 
     let pairs = List.cartesian_product configuration.all_apytram_ref_species configuration.families in
     List.concat
     (List.map pairs ~f:(fun (ref_species, fam) ->
     let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) in
-    let query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
-    let blast_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, w) -> if s.ref_species = ref_species then Some (s, w) else None) in
-    let time_max = 18000 * List.length blast_dbs in
-    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-5 ~out_by_species:true ~memory:divided_memory ~fam ~query blast_dbs in
+    let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
+    let target_query = build_target_query ref_species fam configuration trinity_annotated_fams in
+    let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
+    let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
+    let time_max = 18000 * List.length compressed_reads_dbs in
+    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_memory ~fam ~query compressed_reads_dbs in
     List.filter_map configuration.apytram_samples ~f:(fun s ->
       if s.ref_species = ref_species then
           let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
@@ -677,7 +739,7 @@ let build_app configuration =
           )
         ;
         List.map reads_blast_dbs ~f:(fun (s,blast_db) ->
-            [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db
+            [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db.cluster_rep_blast_db
           )
         ;
        (* List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->

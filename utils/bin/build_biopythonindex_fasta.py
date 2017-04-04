@@ -1,10 +1,12 @@
-(*
-# File: BlastPlus.ml
+#!/usr/bin/python
+# coding: utf-8
+
+# File: build_bioindex_fasta.py
 # Created by: Carine Rey
-# Created on: March 2016
+# Created on: March 2017
 #
 #
-# Copyright 2016 Carine Rey
+# Copyright or © or Copr. Carine Rey
 # This software is a computer program whose purpose is to assembly
 # sequences from RNA-Seq data (paired-end or single-end) using one or
 # more reference homologous sequences.
@@ -30,22 +32,48 @@
 # same conditions as regards security.
 # The fact that you are presently reading this means that you have had
 # knowledge of the CeCILL license and that you accept its terms.
-*)
+#
 
-open Core_kernel.Std
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
-open Commons
 
-let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta workflow) : blast_db workflow =
-    workflow ~descr:("makeblastdb:" ^ dbname ^ " ") ~np:1 [
-        mkdir_p dest;
-        cmd "makeblastdb" [
-                    option (flag string "-parse_seqids") parse_seqids ;
-                    option (flag string "-hash_index") hash_index ;
-                    opt "-in" dep fasta;
-                    opt "-dbtype" string dbtype ;
-                    string "-out" ; seq ~sep:"/" [ dest; string dbname; string "db" ] ] ;
-         ]
-   / selector [ dbname ]
+import os
+import logging
+import time
+import sys
+
+from Bio import SeqIO
+start_time = time.time()
+
+### Set up the logger
+# create logger with 'spam_application'
+logger = logging.getLogger('BuildBioIndex')
+logger.setLevel(logging.DEBUG)
+# create file handler which logs even debug messages
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG) #WARN
+# create formatter and add it to the handlers
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+# add the handlers to the logger
+logger.addHandler(ch)
+logger.debug(" ".join(sys.argv))
+
+if len(sys.argv) != 3:
+    logger.error("2 arguments are required (index, file fasta file")
+    sys.exit(1)
+
+index_file = sys.argv[1]
+fasta_file = sys.argv[2]
+
+logger.debug("Index file: %s", index_file)
+logger.debug("Fasta file: %s", fasta_file)
+
+if os.path.isfile(fasta_file):
+    IndexDB = SeqIO.index_db(index_file, fasta_file, "fasta")
+else:
+    logger.error("Fasta file is not a file", fasta_file)
+    sys.exit(1)
+
+
+
+

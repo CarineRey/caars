@@ -1,20 +1,6 @@
 open Core.Std
 open Commons
 
-type rna_sample = {
-  id : string ;
-  species : string ;
-  ref_species : string list;
-  sample_fastq : string sample_fastq ;
-  run_trinity : bool ;
-  run_transdecoder : bool ;
-  path_assembly : string ;
-  given_assembly : bool ;
-  run_apytram : bool ;
-}
-
-type config_rna_seq = rna_sample list
-
 type t = {
   config_rna_seq : config_rna_seq ;
   apytram_samples: rna_sample list ;

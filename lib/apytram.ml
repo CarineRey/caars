@@ -47,71 +47,7 @@ let string_of_db_type = function
   | Right FR -> "FR"
   | Right UP -> "paired"
 
-type output
-
-let apytram
-    ?fastq
-    ?fasta
-    ?query
-    ?i
-    ?no_best_file
-    ?only_best_file
-    ?write_even_empty
-    ?evalue
-    ?id
-    ?fid
-    ?mal
-    ?fmal
-    ?len
-    ?flen
-    ?required_coverage
-    ?stats
-    ?plot
-    ?plot_ali
-    ?(threads = 1)
-    ?(memory = 1)
-    ?time_max
-    db_type
-    db_blast : output directory workflow =
-
-    let memory = match memory with
-      | 0 -> 1
-      | _ -> memory
-      in
-
-    workflow  ~version:2 ~descr:"apytram.py" ~np:threads ~mem:(memory * 1024) [
-    cmd "apytram.py" [
-        option (opt "-fq" string ) fastq ; (* prendre en compte des listes *)
-        option (opt "-fa" string ) fasta ;
-        option (opt "-q" dep ) query ;
-        option (opt "-i" int ) i ;
-        option (opt "-e" float ) evalue ;
-        option (opt "-id" float ) id ;
-        option (opt "-fid" float ) fid ;
-        option (opt "-mal" float ) mal ;
-        option (opt "-fmal" float ) fmal ;
-        option (opt "-len" float ) len ;
-        option (opt "-flen" float ) flen ;
-        option (opt "-required_coverage" float ) required_coverage ;
-        option (flag string "--stats") stats ;
-        option (flag string "--plot") plot ;
-        option (flag string "--plot_ali") plot_ali ;
-        option (flag string "--no_best_file") no_best_file ;
-        option (flag string "--write_even_empty") write_even_empty ;
-        option (flag string "--only_best_file") only_best_file ;
-        (*option (opt "-memory" ident) memory ;*)
-        (*opt "-memory" int 2 ;*)
-        opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;
-        opt "-threads" ident np ;
-        opt "-d" (fun blast_db -> seq [dep blast_db ; string "/db"]) db_blast;
-        opt "-dt" string (string_of_db_type db_type);
-        opt "-out" seq [ident dest ; string "/apytram"];
-        opt "-log" seq [ident dest ; string "/apytram.log"];
-        opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;
-        (*flag string "--keep_tmp" true;
-        opt "-tmp" ident  ( dest // "apytram_tmp" ) ;*)
-        ]
-    ]
+type apytram_output
 
 let apytram_multi_species
     ?(descr="")
@@ -136,7 +72,7 @@ let apytram_multi_species
     ?time_max
     ~query
     ~fam
-    db_blasts : output directory workflow =
+    (compressed_reads_dbs : compressed_read_db list) : apytram_output directory workflow =
 
     let memory = match memory with
       | 0 -> 1
@@ -144,13 +80,33 @@ let apytram_multi_species
       in
 
     let formated_db_blasts =
-      List.map db_blasts ~f:(fun (s, w) ->
-    seq [dep w ; string "/db:"; string s.id]
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.cluster_rep_blast_db ; string "/db:"; string db.s.id]
       )
     in
     let db_types =
-      List.map db_blasts ~f:(fun (s, _) ->
+      List.map compressed_reads_dbs ~f:(fun {s}->
     seq ~sep:":" [string (string_of_db_type (sample_fastq_orientation s.sample_fastq)); string s.id]
+      )
+    in
+    let formated_fasta =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.concat_fasta ; string ":"; string db.s.id]
+      )
+    in
+    let formated_fastaidx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.index_concat_fasta ; string ":"; string db.s.id]
+      )
+    in
+    let formated_cluster =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.reformated_cluster ; string ":"; string db.s.id]
+      )
+    in
+    let formated_clusteridx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.index_cluster ; string ":"; string db.s.id]
       )
     in
 
@@ -177,6 +133,11 @@ let apytram_multi_species
         opt "-threads" ident np ;
         opt "-d" ident (seq ~sep:"," formated_db_blasts) ;
         opt "-dt" ident (seq ~sep:"," db_types) ;
+        opt "-fa" ident (seq ~sep:"," formated_fasta) ;
+        opt "-idx" ident (seq ~sep:"," formated_fastaidx) ;
+        flag string "--UseIndex" true;
+        opt "-clstr" ident (seq ~sep:"," formated_cluster) ;
+        opt "-clstridx" ident (seq ~sep:"," formated_clusteridx) ;
         opt "-out" seq [ident dest ; string "/apytram"] ;
         opt "-log" seq [ident dest ; string "/apytram.log"] ;
         opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;

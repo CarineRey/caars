@@ -32,6 +32,10 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
+open Bistro.Std
+open Bistro.EDSL
+open Bistro_bioinfo.Std
+
 type ('a,'b) either =
   | Left of 'a
   | Right of 'b
@@ -77,6 +81,40 @@ let sample_fastq_is_paired = function
 let sample_fasta_orientation = function
   | Fasta_Single_end ( x , o ) ->  Left o
   | Fasta_Paired_end ( lx, rx, o ) -> Right o
+
+
+type rna_sample = {
+  id : string ;
+  species : string ;
+  ref_species : string list;
+  sample_fastq : string sample_fastq ;
+  run_trinity : bool ;
+  run_transdecoder : bool ;
+  path_assembly : string ;
+  given_assembly : bool ;
+  run_apytram : bool ;
+}
+
+type config_rna_seq = rna_sample list
+type output = [ `amalgam_output ]
+type configuration_dir = [ `configuration ]
+
+type sp2seq_link
+type tabular
+type index
+type cdhit
+type blast_db = [`blast_db] directory
+
+
+type compressed_read_db = {
+  s : rna_sample;
+  concat_fasta : fasta workflow;
+  index_concat_fasta : index workflow;
+  rep_cluster_fasta : fasta workflow;
+  reformated_cluster : fasta workflow;
+  index_cluster : index workflow;
+  cluster_rep_blast_db : blast_db workflow;
+}
 
 
 
