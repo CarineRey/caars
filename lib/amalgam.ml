@@ -17,7 +17,7 @@ let sp2seq_link fam : (output, sp2seq_link) selector =
 
 let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~families ~memory : configuration_dir directory workflow =
   let families_out = dest // "families.txt" in
-  let script = Bistro.Expr.(
+  let script = Bistro.Template.(
       List.map families ~f:(fun f -> string f)
       |> seq ~sep:"\n"
       )
@@ -310,7 +310,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     )
 
 let parse_apytram_results apytram_annotated_ref_fams =
-  let config = Bistro.Expr.(
+  let config = Bistro.Template.(
       List.map apytram_annotated_ref_fams ~f:(fun (s, f, w) ->
           seq ~sep:"\t" [ string s.species ; string s.id ; string f ; dep w ]
         )
@@ -480,7 +480,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     else
       mkdir_p tmp
     ;
-    let script = Bistro.Expr.(
+    let script = Bistro.Template.(
       List.map merged_reconciled_and_realigned_families ~f:(fun (f, realigned_w, reconciled_w, merged_w) ->
           List.concat[
               List.map extension_list_merged ~f:(fun (ext,dir) ->
@@ -558,7 +558,7 @@ let output_of_phyldog phyldog merged_families families =
     mkdir_p (dest // "Sp2Seq_link");
     mkdir_p (dest // "Gene_trees");
     let extension_list = [(".fa","Alignments");(".sp2seq.txt","Sp2Seq_link")] in
-    let script = Bistro.Expr.(
+    let script = Bistro.Template.(
         seq ~sep:"\n" [
           List.map extension_list ~f:(fun (ext,dir) ->
               List.map  merged_families ~f:(fun (f, w) ->
@@ -692,7 +692,7 @@ let build_app configuration =
 *)
 
 
-  let open Bistro_app in
+  let open Bistro_repo in
 
   let target_to_sample_fasta s d = function
     | Fasta_Single_end (w, _ ) -> [[ d ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
@@ -776,7 +776,8 @@ let build_app configuration =
       ;
     ]
   in
-  let repo_app = Bistro_app.of_repo repo ~outdir:configuration.outdir in
+  let repo_app = Bistro_repo.to_app repo ~outdir:configuration.outdir in
+  let open Bistro_app in
   let stats_app =
     List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
     |> assoc
