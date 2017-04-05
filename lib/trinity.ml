@@ -175,7 +175,36 @@ let fasta_read_normalization
 
     |}]
   in
-  workflow ~descr:("fasta_read_normalization" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
+  workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
+    mkdir_p dest;
+    mkdir_p tmp ;
+    cd tmp;
+    cmd "sh" [ file_dump script ];
+    ]
+
+let fasta_read_normalization_2
+    ?(descr = "")
+    max_cov
+    ~threads
+    ?(memory = 1)
+    (fasta : fasta workflow sample_fasta)
+    : fasta directory workflow =
+  let descr = if descr = "" then
+                  descr
+                else
+                  ":" ^ descr ^ " "
+  in
+  let script = [%bistro{|
+    TRINITY_PATH=`which Trinity`
+    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
+    PERL5LIB=$TRINTIY_DIR_PATH/PerlLib:$PERL5LIB
+    trinity.insilico_read_normalization.pl  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }} --trinity_dir $TRINTIY_DIR_PATH
+
+    {{ config_output_fasta_paired_or_single fasta }}
+
+    |}]
+  in
+  workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp ;
     cd tmp;
