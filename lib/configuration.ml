@@ -106,9 +106,11 @@ let families_of_alignments_dir alignments_dir =
 
 
 let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~debug ~just_parse_input ~outdir =
-  let threads = match np with
-    | x when x > 1 -> np
-    | _ -> failwith "The number of CPUs must be at least 2"
+  let threads = match (np, run_reconciliation) with
+    | (x, true) when x > 1 -> np
+    | (x, false) when x > 0 -> np
+    | (x, true) -> failwith "The number of CPUs must be at least 2 if you want to use reconciliation"
+    | (x, false) -> failwith "The number of CPUs must be at least 1"
   in
   let memory = match np with
     | x when x > 0 -> memory
