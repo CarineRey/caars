@@ -595,9 +595,8 @@ let build_app configuration =
       (configuration.memory ,configuration.memory , configuration.threads )
     in
   *)
-  let (apytram_memory, trinity_memory, trinity_threads) = (configuration.memory ,configuration.memory , configuration.threads ) in
 
-  let (normalization_memory, normalization_threads) =
+  let (divided_sample_memory, divided_sample_threads) =
      let nb_samples = List.length configuration.all_ref_samples in
      (Pervasives.( max 1 (configuration.memory / nb_samples) ), Pervasives.(max 1 (configuration.threads / nb_samples) ))
     in
@@ -606,22 +605,22 @@ let build_app configuration =
   let () = printf "%i %i %i\n" apytram_memory trinity_memory trinity_threads in
  *)
 
-  let divided_memory = Pervasives.(max 1 (apytram_memory / configuration.threads)) in
+  let divided_thread_memory = Pervasives.(max 1 (configuration.memory / configuration.threads)) in
 
   let configuration_dir = precious (parse_input ~sample_sheet:(input configuration.sample_sheet)
                                                 ~species_tree_file:(input configuration.species_tree_file)
                                                 ~alignments_dir:(input configuration.alignments_dir)
                                                 ~seq2sp_dir:(input configuration.seq2sp_dir)
                                                 ~families:configuration.families
-                                                ~memory:divided_memory) in
+                                                ~memory:divided_sample_memory) in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
   let fasta_reads = fastq_to_fasta_conversion configuration configuration_dir in
 
-  let norm_fasta = normalize_fasta fasta_reads normalization_memory normalization_threads in
+  let norm_fasta = normalize_fasta fasta_reads divided_sample_memory divided_sample_threads in
 
-  let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration trinity_memory trinity_threads in
+  let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration divided_sample_memory divided_sample_threads in
 
   let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies configuration in
 
@@ -629,7 +628,7 @@ let build_app configuration =
 
   let trinity_orfs_stats = assemblies_stats_of_fasta trinity_orfs in
 
-  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs normalization_threads trinity_orfs in
+  let trinity_annotated_fams = trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs divided_sample_threads trinity_orfs in
 
   let reads_blast_dbs = blast_dbs_of_norm_fasta norm_fasta in
 
@@ -659,7 +658,7 @@ let build_app configuration =
     let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
     let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
     let time_max = 18000 * List.length compressed_reads_dbs in
-    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_memory ~fam ~query compressed_reads_dbs in
+    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam ~query compressed_reads_dbs in
     List.filter_map configuration.apytram_samples ~f:(fun s ->
       if s.ref_species = ref_species then
           let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
@@ -671,7 +670,7 @@ let build_app configuration =
     )
   in
 
-  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_memory in
+  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_thread_memory in
 
   let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
