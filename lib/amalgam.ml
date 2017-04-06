@@ -413,27 +413,28 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
 
-      let w = seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment in
+      let w = precious (seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment) in
+
+      let tree = w / selector [family ^ ".tree"] in
+      let alignment = w / selector [family ^ ".fa"] in
+      let sp2seq = w / selector [family ^ ".sp2seq.txt"] in
 
       let wf = if configuration.ali_sister_threshold > 0. then
                  let filter_threshold = configuration.ali_sister_threshold in
-                 let tree = w / selector [family ^ ".tree"] in
-                 let alignment = w / selector [family ^ ".fa"] in
-                 let sp2seq = w / selector [family ^ ".sp2seq.txt"] in
-                 seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family ~tree ~alignment ~sp2seq
+                 Some (precious (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family ~tree ~alignment ~sp2seq))
                else
-                 w
+                 None
                in
-      (family, w, precious wf )
+      (family, w, wf )
     )
 
 let phyldog_by_fam_of_merged_families merged_families configuration =
   List.map  merged_families ~f:(fun (fam, merged_without_filter_family, merged_and_filtered_family) ->
-    let merged_family = if configuration.ali_sister_threshold > 0. then
-                            merged_and_filtered_family
-                        else
-                            merged_without_filter_family
-                        in
+    let merged_family = match merged_and_filtered_family with
+        | Some w -> w
+        | None -> merged_without_filter_family
+    in
+
     let ali = merged_family / selector [ fam ^ ".fa" ] in
     let tree = merged_family / selector [ fam ^ ".tree" ] in
     let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
@@ -761,15 +762,13 @@ let build_app configuration =
         ;
         [["tmp" ; "apytram_assembly" ;"apytram_results" ] %> apytram_results_dir]
         ;
-        List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
-            [ "tmp" ; "merged_families" ; fam  ] %> merged_family;
-
+        List.concat (List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
+            match (merged_family, merged_and_filtered_family) with
+                | (w1, Some w2) ->  [ [ "tmp" ; "merged_families" ; fam  ] %> w1; [ "tmp" ; "merged_filtered_families" ; fam  ] %> w2 ]
+                | (w1, None) -> [[ "tmp" ; "merged_families" ; fam  ] %> w1]
+            )
           )
-        ;
-        List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
-            [ "tmp" ; "merged_filtered_families" ; fam  ] %> merged_and_filtered_family;
-
-          )
+          ;
       ]
       else
       []
