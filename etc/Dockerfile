@@ -27,7 +27,8 @@ RUN apt-get install --no-install-recommends -qy unzip \
                         cmake \
                         g++-4.9 \
                         libboost-all-dev \
-                        ssh \ #mpi needs something to communicate (rsh, ssh other)
+                        ssh \ 
+#mpi needs something to communicate (rsh, ssh other)
 # to install fasttree
                         fasttree
 
