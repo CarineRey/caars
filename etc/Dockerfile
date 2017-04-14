@@ -38,10 +38,10 @@ RUN pip install ete2
 
 #### install sratoolkit
 WORKDIR /opt/
-RUN wget "http://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.5.2/sratoolkit.2.5.2-ubuntu64.tar.gz"
-RUN tar zxf sratoolkit.2.5.2-ubuntu64.tar.gz
-RUN rm sratoolkit.2.5.2-ubuntu64.tar.gz
-ENV  PATH /opt/sratoolkit.2.5.2-ubuntu64/bin/:$PATH
+RUN wget "http://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.8.2/sratoolkit.2.8.2-ubuntu64.tar.gz"
+RUN tar zxf sratoolkit.2.8.2-ubuntu64.tar.gz
+RUN rm sratoolkit.2.8.2-ubuntu64.tar.gz
+ENV  PATH /opt/sratoolkit.2.8.2-ubuntu64/bin/:$PATH
 
 #### install TransDecoder
 WORKDIR /opt
