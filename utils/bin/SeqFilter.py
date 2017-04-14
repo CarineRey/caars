@@ -220,21 +220,25 @@ def cp(In, Out):
 
 
 def count_aligned_pos(seq, ref):
-    res = 0
+    (ali_p,id_p) = (0,0)
     if len(seq) == len(ref):
         l=0
-        c=0
+        ali_nb=0
+        id_nb=0
         for i in range(len(ref)):
             if ref[i] != "-":
                 l +=1
                 if seq[i] != "-":
-                    c+=1
+                    ali_nb+=1
+                    if seq[i] == ref[i]:
+                        id_nb+=1
         if l == 0:
             pass
         else:
-            res = c/float(l) *100
+            ali_p = ali_nb/float(l) *100
+            id_p = id_nb/float(l) *100
 
-    return res
+    return (ali_p,id_p)
 
 
 def get_closest_seq(tree, seq_test, list_otherseq):
@@ -364,27 +368,27 @@ if args.filter_threshold > 0:
         closest_sequence = prefilter_fasta.get(closest_name)
 
         #Count number of aligned position
-        ali_len = count_aligned_pos(seqR_sequence, closest_sequence)
+        (ali_p, id_p) = count_aligned_pos(seqR_sequence, closest_sequence)
 
-        if ali_len > args.filter_threshold:
+        if ali_p > args.filter_threshold and id_p >= 50 :
             sequenceTokeep.append(seqR_name)
-            AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_len), str(args.filter_threshold), "K"]))
-            logger.debug("%s will be kept because its alignemnt lenght (%s) (with %s)  is > to %s", seqR_name, ali_len, closest_name, args.filter_threshold)
+            AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_p), str(id_p), str(args.filter_threshold), "K"]))
+            logger.debug("%s will be kept because its alignemnt lenght (%s) (with %s)  is > to %s and its identity %s >= 50 ", seqR_name, ali_p, closest_name, args.filter_threshold, id_p)
         else:
-            logger.info("%s will be discarded because its alignemnt lenght (%s) (with %s)  is < to %s", seqR_name,  ali_len, closest_name, args.filter_threshold)
+            logger.info("%s will be discarded because its alignemnt lenght (%s) (with %s)  is < to %s or its identity %s < 50 ", seqR_name,  ali_p, closest_name, args.filter_threshold, id_p)
             list_otherseq.remove(closest_name)
             (closest_name, d) = get_closest_seq(tree, seqR_name, list_otherseq)
             closest_sequence = prefilter_fasta.get(closest_name)
             logger.info("Test again with the second closest sequence (%s)", closest_name)
-            ali_len = count_aligned_pos(seqR_sequence, closest_sequence)
-            if ali_len  < args.filter_threshold:
+            (ali_p, id_p) = count_aligned_pos(seqR_sequence, closest_sequence)
+            if ali_p > args.filter_threshold and id_p >= 50 :
                 sequenceTodiscard.append(seqR_name)
-                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_len), str(args.filter_threshold), "D"]))
-                logger.info("(Sd test) %s will be discarded because its alignemnt lenght (%s) (with %s)  is < to %s", seqR_name,  ali_len, closest_name, args.filter_threshold)
+                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_p), str(id_p), str(args.filter_threshold), "D"]))
+                logger.info("(Sd test) %s will be discarded because its alignemnt percentage (%s) (with %s)  is < to %s or its identity %s < 50", seqR_name,  ali_p,  closest_name, args.filter_threshold, id_p)
             else:
                 sequenceTokeep.append(seqR_name)
-                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_len), str(args.filter_threshold), "K2"]))
-                logger.debug("(Sd test) %s will be kept because its alignemnt lenght (%s) (with %s)  is > to %s", seqR_name, ali_len, closest_name, args.filter_threshold)
+                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_p), str(id_p), str(args.filter_threshold), "K2"]))
+                logger.debug("(Sd test) %s will be kept because its alignemnt percentage (%s) (with %s)  is > to %s and its identity %s >= 50 ", seqR_name, ali_p, closest_name, args.filter_threshold, id_p)
 
     #Filter fasta and sp2seq
     with open(FinalSummary,"w") as SummaryFile:
