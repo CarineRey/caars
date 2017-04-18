@@ -382,13 +382,14 @@ if args.filter_threshold > 0:
             logger.info("Test again with the second closest sequence (%s)", closest_name)
             (ali_p, id_p) = count_aligned_pos(seqR_sequence, closest_sequence)
             if ali_p > args.filter_threshold and id_p >= 50 :
-                sequenceTodiscard.append(seqR_name)
-                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_p), str(id_p), str(args.filter_threshold), "D"]))
-                logger.info("(Sd test) %s will be discarded because its alignemnt percentage (%s) (with %s)  is < to %s or its identity %s < 50", seqR_name,  ali_p,  closest_name, args.filter_threshold, id_p)
-            else:
                 sequenceTokeep.append(seqR_name)
                 AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_p), str(id_p), str(args.filter_threshold), "K2"]))
                 logger.debug("(Sd test) %s will be kept because its alignemnt percentage (%s) (with %s)  is > to %s and its identity %s >= 50 ", seqR_name, ali_p, closest_name, args.filter_threshold, id_p)
+            else:
+                sequenceTodiscard.append(seqR_name)
+                AliLenSummary.append("\t".join([seqR_name, closest_name, str(ali_p), str(id_p), str(args.filter_threshold), "D"]))
+                logger.info("(Sd test) %s will be discarded because its alignemnt percentage (%s) (with %s)  is < to %s or its identity %s < 50", seqR_name,  ali_p,  closest_name, args.filter_threshold, id_p)
+
 
     #Filter fasta and sp2seq
     with open(FinalSummary,"w") as SummaryFile:
