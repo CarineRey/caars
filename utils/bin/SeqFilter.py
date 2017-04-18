@@ -236,7 +236,8 @@ def count_aligned_pos(seq, ref):
             pass
         else:
             ali_p = ali_nb/float(l) *100
-            id_p = id_nb/float(l) *100
+            if ali_nb > 0:
+                id_p = id_nb/float(ali_nb) *100
 
     return (ali_p,id_p)
 
