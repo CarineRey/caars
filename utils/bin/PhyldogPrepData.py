@@ -463,11 +463,11 @@ if __name__ == '__main__':
     #fopt.write("species.id.limit.for.root.position=3\n")
     if DLPARAM:
         if DLOPT == "BRANCHWISE":
-            fopt.write("branchProbabilities.optimization=average_then_branchwise\n")
+            fopt.write("branch.expected.numbers.optimization=average_then_branchwise\n")
         else:
-            fopt.write("branchProbabilities.optimization=average\n")
+            fopt.write("branch.expected.numbers.optimization=average\n")
     else:
-        fopt.write("branchProbabilities.optimization=no\n")
+        fopt.write("branch.expected.numbers.optimization=no\n")
     if EQUGENOMES:
         fopt.write("genome.coverage.file=$(PATH)HomolensSpeciesSequenceCoverage\n")
     fopt.write("spr.limit=5\n")
