@@ -467,7 +467,7 @@ if __name__ == '__main__':
         else:
             fopt.write("branchProbabilities.optimization=average\n")
     else:
-        fopt.write("branchProbabilities.optimization=no")
+        fopt.write("branchProbabilities.optimization=no\n")
     if EQUGENOMES:
         fopt.write("genome.coverage.file=$(PATH)HomolensSpeciesSequenceCoverage\n")
     fopt.write("spr.limit=5\n")
