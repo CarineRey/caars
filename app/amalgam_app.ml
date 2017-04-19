@@ -45,10 +45,10 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
       (Bistro_html_logger.create "report.html")
   in
   let run_reconciliation = Option.value ~default:true reconcile in 
-  let refinetree = Option.value ~default:false refinetree in 
+  (*let refinetree = Option.value ~default:false refinetree in 
   let refineali = Option.value ~default:false refineali in 
-  let debug = Option.value ~default:false debug in 
-  let just_parse_input = Option.value ~default:false just_parse_input in 
+  let debug = Option.value ~default:false debug in
+  let just_parse_input = Option.value ~default:false just_parse_input in *)
   let ali_sister_threshold = Option.value ~default:0.0 ali_sister_threshold in
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
@@ -69,11 +69,11 @@ let spec =
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
   +> flag "--reconcile"       (optional bool)   ~doc:"(BOOL if false: Not run final Reconciliation step (Default:true)"
-  +> flag "--refinetree"      (optional bool)   ~doc:"(BOOL if true: Refine topology during final Reconciliation step (Default:false)"
-  +> flag "--refineali"       (optional bool)   ~doc:"(BOOL if true: Refine MSA after the final Reconciliation step (Default:false)"
+  +> flag "--refinetree"      no_arg   ~doc:"(BOOL if true: Refine topology during final Reconciliation step (Default:false)"
+  +> flag "--refineali"       no_arg   ~doc:"(BOOL if true: Refine MSA after the final Reconciliation step (Default:false)"
   +> flag "--mpast"           (optional float)  ~doc:"(FLOAT Minimal percentage of alignment of an Amalgam sequences on its (non amalgam) closest sequence to be kept in the final output"
-  +> flag "--debug"           (optional bool)   ~doc:"(BOOL if true: Get intermediary files (Default:false)"
-  +> flag "--just-parse-input"(optional bool)   ~doc:"(BOOL if true: parse input and exit. Recommended to check all input files. (Default:false)"
+  +> flag "--debug"           no_arg            ~doc:"(BOOL if true: Get intermediary files (Default:false)"
+  +> flag "--just-parse-input"no_arg            ~doc:"(BOOL if true: parse input and exit. Recommended to check all input files. (Default:false)"
 
 let command =
   Command.basic

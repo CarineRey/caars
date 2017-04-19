@@ -13,7 +13,7 @@ START=$(date +%s)
 mkdir -p $WORKING_DIR
 cd $WORKING_DIR
 
-amalgam_app.byte  --outdir $OUTPUT_DIR --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 2 --memory 5 --mpast 50 --debug true --refineali true 
+amalgam_app.byte  --outdir $OUTPUT_DIR --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 2 --memory 5 --mpast 50 --debug --refineali
 
 END=$(date +%s)
 DIFF=$(( $END - $START ))
