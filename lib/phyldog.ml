@@ -48,6 +48,7 @@ let phyldog_by_fam
     ?sptreefile
     ?topospecies
     ?dlopt
+    ?max_gap
     ?equgenomes
     ?topogene
     ?timelimit
@@ -74,6 +75,7 @@ let phyldog_by_fam
               option (opt "-species_tree_file" string) sptreefile ;
               option (flag string "-topospecies") topospecies ;
               option (opt "-dlopt" string) dlopt ;
+              option (opt "-max_gap" float) max_gap ;
               option (opt "-timelimit" int) timelimit ;
               option (flag string "-equgenomes") equgenomes ;
               option (flag string "-topogene") topogene ;
