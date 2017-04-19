@@ -51,10 +51,12 @@ let profileNJ
 
     let tmp_treein = tmp // "tree_in_pNJ.tree" in
     let tmp_treeout = tmp // "tree_in_pNJ.tree" in
+    
     let script_pre = [%bistro {|
     cp {{ dep tree }} {{ ident tmp_treein }}
     for l in $(cat {{ dep link }}); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq/$seq@$sp/" {{ ident tmp_treein }}; done
     |} ] in
+    
     let script_post = [%bistro {|
     name=`basename {{ dep tree }} `
     for l in $(cat {{ dep link }}); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq@$sp/$seq/" {{ ident tmp_treeout }} ; done

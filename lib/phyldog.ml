@@ -90,9 +90,13 @@ let phyldog_by_fam
     nb_species=`wc -l < {{ident (config_dir // "listSpecies.txt")}} `
     filename=`basename {{ dep tree }}`
     family=${filename%.*}
+    touch {{ ident results_species}}"$family".orthologs.txt
+    touch {{ ident results_species}}"$family".events.txt
     if [ $nb_species -gt 2 ]
     then
      mpirun -np {{ ident np  }} -mca btl sm,self phyldog param={{ident (config_dir // "GeneralOptions.txt")}}
+     cut -f 2 {{ ident results_species}}orthologs.txt > {{ ident results_species}}"$family".orthologs.txt
+     cut -f 1,3- -d "," {{ ident results_species}}events.txt > {{ ident results_species}}"$family".events.txt
     else
      nw2nhx.py {{ dep tree }} >  {{ ident results_genes }}"$family".ReconciledTree
     fi

@@ -96,6 +96,9 @@ requiredOptions.add_argument("-equgenomes", action='store_true', default=False,
 requiredOptions.add_argument("-topogene", action='store_true', default=False,
                              help="Do you want to optimize the gene tree topologies?")
 
+requiredOptions.add_argument("-max_gap",type=float, default=100,
+                             help="Maximum number of gaps tolerated for including a site in the analysis. (In percenatge)")
+
 requiredOptions.add_argument('-timelimit', type=int, default=2,
                              help="What time limit do you want to set, in hours (minimum 2h)?")
 
@@ -117,6 +120,14 @@ GENES_RESDIR = args.gene_trees_resdir
 STARTINGTREE = args.starting_tree
 TREEFILE = args.species_tree_file.replace("//","/")
 STARTINGTREECALC = args.species_starting_tree_calc
+
+MAX_GAP = args.max_gap
+
+if MAX_GAP > 100:
+    MAX_GAP = 100
+elif  MAX_GAP < 0:
+    MAX_GAP = 0
+
 if TREEFILE:
     TREEFILEGIVEN = True
 else:
@@ -315,7 +326,7 @@ if __name__ == '__main__':
             fopt.write("output.losses.tree.file=$(RESULT)$(DATA).LossTree\n")
             fopt.write("output.numbered.tree.file=$(RESULT)$(DATA).NumberedTree\n")
             fopt.write("input.sequence.sites_to_use=all\n")
-            fopt.write("input.sequence.max_gap_allowed=100%\n")
+            fopt.write("input.sequence.max_gap_allowed="+str(MAX_GAP)+"%\n")
             fopt.write("output.starting.gene.tree.file=$(RESULT)$(DATA).StartingTree\n")
             fopt.write("\n######## Second, model options ########\n")
             if DATATYPE == "DNA":

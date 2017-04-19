@@ -457,30 +457,38 @@ let realign_merged_families merged_and_reconciled_families configuration =
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
   let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
   let extension_list_filtered = [(".discarded.fa","Filter_summary");(".filter_summary.txt","Filter_summary")] in
-  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","Reconciled_Gene_tree")] in
+
+  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","Reconciled_Gene_tree");
+                                   (".events.txt", "Species_tree/", "DL_events");
+                                   (".orthologs.txt", "Species_tree/", "Orthologs")] in
   let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in
-  workflow ~descr:"build_output_directory" ~version:1 [
-    mkdir_p tmp;
+  workflow ~descr:"build_output_directory" ~version:1 (List.concat [
+    [mkdir_p tmp;
 
     mkdir_p (dest // "Merged_fasta");
     mkdir_p (dest // "Merged_tree");
     mkdir_p (dest // "Sp2Seq_link");
-
+    ]
+    ;
     if configuration.ali_sister_threshold > 0. then
-        mkdir_p (dest // "Filter_summary")
+        [mkdir_p (dest // "Filter_summary")]
     else
-        mkdir_p tmp
+        []
     ;
     if configuration.run_reconciliation then
-       mkdir_p (dest // "Reconciled_Gene_tree")
+       [mkdir_p (dest // "Reconciled_Gene_tree");
+       mkdir_p (dest // "DL_events");
+       mkdir_p (dest // "Orthologs");
+       ]
     else
-        mkdir_p tmp
+        []
     ;
     if configuration.refineali && configuration.run_reconciliation then
-      mkdir_p (dest // "Realigned_fasta")
+      [mkdir_p (dest // "Realigned_fasta")]
     else
-      mkdir_p tmp
+      []
     ;
+    [
     let script = Bistro.Template.(
       List.map merged_reconciled_and_realigned_families ~f:(fun (f, realigned_w, reconciled_w, merged_w) ->
           List.concat[
@@ -527,7 +535,8 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
       )
     in
     cmd "bash" [ file_dump script ]
-  ]
+    ];
+  ])
 
 let get_reconstructed_sequences merged_and_reconciled_families_dirs configuration =
   let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
