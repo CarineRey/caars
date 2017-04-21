@@ -5,6 +5,7 @@ RUN apt-get clean && apt-get update
 
 #### install ete2
 RUN apt-get install --no-install-recommends -qy unzip \
+                        ruby
 #to install ete2
                         python-setuptools \
                         python-qt4 \
