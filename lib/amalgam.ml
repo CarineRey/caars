@@ -451,7 +451,7 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let ali = merged_w / selector [ fam ^ ".fa" ] in
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
     let threads = 1 in
-    (fam, Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
+    (fam, precious (Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali), reconciled_w, merged_w)
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
