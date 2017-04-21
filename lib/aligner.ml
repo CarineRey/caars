@@ -20,7 +20,7 @@ let mafft
          n=`echo $i | cut -f 2 -d ":"`
          sed "s/$s/$n/" tmp.tree -i
        done
-       nw2nhx.py tmp.tree > tmp.tree
+       nw2nhx.py tmp.tree tmp.tree
        newick2mafft.rb tmp.tree > tmp.mafft
        mafft --treein tmp.mafft {{ dep fa }} > {{ ident dest }}
        |} ]
