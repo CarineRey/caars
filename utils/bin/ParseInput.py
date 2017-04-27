@@ -139,9 +139,9 @@ with open(config_file, "r") as f:
                     RefSpTrinity.extend(ref_species.split(","))
                 if sp not in RnaSp:
                     RnaSp.append(sp)
-                if orientation not in ["FR", "RF", "F", "R", "US", "UP"]:
+                if orientation not in ["FR", "RF", "F", "R", "US", "UP","-"]:
                     error_nb += 1
-                    logger.error("orientation must be  in [FR,RF,F,R,US,UP] and not: %s", orientation)
+                    logger.error("orientation must be  in [FR,RF,F,R,US,UP,-] and not: %s", orientation)
             else:
                 error_nb += 1
                 logger.error("%s is not in the species tree.\nSpecies in the species tree:\n\t%s", sp, "\n\t".join(All_Species))
