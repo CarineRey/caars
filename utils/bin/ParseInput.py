@@ -332,8 +332,8 @@ for f in glob.glob("%s/*" %ali_dir):
             CountDict2[sp]["Nb_family"] += 1
             CountDict2[sp]["Families"].append(Family)
         if sp in RefSpTrinity + RefSpApytram:
-            if sp in RefSpTrinity:
-                Ref_dic_trinity.setdefault(sp, []).append(seq)
+            #if sp in RefSpTrinity:
+            Ref_dic_trinity.setdefault(sp, []).append(seq)
             if sp in RefSpApytram:
                 Ref_dic_apytram.setdefault(sp, []).append(seq)
         elif not sp in All_Species:
