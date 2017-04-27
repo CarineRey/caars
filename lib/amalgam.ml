@@ -610,7 +610,7 @@ let build_app configuration =
 
   let (divided_sample_memory, divided_sample_threads) =
      let nb_samples = List.length configuration.all_ref_samples in
-     (Pervasives.( max 1 (configuration.memory / nb_samples) ), Pervasives.(max 1 (configuration.threads / nb_samples) ))
+     (Pervasives.( max 1 (configuration.memory / (max 1 nb_samples)) ), Pervasives.(max 1 (configuration.threads / (max 1 nb_samples)) ))
     in
 
  (* let () = printf "%i %i %i\n" configuration.memory configuration.threads (List.length configuration.all_ref_samples) in
