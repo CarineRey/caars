@@ -114,8 +114,11 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
 
 
 let assemblies_stats_of_fasta =
-  List.map  ~f:(fun (s,assembly) ->
-  (s, Trinity.assembly_stats ~descr:(s.id ^ "_" ^ s.species) assembly)
+  List.filter_map  ~f:(fun (s,assembly) ->
+  if s.given_assembly then
+    None
+  else
+    Some (s, Trinity.assembly_stats ~descr:(s.id ^ "_" ^ s.species) assembly)
   )
 
 
@@ -717,6 +720,10 @@ let build_app configuration =
         [ "draft_assemblies" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
        )
         ;
+      List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
+            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+          )
+      ;
       [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
       ;
       [["reconstructed_sequences"] %> reconstructed_sequences]
@@ -726,10 +733,6 @@ let build_app configuration =
         List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "tmp/rna_seq/raw_fasta" sample_fasta))
         ;
         List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "tmp/rna_seq/norm_fasta" norm_fasta))
-        ;
-        List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
-          )
         ;
         List.map trinity_assemblies_stats ~f:(fun (s,trinity_assembly_stats) ->
             [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
