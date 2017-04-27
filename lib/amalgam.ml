@@ -784,10 +784,14 @@ let build_app configuration =
     ]
   in
   let repo_app = Bistro_repo.to_app repo ~outdir:configuration.outdir in
-  let open Bistro_app in
-  let stats_app =
-    List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
-    |> assoc
-  in
-  let f_app = pure (fun () trinity_assemblies_stats -> Report.generate ~trinity_assemblies_stats (Filename.concat configuration.outdir "report.html")) in
-  f_app $ repo_app $ stats_app
+
+  if configuration.just_parse_input then
+    repo_app
+  else
+    let open Bistro_app in
+    let stats_app =
+        List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
+        |> assoc
+    in
+    let f_app = pure (fun () trinity_assemblies_stats -> Report.generate ~trinity_assemblies_stats (Filename.concat configuration.outdir "report_end.html")) in
+    f_app $ repo_app $ stats_app
