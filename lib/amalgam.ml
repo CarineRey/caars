@@ -325,10 +325,13 @@ let parse_apytram_results apytram_annotated_ref_fams =
   ]
 
 
+let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
+
 let seq_integrator
     ?realign_ali
     ?resolve_polytomy
-    ?(species_to_refine_list = [])
+    ?species_to_refine_list
+    ?no_merge
     ~family
     ~trinity_fam_results_dirs
     ~apytram_results_dir
@@ -366,10 +369,11 @@ let seq_integrator
       opt "-ali" string alignment ;
       opt "-fa" (seq ~sep:"") fasta;
       option (flag string "--realign_ali") realign_ali;
+      option (flag string "--no_merge") no_merge;
       option (flag string "--resolve_polytomy") resolve_polytomy;
       opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
       opt "-out" seq [ dest ; string "/" ; string family] ;
-      opt "-sptorefine" (seq ~sep:",") (List.map species_to_refine_list ~f:(fun sp -> string sp) );
+      option (opt "-sptorefine" transform_species_list) species_to_refine_list;
     ]
   ]
 
@@ -377,7 +381,7 @@ let seq_integrator
 let seq_filter
     ?realign_ali
     ?resolve_polytomy
-    ?(species_to_refine_list = [])
+    ?species_to_refine_list
     ~filter_threshold
     ~family
     ~alignment
@@ -399,7 +403,7 @@ let seq_filter
       option (flag string "--resolve_polytomy") resolve_polytomy;
       opt "-sp2seq" dep sp2seq  ;
       opt "-out" seq [ dest ; string "/" ; string family] ;
-      opt "-sptorefine" (seq ~sep:",") (List.map species_to_refine_list ~f:(fun sp -> string sp) );
+      option (opt "-sptorefine" transform_species_list) species_to_refine_list;
     ]
   ]
 
@@ -415,19 +419,21 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
-
-      let w = precious (seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment) in
-
+      let w = if (List.length species_to_refine_list) = 0 then
+                        precious (seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment)
+                    else
+                        precious (seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment)
+                    in
       let tree = w / selector [family ^ ".tree"] in
       let alignment = w / selector [family ^ ".fa"] in
       let sp2seq = w / selector [family ^ ".sp2seq.txt"] in
 
-      let wf = if configuration.ali_sister_threshold > 0. then
-                 let filter_threshold = configuration.ali_sister_threshold in
+      let filter_threshold = configuration.ali_sister_threshold in
+      let wf = match (filter_threshold, (List.length species_to_refine_list)) with
+        | (f, l) when ((f > 0.) && (l > 0)) ->
                  Some (precious (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family ~tree ~alignment ~sp2seq))
-               else
-                 None
-               in
+        | (_, _) ->  None
+        in
       (family, w, wf )
     )
 
