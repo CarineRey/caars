@@ -507,7 +507,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
               )
               ;
-              if configuration.ali_sister_threshold > 0. then
+              if (configuration.ali_sister_threshold > 0.) &&  ((List.length configuration.all_ref_samples) > 0) then
                 List.map extension_list_filtered ~f:(fun (ext,dir) ->
                     let input = merged_w / selector [ f ^ ext ] in
                     let output = dest // dir // (f ^ ext)  in
