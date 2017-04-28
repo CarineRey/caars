@@ -548,16 +548,19 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
   ])
 
 let get_reconstructed_sequences merged_and_reconciled_families_dirs configuration =
-  let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
-  workflow ~descr:"GetReconstructedSequences.py" ~version:2 [
-    mkdir_p dest;
-    cmd "GetReconstructedSequences.py"  [
-      dep merged_and_reconciled_families_dirs // "Merged_fasta";
-      dep merged_and_reconciled_families_dirs // "Sp2Seq_link";
-      seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
-      ident dest
-    ]
-  ]
+  if (List.length configuration.all_ref_samples) > 0 then
+    let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
+    Some (workflow ~descr:"GetReconstructedSequences.py" ~version:2 [
+            mkdir_p dest;
+            cmd "GetReconstructedSequences.py"  [
+            dep merged_and_reconciled_families_dirs // "Merged_fasta";
+            dep merged_and_reconciled_families_dirs // "Sp2Seq_link";
+            seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
+            ident dest
+            ]
+        ])
+  else
+    None
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
   let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
@@ -732,7 +735,9 @@ let build_app configuration =
       ;
       [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
       ;
-      [["reconstructed_sequences"] %> reconstructed_sequences]
+      match reconstructed_sequences with
+        | Some w -> [["reconstructed_sequences"] %> w]
+        | None -> []
       ;
       if configuration.debug then
       List.concat [
