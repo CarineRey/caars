@@ -479,7 +479,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     mkdir_p (dest // "Sp2Seq_link");
     ]
     ;
-    if configuration.ali_sister_threshold > 0. then
+    if configuration.ali_sister_threshold > 0. && (List.length configuration.all_ref_samples) > 0 then
         [mkdir_p (dest // "Filter_summary")]
     else
         []
@@ -737,7 +737,7 @@ let build_app configuration =
       ;
       match reconstructed_sequences with
         | Some w -> [["reconstructed_sequences"] %> w]
-        | None -> []
+        | None -> ()
       ;
       if configuration.debug then
       List.concat [
