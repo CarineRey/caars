@@ -79,7 +79,7 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
 let normalize_fasta fasta_reads memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
       let max_cov = 20 in
-      let normalization_dir = precious (Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample) in
+      let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
         | Fasta_Paired_end (lw, rw , o) -> Fasta_Paired_end ( normalization_dir / selector ["left.norm.fa"] , normalization_dir / selector ["right.norm.fa"], o )
@@ -92,7 +92,7 @@ let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} memory threads
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, precious (Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:true ~full_cleanup:true ~memory ~threads norm_fasta))
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:true ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
@@ -605,6 +605,17 @@ let output_of_phyldog phyldog merged_families families =
     cmd "bash" [ file_dump script ];
   ]
 
+let precious_workflows ~norm_fasta ~trinity_assemblies =
+  let any x = Bistro.Workflow x in
+  let unwrap_fasta_sample = function
+    | (_, Fasta_Single_end (w, _ )) -> [ any w ]
+    | (_, Fasta_Paired_end (lw, rw , _)) -> [ any lw ; any rw ]
+  in
+  List.concat [
+    List.concat_map norm_fasta ~f:unwrap_fasta_sample ;
+    List.map trinity_assemblies ~f:(snd % any) ;
+  ]
+
 let build_app configuration =
 
   (*let allocation_apytram = 80 in
@@ -798,7 +809,8 @@ let build_app configuration =
       ;
     ]
   in
-  let repo_app = Bistro_repo.to_app repo ~outdir:configuration.outdir in
+  let precious = precious_workflows ~norm_fasta ~trinity_assemblies in
+  let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
 
   if configuration.just_parse_input then
     repo_app
