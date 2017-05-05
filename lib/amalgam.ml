@@ -5,6 +5,7 @@ open Bistro_bioinfo.Std
 open Commons
 open Configuration
 
+let precious x = x
 
 let alignement_fasta fam : (output, fasta) selector =
   selector [ "Alignements" ; fam ^ ".fa" ]

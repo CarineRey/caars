@@ -41,7 +41,9 @@ open Commons
 let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory reconcile refinetree refineali ali_sister_threshold debug just_parse_input () =
   let logger =
     Bistro_logger.tee
-      (Bistro_console_logger.create ())
+      (Bistro_logger.tee
+         (Bistro_console_logger.create ())
+         (Bistro_dot_output.create "dag.dot"))
       (Bistro_html_logger.create "report.html")
   in
   let run_reconciliation = Option.value ~default:true reconcile in 
@@ -55,7 +57,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
   let amalgam_app = Amalgam.build_app configuration in
   Bistro_app.(
-    run ~logger ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~dag_dump:"dag.dot" ~keep_all:false amalgam_app
+    run ~logger ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~keep_all:false amalgam_app
   )
 
 let spec =
