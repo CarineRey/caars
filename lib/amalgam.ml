@@ -5,7 +5,6 @@ open Bistro_bioinfo.Std
 open Commons
 open Configuration
 
-let precious x = x
 
 let alignement_fasta fam : (output, fasta) selector =
   selector [ "Alignements" ; fam ^ ".fa" ]
@@ -108,9 +107,9 @@ let transdecoder_orfs_of_trinity_assemblies trinity_assemblies { memory ; thread
       match (s.run_transdecoder,s.given_assembly) with
       | (true,false) -> let pep_min_length = 50 in
         let retain_long_orfs = 150 in
-        (s, precious(Transdecoder.transdecoder ~descr:("Assembly." ^ s.id ^ "_" ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly))
-      | (false, _ ) ->  (s, precious trinity_assembly)
-      | (true, true) -> (s, precious trinity_assembly)
+        (s, (Transdecoder.transdecoder ~descr:("Assembly." ^ s.id ^ "_" ^ s.species) ~retain_long_orfs ~pep_min_length ~only_best_orf:false ~memory ~threads trinity_assembly))
+      | (false, _ ) ->  (s, trinity_assembly)
+      | (true, true) -> (s, trinity_assembly)
     )
 
 
@@ -177,7 +176,7 @@ let blast_dbs_of_norm_fasta norm_fasta =
         let parse_seqids = true in
         let hash_index = true in
         let dbtype = "nucl" in
-        let cluster_rep_blast_db = precious( BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) rep_cluster_fasta) in
+        let cluster_rep_blast_db = BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) rep_cluster_fasta in
         Some (s , {s; concat_fasta; index_concat_fasta; rep_cluster_fasta; reformated_cluster; index_cluster ; cluster_rep_blast_db} )
       else
         None
@@ -229,7 +228,7 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
           ~ref_db
           ~threads
       in
-      (s, precious r)
+      (s, r)
     )
 
 
@@ -310,7 +309,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
     let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
-    (s, f, precious checked_families_fasta)
+    (s, f, checked_families_fasta)
     )
 
 let parse_apytram_results apytram_annotated_ref_fams =
@@ -421,9 +420,9 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
       let w = if (List.length species_to_refine_list) = 0 then
-                        precious (seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment)
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
                     else
-                        precious (seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment)
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
                     in
       let tree = w / selector [family ^ ".tree"] in
       let alignment = w / selector [family ^ ".fa"] in
@@ -432,7 +431,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let filter_threshold = configuration.ali_sister_threshold in
       let wf = match (filter_threshold, (List.length species_to_refine_list)) with
         | (f, l) when ((f > 0.) && (l > 0)) ->
-                 Some (precious (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family ~tree ~alignment ~sp2seq))
+                 Some (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family ~tree ~alignment ~sp2seq)
         | (_, _) ->  None
         in
       (family, w, wf )
@@ -453,7 +452,7 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let threads = Pervasives.min 2 configuration.threads in
     let memory = Pervasives.min 1 (Pervasives.(configuration.memory / configuration.threads)) in
     let topogene = configuration.refinetree in
-    (fam, precious (Phyldog.phyldog_by_fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali), merged_family)
+    (fam, Phyldog.phyldog_by_fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =
@@ -461,7 +460,7 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let ali = merged_w / selector [ fam ^ ".fa" ] in
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
     let threads = 1 in
-    (fam, precious (Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali), reconciled_w, merged_w)
+    (fam, Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
@@ -605,15 +604,35 @@ let output_of_phyldog phyldog merged_families families =
     cmd "bash" [ file_dump script ];
   ]
 
-let precious_workflows ~norm_fasta ~trinity_assemblies =
+let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families  ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir =
   let any x = Bistro.Workflow x in
   let unwrap_fasta_sample = function
     | (_, Fasta_Single_end (w, _ )) -> [ any w ]
     | (_, Fasta_Paired_end (lw, rw , _)) -> [ any lw ; any rw ]
   in
+  let get_cluster_rep_blast_db x = x.cluster_rep_blast_db in
+  let get_last_on_three x = match x with
+    | (_, _, y) -> y in
+  let get_second_on_three x = match x with
+    | (_, y, _) -> y in
+  let get_second_on_four x = match x with
+    | (_, y, _, _) -> y in
+  let get_merged_families = function
+    |(_, w1, Some w2) -> [any w1; any w2]
+    |(_, w1, None) -> [any w1]
+    in
   List.concat [
+    [any configuration_dir];
     List.concat_map norm_fasta ~f:unwrap_fasta_sample ;
     List.map trinity_assemblies ~f:(snd % any) ;
+    List.map trinity_orfs ~f:(snd % any);
+    List.map reads_blast_dbs ~f:(snd % get_cluster_rep_blast_db % any);
+    List.map trinity_annotated_fams ~f:(snd % any);
+    List.map apytram_checked_families ~f:(get_last_on_three % any);
+    List.concat_map merged_families ~f:get_merged_families;
+    List.map merged_and_reconciled_families ~f:(get_second_on_three % any);
+    List.map merged_reconciled_and_realigned_families ~f:(get_second_on_four % any);
+    [ any apytram_results_dir];
   ]
 
 let build_app configuration =
@@ -640,12 +659,12 @@ let build_app configuration =
 
   let divided_thread_memory = Pervasives.(max 1 (configuration.memory / configuration.threads)) in
 
-  let configuration_dir = precious (parse_input ~sample_sheet:(input configuration.sample_sheet)
+  let configuration_dir = parse_input ~sample_sheet:(input configuration.sample_sheet)
                                                 ~species_tree_file:(input configuration.species_tree_file)
                                                 ~alignments_dir:(input configuration.alignments_dir)
                                                 ~seq2sp_dir:(input configuration.seq2sp_dir)
                                                 ~families:configuration.families
-                                                ~memory:divided_sample_memory) in
+                                                ~memory:divided_sample_memory in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
@@ -707,7 +726,7 @@ let build_app configuration =
 
   let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
-  let apytram_results_dir = precious(parse_apytram_results apytram_checked_families) in
+  let apytram_results_dir = parse_apytram_results apytram_checked_families in
 
   let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
 
@@ -809,7 +828,7 @@ let build_app configuration =
       ;
     ]
   in
-  let precious = precious_workflows ~norm_fasta ~trinity_assemblies in
+  let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
   let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
 
   if configuration.just_parse_input then
