@@ -31,31 +31,45 @@ let mafft
   ]
 
 
-(*  workflow ~descr:"mafft" ~np:threads [
-    cd tmp;
-    let w =  match treein with
-      | None   -> cmd "mafft" ~stdout:dest [
-                      flag string "--auto" auto;
-                      option (opt "--treein" dep) treein;
-                      option (opt "--maxiterate" int) maxiterate;
-                      dep fa ;
-                      ]
-     | Some _ -> let script = [%bistro {|
+let mafft_from_nogap
+  ?(descr="")
+  ~treein
+  ~auto
+  ?maxiterate
+  ~threads
+  (fa:fasta workflow) : fasta workflow =
+   let script = [%bistro {|
        cp {{ dep treein }} tmp.tree
        grep "^>" {{ dep fa }} | sed "s/>//" | awk '{ print $0 ":" NR }' > tmp.num
        for i in $(cat tmp.num)
        do
-       s=`echo $i | cut -f 1 -d ":"`
-       n=`echo $i | cut -f 2 -d ":"`
-       sed "s/$s/$n/" tmp.tree -i
+         s=`echo $i | cut -f 1 -d ":"`
+         n=`echo $i | cut -f 2 -d ":"`
+         sed "s/$s/$n/" tmp.tree -i
        done
+       nw2nhx.py tmp.tree tmp.tree
        newick2mafft.rb tmp.tree > tmp.mafft
-        mafft --treein tmp.mafft {{ dep fa }} > {{ dep dest }}
+       awk '!/^>/ { printf "%s", $0; n = "\n" } /^>/ { print n $0; n = "" } END { printf "%s", n } ' {{ dep fa }} | sed "s/-//g" > tmp.nogap.fa
+       diff tmp.nogap.fa  {{ dep fa }}
+       mafft --treein tmp.mafft tmp.nogap.fa > {{ident dest }}
        |} ]
-       in
-       cmd "sh" [ file_dump script ]
-    in
-    w
-   ;
+  in
+  workflow ~descr:("mafft_from_no_gap"^descr) ~version:4 ~np:threads [
+  cd tmp;
+  cmd "sh" [ file_dump script ];
   ]
-*)
+
+
+let muscle
+    ?(descr="")
+    ~(fa : fasta workflow)
+    ~treein
+    ~maxiters : fasta workflow =
+    workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    cmd "muscle" [
+        opt "-in" dep fa ;
+        opt "-out" ident dest ;
+        opt "-usetree" dep treein;
+        opt "-maxiters" int maxiters;
+        ];
+    ]
