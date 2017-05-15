@@ -62,14 +62,32 @@ let mafft_from_nogap
 
 let muscle
     ?(descr="")
-    ~(fa : fasta workflow)
-    ~treein
-    ~maxiters : fasta workflow =
+    ?(treein)
+    ~maxiters fa: fasta workflow =
     workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
     cmd "muscle" [
         opt "-in" dep fa ;
         opt "-out" ident dest ;
-        opt "-usetree" dep treein;
+        option (opt "-usetree" dep ) treein;
+        opt "-maxiters" int maxiters;
+        ];
+    ]
+let musclenogap
+    ?(descr="")
+    ?(treein)
+    ~maxiters fa : fasta workflow =
+    let nogapfa = tmp // "nogap.fa" in  
+    let scriptnogap = [%bistro {|
+       awk '!/^>/ { printf "%s", $0; n = "\n" } /^>/ { print n $0; n = "" } END { printf "%s", n } ' {{ dep fa }} | sed "s/-//g" > {{ident nogapfa}} |} ]
+    in
+    workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    
+    mkdir_p tmp;
+    cmd "sh" [ file_dump scriptnogap ];
+    cmd "muscle" [
+        opt "-in" ident nogapfa ;
+        opt "-out" ident dest ;
+        option (opt "-usetree" dep ) treein;
         opt "-maxiters" int maxiters;
         ];
     ]

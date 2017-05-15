@@ -460,7 +460,15 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let ali = merged_w / selector [ fam ^ ".fa" ] in
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
     let threads = 1 in
-    (fam, Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
+    let maffttreein_realigned_w = Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in
+    let mafftnogaptreein_realigned_w = Aligner.mafft_from_nogap ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in
+    
+    let muscle_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~maxiters:1 ali in
+    let muscletreein_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in
+    let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in
+    let musclenogaptreein_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~treein  ~maxiters:1 ali in
+    
+    (fam, maffttreein_realigned_w, reconciled_w, merged_w, mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w, musclenogap_realigned_w, musclenogaptreein_realigned_w)
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
@@ -499,7 +507,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     ;
     [
     let script = Bistro.Template.(
-      List.map merged_reconciled_and_realigned_families ~f:(fun (f, realigned_w, reconciled_w, merged_w) ->
+      List.map merged_reconciled_and_realigned_families ~f:(fun (f, maffttreein_realigned_w, reconciled_w, merged_w, mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w, musclenogap_realigned_w, musclenogaptreein_realigned_w) ->
           List.concat[
               List.map extension_list_merged ~f:(fun (ext,dir) ->
                 let input = merged_w / selector [ f ^ ext ] in
@@ -525,10 +533,18 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     )
                   ;
                   if configuration.refineali then
+                  List.concat_map [(mafftnogaptreein_realigned_w,".mafft.nogap.treein");
+                                    (maffttreein_realigned_w,".mafft.treein") ;
+                                    (muscle_realigned_w,".muscle") ;
+                                    (muscletreein_realigned_w,".muscle.treein") ;
+                                    (musclenogap_realigned_w,".muscle.nogap") ;
+                                    (musclenogaptreein_realigned_w,".muscle.nogap.treein");
+                                    ] ~f:(fun (w, e) ->
                     List.map extension_list_realigned ~f:(fun (ext,dir) ->
-                        let input = realigned_w in
-                        let output = dest // dir // (f ^ ext)  in
+                        let input = w in
+                        let output = dest // dir // (f ^ e ^ ext)  in
                         seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    )
                     )
                   else
                     []
@@ -631,7 +647,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     List.map apytram_checked_families ~f:(get_last_on_three % any);
     List.concat_map merged_families ~f:get_merged_families;
     List.map merged_and_reconciled_families ~f:(get_second_on_three % any);
-    List.map merged_reconciled_and_realigned_families ~f:(get_second_on_four % any);
+    (*List.map merged_reconciled_and_realigned_families ~f:(get_second_on_four % any);*)
     [ any apytram_results_dir];
   ]
 
