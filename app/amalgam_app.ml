@@ -38,17 +38,25 @@ open Bistro.EDSL
 open Bistro_bioinfo.Std
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory reconcile refinetree refineali ali_sister_threshold debug just_parse_input () =
-  let logger =
-    Bistro_logger.tee
-      (Bistro_logger.tee
-         (Bistro_console_logger.create ())
-         (Bistro_dot_output.create "dag.dot"))
-      (Bistro_html_logger.create "report.html")
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree refineali ali_sister_threshold debug just_parse_input html_report dag_dot quiet () =
+  let logger quiet html_report dag_dot =
+  Bistro_logger.tee
+    (if quiet then Bistro_logger.null else Bistro_console_logger.create ())
+    (Bistro_logger.tee
+       (match dag_dot with
+        | Some path -> Bistro_dot_output.create path
+        | None -> Bistro_logger.null)
+       (match html_report with
+        | Some path -> Bistro_html_logger.create path
+        | None -> Bistro_logger.null)
+    )
   in
-  let run_reconciliation = Option.value ~default:true reconcile in 
-  (*let refinetree = Option.value ~default:false refinetree in 
-  let refineali = Option.value ~default:false refineali in 
+  let run_reconciliation = match no_reconcile with
+    | true -> false
+    | false -> true
+  in
+  (*let refinetree = Option.value ~default:false refinetree in
+  let refineali = Option.value ~default:false refineali in
   let debug = Option.value ~default:false debug in
   let just_parse_input = Option.value ~default:false just_parse_input in *)
   let ali_sister_threshold = Option.value ~default:0.0 ali_sister_threshold in
@@ -57,7 +65,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
   let amalgam_app = Amalgam.build_app configuration in
   Bistro_app.(
-    run ~logger ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~keep_all:false amalgam_app
+    run ~logger:(logger quiet html_report dag_dot)  ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~keep_all:false amalgam_app
   )
 
 let spec =
@@ -70,12 +78,15 @@ let spec =
   +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
-  +> flag "--reconcile"       (optional bool)   ~doc:"(BOOL if false: Not run final Reconciliation step (Default:true)"
-  +> flag "--refinetree"      no_arg   ~doc:"(BOOL if true: Refine topology during final Reconciliation step (Default:false)"
-  +> flag "--refineali"       no_arg   ~doc:"(BOOL if true: Refine MSA after the final Reconciliation step (Default:false)"
-  +> flag "--mpast"           (optional float)  ~doc:"(FLOAT Minimal percentage of alignment of an Amalgam sequences on its (non amalgam) closest sequence to be kept in the final output"
-  +> flag "--debug"           no_arg            ~doc:"(BOOL if true: Get intermediary files (Default:false)"
-  +> flag "--just-parse-input"no_arg            ~doc:"(BOOL if true: parse input and exit. Recommended to check all input files. (Default:false)"
+  +> flag "--no-reconcile"    no_arg            ~doc:"Not run final Reconciliation step"
+  +> flag "--refinetree"      no_arg            ~doc:"Refine topology during final Reconciliation step (Default:false)"
+  +> flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"
+  +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of an Amalgam sequences on its (non amalgam) closest sequence to be kept in the final output"
+  +> flag "--debug"           no_arg            ~doc:"Get intermediary files (Default:false)"
+  +> flag "--just-parse-input"no_arg            ~doc:"Parse input and exit. Recommended to check all input files. (Default:false)"
+  +> flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"
+  +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in an dot file (Can take a lot of time)"
+  +> flag "--quiet"           no_arg            ~doc:"Do not report progress.  Default: off"
 
 let command =
   Command.basic
