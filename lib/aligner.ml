@@ -62,13 +62,30 @@ let mafft_from_nogap
 
 let muscle
     ?(descr="")
-    ?(treein)
     ~maxiters fa: fasta workflow =
     workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    mkdir_p tmp;
     cmd "muscle" [
         opt "-in" dep fa ;
         opt "-out" ident dest ;
-        option (opt "-usetree" dep ) treein;
+        opt "-maxiters" int maxiters;
+        ];
+    ]
+let muscletreein
+    ?(descr="")
+    ~treein
+    ~maxiters fa: fasta workflow =
+    let treenw = tmp // "treenw.nw" in  
+    let script_nhx_nw = [%bistro {|
+      nhx2nw.py {{dep treein}} {{ident treenw}}|}]
+    in
+    workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    mkdir_p tmp;
+    cmd "sh" [ file_dump script_nhx_nw ];
+    cmd "muscle" [
+        opt "-in" dep fa ;
+        opt "-out" ident dest ;
+        opt "-usetree" ident treenw;
         opt "-maxiters" int maxiters;
         ];
     ]
@@ -80,6 +97,7 @@ let musclenogap
     let scriptnogap = [%bistro {|
        awk '!/^>/ { printf "%s", $0; n = "\n" } /^>/ { print n $0; n = "" } END { printf "%s", n } ' {{ dep fa }} | sed "s/-//g" > {{ident nogapfa}} |} ]
     in
+    
     workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
     
     mkdir_p tmp;
@@ -87,7 +105,32 @@ let musclenogap
     cmd "muscle" [
         opt "-in" ident nogapfa ;
         opt "-out" ident dest ;
-        option (opt "-usetree" dep ) treein;
+        opt "-maxiters" int maxiters;
+        ];
+    ]
+let musclenogaptreein
+    ?(descr="")
+    ~treein
+    ~maxiters fa : fasta workflow =
+    let nogapfa = tmp // "nogap.fa" in  
+    let scriptnogap = [%bistro {|
+       awk '!/^>/ { printf "%s", $0; n = "\n" } /^>/ { print n $0; n = "" } END { printf "%s", n } ' {{ dep fa }} | sed "s/-//g" > {{ident nogapfa}} |} ]
+    in
+    let treenw = tmp // "treenw.nw" in  
+    let script_nhx_nw = [%bistro {|
+      nhx2nw.py {{dep treein}} {{ident treenw}}|}]
+    in
+    
+    workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    
+    mkdir_p tmp;
+
+    cmd "sh" [ file_dump script_nhx_nw ];
+    cmd "sh" [ file_dump scriptnogap ];
+    cmd "muscle" [
+        opt "-in" ident nogapfa ;
+        opt "-out" ident dest ;
+        opt "-usetree" ident treenw;
         opt "-maxiters" int maxiters;
         ];
     ]

@@ -464,9 +464,9 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let mafftnogaptreein_realigned_w = Aligner.mafft_from_nogap ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in
     
     let muscle_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~maxiters:1 ali in
-    let muscletreein_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in
+    let muscletreein_realigned_w = Aligner.muscletreein ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in
     let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in
-    let musclenogaptreein_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~treein  ~maxiters:1 ali in
+    let musclenogaptreein_realigned_w = Aligner.musclenogaptreein ~descr:(":" ^ fam) ~treein  ~maxiters:1 ali in
     
     (fam, maffttreein_realigned_w, reconciled_w, merged_w, mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w, musclenogap_realigned_w, musclenogaptreein_realigned_w)
     )
