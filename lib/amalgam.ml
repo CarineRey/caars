@@ -637,6 +637,9 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     |(_, w1, Some w2) -> [any w1; any w2]
     |(_, w1, None) -> [any w1]
     in
+  let get_merged_reconciled_and_realigned_families = function
+    |(_ , w1, w2, w3, w4, w5, w6, w7, w8) -> [any w1; any w2; any w3; any w4; any w5; any w6; any w7; any w8]
+    in
   List.concat [
     [any configuration_dir];
     List.concat_map norm_fasta ~f:unwrap_fasta_sample ;
@@ -647,7 +650,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     List.map apytram_checked_families ~f:(get_last_on_three % any);
     List.concat_map merged_families ~f:get_merged_families;
     List.map merged_and_reconciled_families ~f:(get_second_on_three % any);
-    (*List.map merged_reconciled_and_realigned_families ~f:(get_second_on_four % any);*)
+    List.concat_map merged_reconciled_and_realigned_families ~f:get_merged_reconciled_and_realigned_families;
     [ any apytram_results_dir];
   ]
 
