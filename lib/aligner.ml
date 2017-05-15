@@ -79,7 +79,7 @@ let muscletreein
     let script_nhx_nw = [%bistro {|
       nhx2nw.py {{dep treein}} {{ident treenw}}|}]
     in
-    workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    workflow ~descr:("muscletreein"^descr) ~version:1 ~np:1 [
     mkdir_p tmp;
     cmd "sh" [ file_dump script_nhx_nw ];
     cmd "muscle" [
@@ -98,7 +98,7 @@ let musclenogap
        awk '!/^>/ { printf "%s", $0; n = "\n" } /^>/ { print n $0; n = "" } END { printf "%s", n } ' {{ dep fa }} | sed "s/-//g" > {{ident nogapfa}} |} ]
     in
     
-    workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    workflow ~descr:("musclenogap"^descr) ~version:1 ~np:1 [
     
     mkdir_p tmp;
     cmd "sh" [ file_dump scriptnogap ];
@@ -121,7 +121,7 @@ let musclenogaptreein
       nhx2nw.py {{dep treein}} {{ident treenw}}|}]
     in
     
-    workflow ~descr:("muscle"^descr) ~version:1 ~np:1 [
+    workflow ~descr:("musclenogaptreein"^descr) ~version:1 ~np:1 [
     
     mkdir_p tmp;
 
