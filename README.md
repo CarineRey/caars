@@ -16,16 +16,24 @@ amalgam is available in a docker container available in DockerHub.
 You can get and run the container with this command:
 
 ```sh
-docker run -t -i -v $pwd:$pwd carinerey/amalgam
+cd /shared/directory
+export SHARED_DIR=$PWD
+docker run -t -i -e LOCAL_USER_ID=`id -u $USER` -e SHARED_DIR=$SHARED_DIR -v $SHARED_DIR:$SHARED_DIR carinerey/amalgam bash
 ```
 
 And you're done!
 
+See the [Tutorial](https://github.com/CarineRey/amalgam/wiki/Tutorial) for more usage.
+
 You **must** use the -v option to share your working directory between your computer and the virtual environment in the docker container. Indeed, amalgam builds links with absolute path which will be break if you don't use the same directory tree.
+``` LOCAL_USER_ID=`id -u $USER` ``` allows giving user right on files created in the docker container.
+
 
 amalgam can be call directly in the docker container terminal.
 
 Warning, the container is in development, if you have any problem don't hesitate to contact me (carine.rey@ens-lyon.fr).
+
+
 
 ## complete installation
 
