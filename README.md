@@ -17,7 +17,7 @@ You can get and run the container with this command:
 
 ```sh
 cd /shared/directory
-export SHARED_DIR_DIR=$PWD
+export SHARED_DIR=$PWD
 
 # start the docker
 docker run -t -i -e LOCAL_USER_ID=`id -u $USER` -e W_DIR=$SHARED_DIR -v $SHARED_DIR:$SHARED_DIR carinerey/amalgam bash
