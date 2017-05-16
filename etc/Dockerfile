@@ -53,24 +53,6 @@ WORKDIR /opt/TransDecoder-3.0.0/
 RUN make
 ENV PATH /opt/TransDecoder-3.0.0/:$PATH
 
-#### install opam
-WORKDIR /root/
-RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /root/usr/bin 4.03.0
-ENV PATH /root/usr/bin/.opam/4.03.0/bin:$PATH
-RUN /root/usr/bin/opam init --comp 4.03.0
-
-RUN echo ". /root/usr/bin/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile
-RUN echo "export PATH=/root/usr/bin/:$PATH" >> ~/.profile
-
-ENV PATH /root/usr/bin/:/root/.opam/4.03.0/bin/:$PATH
-ENV CAML_LD_LIBRARY_PATH /root/.opam/4.03.0/lib/stublibs
-ENV OCAML_TOPLEVEL_PATH /root/.opam/4.03.0/lib/toplevel
-ENV MANPATH /root/.opam/4.03.0/man
-ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
-
-##### install bistro
-RUN opam pin add bistro --dev-repo
-
 
 #### install bpp
 WORKDIR /opt
@@ -91,14 +73,6 @@ ENV PATH /opt/phylomerge:$PATH
 RUN pip install --upgrade pip
 RUN pip install ete3
 RUN pip install profileNJ
-
-
-#### install amalgam
-RUN git clone https://github.com/carinerey/amalgam /usr/local/amalgam/
-WORKDIR /usr/local/amalgam/
-RUN make
-ENV PATH /usr/local/amalgam/utils/bin:/usr/local/amalgam:$PATH
-ENV PYTHONPATH /usr/local/amalgam/utils/lib
 
 
 
@@ -132,11 +106,6 @@ ENV LD_LIBRARY_PATH /usr/local/lib/
 RUN cmake ..  &&  make install
 #########
 
-#### build a working directory
-RUN mkdir -p /data
-WORKDIR /data
-
-CMD ["amalgam_app.byte"]
 
 RUN gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4
 RUN curl -o /usr/local/bin/gosu -SL "https://github.com/tianon/gosu/releases/download/1.4/gosu-$(dpkg --print-architecture)" \
@@ -145,7 +114,52 @@ RUN curl -o /usr/local/bin/gosu -SL "https://github.com/tianon/gosu/releases/dow
     && rm /usr/local/bin/gosu.asc \
     && chmod +x /usr/local/bin/gosu
 
-RUN cp /usr/local/amalgam/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+### Install muscle
+WORKDIR /usr/local/bin
+RUN wget http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz && \
+    tar xvzf muscle3.8.31_i86linux64.tar.gz && rm muscle3.8.31_i86linux64.tar.gz && mv muscle3.8.31_i86linux64 muscle
+
+
+
+### install opam
+WORKDIR /home/user
+ENV HOME /home/user
+RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin 4.03.0
+ENV PATH /usr/local/bin/.opam/4.03.0/bin:$PATH
+RUN /usr/local/bin/opam init --comp 4.03.0
+RUN echo ". /home/user/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile
+#RUN echo "export PATH=/usr/local/bin/:$PATH" >> ~/.profile
+
+ENV PATH /usr/local/bin/:/home/user/.opam/4.03.0/bin/:$PATH
+ENV CAML_LD_LIBRARY_PATH /home/user/.opam/4.03.0/lib/stublibs
+ENV OCAML_TOPLEVEL_PATH /home/user/.opam/4.03.0/lib/toplevel
+ENV MANPATH /home/user/.opam/4.03.0/man
+ENV PERL5LIB /home/user/.opam/4.03.0/lib/perl5
+
+##### install bistro
+RUN opam pin add bistro --dev-repo
+
+
+
+
+### install amalgam
+WORKDIR /opt/amalgam/
+RUN git clone https://github.com/carinerey/amalgam /opt/amalgam/
+RUN make
+ENV PATH /opt/amalgam/utils/bin:/opt/amalgam:$PATH
+ENV PYTHONPATH /opt/amalgam/utils/lib
+
+##### update amalgam
+WORKDIR /opt/amalgam/
+RUN git fetch origin && git checkout test_aligner
+RUN make
+RUN cp /opt/amalgam/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
+#ADD entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod a+x /usr/local/bin/entrypoint.sh
+
+##### build a working directory
+WORKDIR /data
+
+CMD ["amalgam_app.byte"]
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
-
