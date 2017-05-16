@@ -776,11 +776,11 @@ let build_app configuration =
       [[ "Configuration" ] %>  configuration_dir ]
         ;
       List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-        [ "draft_assemblies" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+        [ "draft_assemblies" ; "raw_assemblies" ; "Draft_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
        )
         ;
       List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+            [ "draft_assemblies" ; "orf_assemblies" ; "Draft_assemblies.cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
           )
       ;
       [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
