@@ -847,12 +847,14 @@ let build_app configuration =
       ;
     ]
   in
-  let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
-  let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
 
   if configuration.just_parse_input then
+    let precious = [Bistro.Workflow configuration_dir] in
+    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
     repo_app
   else
+    let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
+    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
     let open Bistro_app in
     let stats_app =
         List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
