@@ -855,10 +855,12 @@ let build_app configuration =
   else
     let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
     let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
-    let open Bistro_app in
+    repo_app
+    (*let open Bistro_app in
     let stats_app =
         List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
         |> assoc
     in
     let f_app = pure (fun () trinity_assemblies_stats -> Report.generate ~trinity_assemblies_stats (Filename.concat configuration.outdir "report_end.html")) in
     f_app $ repo_app $ stats_app
+    *)
