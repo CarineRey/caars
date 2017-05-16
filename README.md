@@ -17,22 +17,33 @@ You can get and run the container with this command:
 
 ```sh
 cd /shared/directory
-export SHARED_DIR=$PWD
-docker run -t -i -e LOCAL_USER_ID=`id -u $USER` -e SHARED_DIR=$SHARED_DIR -v $SHARED_DIR:$SHARED_DIR carinerey/amalgam bash
+export SHARED_DIR_DIR=$PWD
+
+# start the docker
+docker run -t -i -e LOCAL_USER_ID=`id -u $USER` -e W_DIR=$SHARED_DIR -v $SHARED_DIR:$SHARED_DIR carinerey/amalgam bash
 ```
 
 And you're done!
 
-See the [Tutorial](https://github.com/CarineRey/amalgam/wiki/Tutorial) for more usage.
 
-You **must** use the -v option to share your working directory between your computer and the virtual environment in the docker container. Indeed, amalgam builds links with absolute path which will be break if you don't use the same directory tree.
-``` LOCAL_USER_ID=`id -u $USER` ``` allows giving user right on files created in the docker container.
+You **must** use:
+ *  ``` -v $SHARED_DIR:$SHARED_DIR  ``` to share your working directory between your computer and the virtual environment in the docker container.
+Indeed, amalgam builds links with absolute path which will be break if you don't use the same directory tree.
 
+ * ``` -e LOCAL_USER_ID=`id -u $USER` ``` to allow giving user rights on files created in the docker container.
+ * ``` -e W_DIR=$SHARED_DIR ``` to set the working directory as the shared directory in the docker container.
 
 amalgam can be call directly in the docker container terminal.
 
-Warning, the container is in development, if you have any problem don't hesitate to contact me (carine.rey@ens-lyon.fr).
+```sh
+user_amalgam@1dbd8f2594cc:/shared/directory$ amalgam_bytes.app -help
+```
 
+All data use in the container must be contained in the $SHARED_DIRECTORY, indeed the container "sees" only directory tree from the shared directory. 
+
+See the [Tutorial](https://github.com/CarineRey/amalgam/wiki/Tutorial) for more usage.
+
+Warning, the container is in development, if you have any problem don't hesitate to contact me (carine.rey@ens-lyon.fr).
 
 
 ## complete installation
@@ -57,25 +68,46 @@ For instance:
 cp -rL OUTPUT_DIR OK_OUTPUT_DIR
 ```
 
+See the [Tutorial](https://github.com/CarineRey/amalgam/wiki/Tutorial) for more usage.
+
+
 ```
-amalgam_app.byte
+Amalgam
+
+  amalgam_app.byte 
 
 === flags ===
 
-  --alignment-dir PATH     Directory containing all gene family alignments
-                           (Family_name.fa) in fasta format.
-  --outdir PATH            Destination directory.
-  --sample-sheet PATH      sample sheet file.
-  --seq2sp-dir PATH        Directory containing all link files
-                           (Family_name.tsv). A line for each sequence and its
-                           species spaced by a tabulation.
-  --species-tree ABSOLUTE  PATH Species tree file in nw format containing all
-                           species. Warning absolute path is required.
-  [--memory INT]           Number of GB of system memory to use.(Default:1)
-  [--np INT]               Number of CPUs (at least 2). (Default:2)
-  [-build-info]            print info about this build and exit
-  [-version]               print the version of this build and exit
-  [-help]                  print this help text and exit
+  --alignment-dir PATH        Directory containing all gene family alignments
+                              (Family_name.fa) in fasta format.
+  --outdir PATH               Destination directory.
+  --sample-sheet PATH         sample sheet file.
+  --seq2sp-dir PATH           Directory containing all link files
+                              (Family_name.tsv). A line for each sequence and
+                              its species spaced by a tabulation.
+  --species-tree ABSOLUTE     PATH Species tree file in nw format containing all
+                              species. Warning absolute path is required.
+  [--dag-graph PATH]          Write dag graph in an dot file (Can take a lot of
+                              time)
+  [--debug Get]               intermediary files (Default:false)
+  [--html-report PATH]        Logs build events in an HTML report
+  [--just-parse-input Parse]  input and exit. Recommended to check all input
+                              files. (Default:false)
+  [--memory INT]              Number of GB of system memory to use.(Default:1)
+  [--mpast FLOAT]             Minimal percentage of alignment of an Amalgam
+                              sequences on its (non amalgam) closest sequence to
+                              be kept in the final output
+  [--no-reconcile Not]        run final Reconciliation step
+  [--np INT]                  Number of CPUs (at least 2). (Default:2)
+  [--quiet Do]                not report progress. Default: off
+  [--refineali Refine]        MSA after the final Reconciliation step
+                              (Default:false)
+  [--refinetree Refine]       topology during final Reconciliation step
+                              (Default:false)
+  [-build-info]               print info about this build and exit
+  [-version]                  print the version of this build and exit
+  [-help]                     print this help text and exit
+                              (alias: -?)
 
 ```
 
@@ -101,7 +133,7 @@ This file is composed of 10 tabulated delimited columns with headers:
   * Path for a double-end RNA-seq run : Left fastq file path
   * Path for a double-end RNA-seq run : Right fastq file path
   * Strand and type of the RNA-seq run : F,R,RF,FR,US,UP
-  * Run trinity on data : Yes or No
+  * Run draft assembly on data : Yes or No
   * Path to a given trinity assembly : fasta file path
   * Run apytram on data : Yes or No
 
@@ -109,7 +141,7 @@ This file is composed of 10 tabulated delimited columns with headers:
 
 An example:
 
-id	|species	|ref_species	|path_fastq_single	|path_fastq_left	|path_fastq_right	|orientation	|run_trinity	|path_assembly	|run_apytram
+id	|species	|ref_species	|path_fastq_single	|path_fastq_left	|path_fastq_right	|orientation	|run_draft	|path_assembly	|run_apytram
 ---|---|---|---|---|---|---|---|---|---
 AMH	|Mesocricetus_auratus	|Homo_sapiens	|-	|fastq/Mesocricetus_auratus.1.fq	|fastq/Mesocricetus_auratus.2.fq	|UP	|yes	|Trinity_assembly.AMH.fa	|yes
 AMM	|Mus_musculus	|Homo_sapiens	|fastq/Mus_musculus.fq	| -	|-	|F	|yes	|-	|yes
@@ -128,84 +160,23 @@ A directory path which will contain outputs
 Two test datasets is available in the source directory of amalgam.
 
 * A very little dataset (1 min):
-```
-# In the amalgam directory run:
+```sh
+# In the amalgam directory (/opt/amalgam in the docker container) run:
 make test
-# or in the example directory
+# or in the example directory (/opt/amalgam/example in the docker container)
 bash Launch_amalgam.sh
 
 # To remove outputs
 make clean_test
 ```
 
-* A  little dataset (10 min):
-```
-# In the amalgam directory run:
+* A little dataset (10 min):
+```sh
+# In the amalgam directory (/opt/amalgam in the docker container) run:
 make test2
-# or in the example directory
+# or in the example directory (/opt/amalgam/example in the docker container):
 bash Launch_amalgam2.sh
 
 # To remove outputs
 make clean_test2
-```
-
-
-
-[To be removed]
-
-### Dependencies
-
-* Transdecoder >= 3.0.1
-
-* SRAToolKit >= 2.8.1-2
-
-* FastTree >= 2.1.7 (Warning: The executable must be fasttree and not FastTree)
-
-* Python 2.7 (with pip and setuptools)
-    * PyQt4
-    * SciPy
-    * MySQLdb
-    * lxml
-    * ete2
-    * ete3
-    * profileNJ
-    * pandas
-
-* Trinity >=2.3
-    * Java >= 1.8 (OpenJRE works)
-    * Bowtie >= 2 (tested with 2.2.9)
-
-* phyldog >= 1.1.0
-    * libPLL >= 1.0.2 sequential
-    * boost 1.55 <= . >= 1.49
-    * bpp >= 2.2.0 (Bio++)
-
-* PhyloMerge (0.2 from 2017/01)
-    * bpp >= 2.2.0 (Bio++)
-
-* apytram >= 1.0
-    * exonerate >= 2.2.0
-    * mafft >=7.1
-    * blast+ >= 2.6
-    * python = 2.7
-    * Trinity >=2.3
-
-* OCaml >= 4.03.0
-    * bistro
-        * oasis
-        * solvuu-build
-        * ocamlgraph
-
-
-```
-# to get sources
-git clone https://github.com/CarineRey/amalgam
-
-
-# to install amalgam
-cd amalgam
-make
-
-# to test all dependencies
-make test
 ```
