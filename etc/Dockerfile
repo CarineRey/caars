@@ -130,12 +130,11 @@ RUN opam pin add bistro --dev-repo
 
 ### install amalgam
 WORKDIR /opt/amalgam/
-RUN git clone https://github.com/carinerey/amalgam /opt/amalgam/
-RUN make
-ENV PATH /opt/amalgam/utils/bin:/opt/amalgam:$PATH
-ENV PYTHONPATH /opt/amalgam/utils/lib
+RUN git clone https://github.com/carinerey/amalgam /opt/amalgam/ && make
 RUN cp /opt/amalgam/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
+ENV PATH /opt/amalgam/utils/bin:/opt/amalgam:$PATH
+ENV PYTHONPATH /opt/amalgam/utils/lib
 
 ##### build a working directory
 WORKDIR /data
