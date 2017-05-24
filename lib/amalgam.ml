@@ -461,14 +461,14 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
     let threads = 1 in
     let maffttreein_realigned_w = Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in
-    let mafftnogaptreein_realigned_w = Aligner.mafft_from_nogap ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in
+    (*let mafftnogaptreein_realigned_w = Aligner.mafft_from_nogap ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in*)
     
     let muscle_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~maxiters:1 ali in
     let muscletreein_realigned_w = Aligner.muscletreein ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in
-    let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in
+    (*let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in
     let musclenogaptreein_realigned_w = Aligner.musclenogaptreein ~descr:(":" ^ fam) ~treein  ~maxiters:1 ali in
-    
-    (fam, maffttreein_realigned_w, reconciled_w, merged_w, mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w, musclenogap_realigned_w, musclenogaptreein_realigned_w)
+    *)
+    (fam, maffttreein_realigned_w, reconciled_w, merged_w, (*mafftnogaptreein_realigned_w,*) muscle_realigned_w, muscletreein_realigned_w (*, musclenogap_realigned_w, musclenogaptreein_realigned_w*))
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
@@ -507,7 +507,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     ;
     [
     let script = Bistro.Template.(
-      List.map merged_reconciled_and_realigned_families ~f:(fun (f, maffttreein_realigned_w, reconciled_w, merged_w, mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w, musclenogap_realigned_w, musclenogaptreein_realigned_w) ->
+      List.map merged_reconciled_and_realigned_families ~f:(fun (f, maffttreein_realigned_w, reconciled_w, merged_w, (*mafftnogaptreein_realigned_w,*) muscle_realigned_w, muscletreein_realigned_w(*, musclenogap_realigned_w, musclenogaptreein_realigned_w*)) ->
           List.concat[
               List.map extension_list_merged ~f:(fun (ext,dir) ->
                 let input = merged_w / selector [ f ^ ext ] in
@@ -533,12 +533,13 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     )
                   ;
                   if configuration.refineali then
-                  List.concat_map [(mafftnogaptreein_realigned_w,".mafft.nogap.treein");
+                  List.concat_map [
+                                    (*(mafftnogaptreein_realigned_w,".mafft.nogap.treein");*)
                                     (maffttreein_realigned_w,".mafft.treein") ;
                                     (muscle_realigned_w,".muscle") ;
                                     (muscletreein_realigned_w,".muscle.treein") ;
-                                    (musclenogap_realigned_w,".muscle.nogap") ;
-                                    (musclenogaptreein_realigned_w,".muscle.nogap.treein");
+                                    (*(musclenogap_realigned_w,".muscle.nogap") ;*)
+                                    (*(musclenogaptreein_realigned_w,".muscle.nogap.treein");*)
                                     ] ~f:(fun (w, e) ->
                     List.map extension_list_realigned ~f:(fun (ext,dir) ->
                         let input = w in
@@ -638,7 +639,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     |(_, w1, None) -> [any w1]
     in
   let get_merged_reconciled_and_realigned_families = function
-    |(_ , w1, w2, w3, w4, w5, w6, w7, w8) -> [any w1; any w2; any w3; any w4; any w5; any w6; any w7; any w8]
+    |(_ , w1, w2, w3, w4, w5(*, w6, w7, w8*)) -> [any w1; any w2; any w3; any w4; any w5(*; any w6; any w7; any w8*)]
     in
   List.concat [
     [any configuration_dir];
