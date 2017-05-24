@@ -146,6 +146,7 @@ RUN make
 RUN cp /opt/amalgam/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 
+RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy sudo
 
-CMD ["amalgam_app.byte"]
+CMD ["amalgam_app.byte", "-h"]
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
