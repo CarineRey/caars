@@ -627,7 +627,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     | (_, Fasta_Single_end (w, _ )) -> [ any w ]
     | (_, Fasta_Paired_end (lw, rw , _)) -> [ any lw ; any rw ]
   in
-  let get_cluster_rep_blast_db x = x.cluster_rep_blast_db in
+  let get_reads_blast_dbs_w x = [any x.concat_fasta; any x.index_concat_fasta; any x.rep_cluster_fasta; any x.reformated_cluster; any x.index_cluster ; any x.cluster_rep_blast_db ] in 
   let get_last_on_three x = match x with
     | (_, _, y) -> y in
   let get_second_on_three x = match x with
@@ -646,7 +646,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     List.concat_map norm_fasta ~f:unwrap_fasta_sample ;
     List.map trinity_assemblies ~f:(snd % any) ;
     List.map trinity_orfs ~f:(snd % any);
-    List.map reads_blast_dbs ~f:(snd % get_cluster_rep_blast_db % any);
+    List.concat_map reads_blast_dbs ~f:(snd % get_reads_blast_dbs_w);
     List.map trinity_annotated_fams ~f:(snd % any);
     List.map apytram_checked_families ~f:(get_last_on_three % any);
     List.concat_map merged_families ~f:get_merged_families;
