@@ -38,7 +38,7 @@ open Bistro.EDSL
 open Bistro_bioinfo.Std
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree refineali ali_sister_threshold debug just_parse_input html_report dag_dot quiet () =
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold debug just_parse_input html_report dag_dot quiet () =
   let logger quiet html_report dag_dot =
   Bistro_logger.tee
     (if quiet then Bistro_logger.null else Bistro_console_logger.create ())
@@ -59,6 +59,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let refineali = Option.value ~default:false refineali in
   let debug = Option.value ~default:false debug in
   let just_parse_input = Option.value ~default:false just_parse_input in *)
+  let refineali = false in
   let ali_sister_threshold = Option.value ~default:0.0 ali_sister_threshold in
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
@@ -80,7 +81,7 @@ let spec =
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
   +> flag "--no-reconcile"    no_arg            ~doc:"Not run final Reconciliation step"
   +> flag "--refinetree"      no_arg            ~doc:"Refine topology during final Reconciliation step (Default:false)"
-  +> flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"
+(*  +> flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"*)
   +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of an Amalgam sequences on its (non amalgam) closest sequence to be kept in the final output"
   +> flag "--debug"           no_arg            ~doc:"Get intermediary files (Default:false)"
   +> flag "--just-parse-input"no_arg            ~doc:"Parse input and exit. Recommended to check all input files. (Default:false)"
