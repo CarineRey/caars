@@ -460,7 +460,15 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let ali = merged_w / selector [ fam ^ ".fa" ] in
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
     let threads = 1 in
-    (fam, Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali, reconciled_w, merged_w)
+    let maffttreein_realigned_w = Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in
+    (*let mafftnogaptreein_realigned_w = Aligner.mafft_from_nogap ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in*)
+    
+    let muscle_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~maxiters:1 ali in
+    let muscletreein_realigned_w = Aligner.muscletreein ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in
+    (*let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in
+    let musclenogaptreein_realigned_w = Aligner.musclenogaptreein ~descr:(":" ^ fam) ~treein  ~maxiters:1 ali in
+    *)
+    (fam, maffttreein_realigned_w, reconciled_w, merged_w, (*mafftnogaptreein_realigned_w,*) muscle_realigned_w, muscletreein_realigned_w (*, musclenogap_realigned_w, musclenogaptreein_realigned_w*))
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
@@ -499,7 +507,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     ;
     [
     let script = Bistro.Template.(
-      List.map merged_reconciled_and_realigned_families ~f:(fun (f, realigned_w, reconciled_w, merged_w) ->
+      List.map merged_reconciled_and_realigned_families ~f:(fun (f, maffttreein_realigned_w, reconciled_w, merged_w, (*mafftnogaptreein_realigned_w,*) muscle_realigned_w, muscletreein_realigned_w(*, musclenogap_realigned_w, musclenogaptreein_realigned_w*)) ->
           List.concat[
               List.map extension_list_merged ~f:(fun (ext,dir) ->
                 let input = merged_w / selector [ f ^ ext ] in
@@ -525,10 +533,19 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     )
                   ;
                   if configuration.refineali then
+                  List.concat_map [
+                                    (*(mafftnogaptreein_realigned_w,".mafft.nogap.treein");*)
+                                    (maffttreein_realigned_w,".mafft.treein") ;
+                                    (muscle_realigned_w,".muscle") ;
+                                    (muscletreein_realigned_w,".muscle.treein") ;
+                                    (*(musclenogap_realigned_w,".muscle.nogap") ;*)
+                                    (*(musclenogaptreein_realigned_w,".muscle.nogap.treein");*)
+                                    ] ~f:(fun (w, e) ->
                     List.map extension_list_realigned ~f:(fun (ext,dir) ->
-                        let input = realigned_w in
-                        let output = dest // dir // (f ^ ext)  in
+                        let input = w in
+                        let output = dest // dir // (f ^ e ^ ext)  in
                         seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    )
                     )
                   else
                     []
@@ -610,28 +627,31 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     | (_, Fasta_Single_end (w, _ )) -> [ any w ]
     | (_, Fasta_Paired_end (lw, rw , _)) -> [ any lw ; any rw ]
   in
-  let get_cluster_rep_blast_db x = x.cluster_rep_blast_db in
+  let get_reads_blast_dbs_w x = [any x.concat_fasta; any x.index_concat_fasta; any x.rep_cluster_fasta; any x.reformated_cluster; any x.index_cluster ; any x.cluster_rep_blast_db ] in 
   let get_last_on_three x = match x with
     | (_, _, y) -> y in
   let get_second_on_three x = match x with
     | (_, y, _) -> y in
-  let get_second_on_four x = match x with
-    | (_, y, _, _) -> y in
+  (*let get_second_on_four x = match x with
+    | (_, y, _, _) -> y in*)
   let get_merged_families = function
     |(_, w1, Some w2) -> [any w1; any w2]
     |(_, w1, None) -> [any w1]
+    in
+  let get_merged_reconciled_and_realigned_families = function
+    |(_ , w1, w2, w3, w4, w5(*, w6, w7, w8*)) -> [any w1; any w2; any w3; any w4; any w5(*; any w6; any w7; any w8*)]
     in
   List.concat [
     [any configuration_dir];
     List.concat_map norm_fasta ~f:unwrap_fasta_sample ;
     List.map trinity_assemblies ~f:(snd % any) ;
     List.map trinity_orfs ~f:(snd % any);
-    List.map reads_blast_dbs ~f:(snd % get_cluster_rep_blast_db % any);
+    List.concat_map reads_blast_dbs ~f:(snd % get_reads_blast_dbs_w);
     List.map trinity_annotated_fams ~f:(snd % any);
     List.map apytram_checked_families ~f:(get_last_on_three % any);
     List.concat_map merged_families ~f:get_merged_families;
     List.map merged_and_reconciled_families ~f:(get_second_on_three % any);
-    List.map merged_reconciled_and_realigned_families ~f:(get_second_on_four % any);
+    List.concat_map merged_reconciled_and_realigned_families ~f:get_merged_reconciled_and_realigned_families;
     [ any apytram_results_dir];
   ]
 
@@ -757,11 +777,11 @@ let build_app configuration =
       [[ "Configuration" ] %>  configuration_dir ]
         ;
       List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-        [ "draft_assemblies" ; "trinity_assemblies" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+        [ "draft_assemblies" ; "raw_assemblies" ; "Draft_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
        )
         ;
       List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+            [ "draft_assemblies" ; "orf_assemblies" ; "Draft_assemblies.cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
           )
       ;
       [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
@@ -828,16 +848,20 @@ let build_app configuration =
       ;
     ]
   in
-  let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
-  let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
 
   if configuration.just_parse_input then
+    let precious = [Bistro.Workflow configuration_dir] in
+    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
     repo_app
   else
-    let open Bistro_app in
+    let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
+    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
+    repo_app
+    (*let open Bistro_app in
     let stats_app =
         List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
         |> assoc
     in
     let f_app = pure (fun () trinity_assemblies_stats -> Report.generate ~trinity_assemblies_stats (Filename.concat configuration.outdir "report_end.html")) in
     f_app $ repo_app $ stats_app
+    *)
