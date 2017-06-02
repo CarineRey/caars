@@ -66,7 +66,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
   let amalgam_app = Amalgam.build_app configuration in
   Bistro_app.(
-    run ~logger:(logger quiet html_report dag_dot)  ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~keep_all:false amalgam_app
+    run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_AmalgamCache" amalgam_app
   )
 
 let spec =
