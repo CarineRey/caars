@@ -632,8 +632,8 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     | (_, _, y) -> y in
   let get_second_on_three x = match x with
     | (_, y, _) -> y in
-  let get_second_on_four x = match x with
-    | (_, y, _, _) -> y in
+  (*let get_second_on_four x = match x with
+    | (_, y, _, _) -> y in*)
   let get_merged_families = function
     |(_, w1, Some w2) -> [any w1; any w2]
     |(_, w1, None) -> [any w1]
