@@ -79,15 +79,15 @@ let spec =
   +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
-  +> flag "--no-reconcile"    no_arg            ~doc:"Not run final Reconciliation step"
-  +> flag "--refinetree"      no_arg            ~doc:"Refine topology during final Reconciliation step (Default:false)"
+  +> flag "--no-reconcile"    no_arg            ~doc:" Not run final Reconciliation step"
+  +> flag "--refinetree"      no_arg            ~doc:" Refine topology during final Reconciliation step (Default:false)"
 (*  +> flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"*)
   +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of an Amalgam sequences on its (non amalgam) closest sequence to be kept in the final output"
-  +> flag "--debug"           no_arg            ~doc:"Get intermediary files (Default:false)"
-  +> flag "--just-parse-input"no_arg            ~doc:"Parse input and exit. Recommended to check all input files. (Default:false)"
+  +> flag "--debug"           no_arg            ~doc:" Get intermediary files (Default:false)"
+  +> flag "--just-parse-input"no_arg            ~doc:" Parse input and exit. Recommended to check all input files. (Default:false)"
   +> flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"
   +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in an dot file (Can take a lot of time)"
-  +> flag "--quiet"           no_arg            ~doc:"Do not report progress.  Default: off"
+  +> flag "--quiet"           no_arg            ~doc:" Do not report progress.  Default: off"
 
 let command =
   Command.basic
