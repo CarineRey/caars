@@ -38,11 +38,11 @@ RUN pip install ete2
 
 #### install TransDecoder
 WORKDIR /opt
-RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.0.zip
-RUN unzip v3.0.0.zip  && rm v3.0.0.zip
-WORKDIR /opt/TransDecoder-3.0.0/
+RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.1.zip
+RUN unzip v3.0.1.zip  && rm v3.0.1.zip
+WORKDIR /opt/TransDecoder-3.0.1/
 RUN make
-ENV PATH /opt/TransDecoder-3.0.0/:$PATH
+ENV PATH /opt/TransDecoder-3.0.1/:$PATH
 
 
 ### Install muscle
