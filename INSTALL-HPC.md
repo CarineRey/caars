@@ -2,6 +2,7 @@
 
 **WORK IN PROGRESS**
 
+
 ## System-wide installation
 
 Like standard locations, or distribution packages.
@@ -47,6 +48,7 @@ python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade ete3
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade profileNJ
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade pandas
 python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade matplotlib
+python -m easy_install --prefix=$PREFIX --install-dir=$SITE --upgrade biopython
 ```
 
 Cleanup:
@@ -68,19 +70,6 @@ cd v3.0.1 && make
 ```
 
 Add ```/applis/PSMN/debian7/TransDecoder/v3.0.1``` and ```/applis/PSMN/debian7/TransDecoder/v3.0.1/util/bin``` to ```PATH```.
-
-### SRAToolKit >= 2.8.1-2
-
-SRAToolKit is ditributed as binary. Get it from [NCBI](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software)
-
-```sh
-mkdir -p /applis/PSMN/generic/SRAToolkit
-cd /applis/PSMN/generic/SRAToolkit/
-wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/2.8.1-2/sratoolkit.2.8.1-2-centos_linux64.tar.gz
-tar xzf sratoolkit.2.8.1-2-centos_linux64.tar.gz
-```
-
-Add ```/applis/PSMN/generic/SRAToolkit/sratoolkit.2.8.1-2-centos_linux64``` to ```PATH```.
 
 ### FastTree >= 2.1.7
 
@@ -369,3 +358,9 @@ Add:
 
 Et voilà! You're done.
 
+TO DO:
+
+* seqtk
+* biopython
+* cd-hit
+* remove sratoolkit
