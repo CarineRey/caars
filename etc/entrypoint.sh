@@ -4,8 +4,13 @@
 # Either use the LOCAL_USER_ID if passed in at runtime or
 # fallback
 
+if [ -n "$SHARED_DIR" ]
+then
+W_DIR=$SHARED_DIR
+fi
 
 W_DIR=${W_DIR:-/data}
+
 echo "Working directory : $W_DIR"
 cd $W_DIR
 
