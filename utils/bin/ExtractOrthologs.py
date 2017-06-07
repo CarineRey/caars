@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # coding: utf-8
 
-# File: GetReconstructedSequences.py
+# File: ExtractOrthologs.py
 # Created by: Carine Rey
-# Created on: September 2016
+# Created on: June 2017
 #
 #
-# Copyright 2016 Carine Rey
+# Copyright 2017 Carine Rey
 # This software is a computer program whose purpose is to assembly
 # sequences from RNA-Seq data (paired-end or single-end) using one or
 # more reference homologous sequences.
@@ -42,7 +42,7 @@ import re
 
 ### Set up the logger
 # create logger with 'spam_application'
-logger = logging.getLogger('GetReconstructedSequences')
+logger = logging.getLogger('ExtractOrthologs')
 logger.setLevel(logging.WARN)
 # create file handler which logs even debug messages
 # create console handler with a higher log level
@@ -56,24 +56,22 @@ logger.addHandler(ch)
 
 logger.debug(" ".join(sys.argv))
 
-if len(sys.argv) != 5:
-    logger.error("4 arguments are required")
+if ! len(sys.argv) in [4,5]:
+    logger.error("4 or 5 arguments are required")
     sys.exit(1)
 
-ali_dir = sys.argv[1]
+ortho_dir = sys.argv[1]
 sp2seq_dir = sys.argv[2]
-RefinedSpecies = set(sys.argv[3].split(","))
-out_dir = sys.argv[4]
-
-
-logger.debug(ali_dir)
-logger.debug(sp2seq_dir)
-logger.debug(" ".join(RefinedSpecies))
-logger.debug(out_dir)
+out_dir = sys.argv[3]
+if len(sys.argv) == 5:
+    RefinedSpecies = set(sys.argv[4].split(","))
+else:
+    RefinedSpecies = ""
+    
 
 ### Check input data
-if not os.path.isdir(ali_dir):
-    logger.error("The alignment directory %s does not exist", ali_dir)
+if not os.path.isdir(ortho_dir):
+    logger.error("The orthologs directory %s does not exist", ortho_dir)
     sys.exit(1)
 
 if not os.path.isdir(sp2seq_dir):
@@ -82,7 +80,7 @@ if not os.path.isdir(sp2seq_dir):
 
 
 ### Set up the  output directory
-for o_dir in [out_dir, out_dir + "/assemblies"]:
+for o_dir in [out_dir]:
     if os.path.isdir(o_dir):
         logger.info("The output directory %s exists", o_dir)
     else: # we create the directory
@@ -116,71 +114,72 @@ String_Seq2Sp = []
 for f in glob.glob("%s/*sp2seq.txt" %sp2seq_dir):
     (Seq2Sp_dict,String_Seq2Sp)  = read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, f, String_Seq2Sp, sep="\t")
 
-
 SeqSpLink_File = "%s/all_fam.seq2sp.tsv" %(out_dir)
 f_rewrite = open(SeqSpLink_File, "a")
 f_rewrite.write("".join(String_Seq2Sp) + "\n")
 f_rewrite.close()
 
 
-### Read all alignment in alignment_dir
-def read_ali_file(FastaFile, Seq2Sp_dict, AliDict):
-    logger.debug("Read %s", FastaFile)
+
+### Read all orthologs file in ortho_dir
+def read_ortho_file(OrthoFile):
+    logger.debug("Read %s", OrthoFile)
     name = ""
-    if os.path.isfile(FastaFile):
-        f = open(FastaFile, "r")
+    OrthoDict = {}
+    if os.path.isfile(OrthoFile):
+        f = open(OrthoFile, "r")
         for line in f:
             if re.match('[\s\n]', line):
                 pass
-            elif re.match('>', line):
-                name = line[1:-1]
-                if not Seq2Sp_dict.has_key(name):
-                    name = ""
-                else:
-                    SP = Seq2Sp_dict[name]
-                    AliDict.setdefault(SP, {})
-                    AliDict[SP].setdefault(name, [])
-            elif name:
-                SP = Seq2Sp_dict[name]
-                AliDict[SP][name].append(line)
+            elif re.match("ORTHOLOGY RELATIONSHIP: ", line):
+                line = line.replace("ORTHOLOGY RELATIONSHIP: ","").strip()
+                o_groups = line.replace(", ",",").replace(" <===> ", ",").split(",")
+                o_groups_size = len(o_groups)
+                OrthoDict.setdefault(o_groups_size, [])
+                OrthoDict[o_groups_size].append(o_groups)
             else:
                 pass
         f.close()
-    return AliDict
+    return OrthoDict
 
+test_dict=read_ortho_file(test)
 
-def write_seq(AliDict):
-    for (SP, Fam) in AliDict.keys():
-        Fasta_File = "%s/assemblies/amalgam_sequences.%s.fa" %(out_dir,SP)
-        string = []
-        for (name, seq) in AliDict[(SP, Fam)].items():
-            seq = "".join(seq).replace("-", "").replace("\n", "")
-            string.extend([">", name,"\t", Fam, "\n",
-                           '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60)),"\n"])
+print test_dict
+
+### Define orthology relationships for each seq:
+
+def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
+    ResDict = {}
+    SizeRange = OrthoDict.keys()
+    MinSize = min(SizeRange)
+    MaxSize = max(SizeRange)
     
-        f = open(Fasta_File, "w")
-        f.write("".join(string) + "\n")
-        f.close()
+    print(OrthoDict)
+    for Seq in ListSeqs:
+        print(Seq)
+        MinOrthogGroups = []
+        MaxOrthogGroups = []
         
-def write_validated_sp2seq(Seq2Sp_dict):
-    SeqSpLink_File = "%s/assemblies/amalgam_sequences.seq2sp2fam.txt" %(out_dir)
-    String = []
-    sep = "\t"
-    for seq in Seq2Sp_dict.keys():
-        (sp, fam) = Seq2Sp_dict[seq]
-        String.append("%s%s%s%s%s\n" %(seq, sep, sp, sep, fam))
+        i = MinSize
+        while (not MinOrthogGroups) and (i < MaxSize):
+            for g in OrthoDict[i]:
+                print OrthoDict[i]
+                if Seq in g:
+                    MinOrthogGroups = g
+                    break
+            i+=1
+        
+        i = MaxSize
+        while (not MaxOrthogGroups)  and (i > MinSize):
+            for g in OrthoDict[i]:
+                if Seq in g:
+                    MaxOrthogGroups = g
+                    break
+            i-=1
+        
+        ResDict[Seq] = [MinOrthogGroups, MaxOrthogGroups]
+    
+    return ResDict
 
-    f = open(SeqSpLink_File, "w")
-    f.write("".join(String) + "\n")
-    f.close()
 
-AliDict = {}
-for f in glob.glob("%s/*" %ali_dir):
-    AliDict = read_ali_file(f, Seq2Sp_dict, AliDict)
-
-
-write_validated_sp2seq(Seq2Sp_dict)
-write_seq(AliDict)
-
-
-sys.exit(0)
+define_orthologs_groups(test_dict, ['ENSMLUP00000022269', 'ENSMPUP00000009616', 'ENSSSCP00000017394', 'ENSOARP00000007435', 'ENSP00000297261', 'ENSCJAP00000037954', 'ENSOGAP00000016602', 'APAMM00000000001_ENSGT00390000001117', 'APAMA00000000001_ENSGT00390000001117', 'ENSSTOP00000015201', 'ENSCPOP00000014589', 'ENSOCUP00000014488', 'ENSLAFP00000029384', 'ENSDNOP00000021260'])

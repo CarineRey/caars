@@ -39,7 +39,7 @@ open Bistro_bioinfo.Std
 open Commons
 
 let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta workflow) : blast_db workflow =
-    workflow ~descr:("makeblastdb:" ^ dbname ^ " ") ~np:1 [
+    workflow ~descr:("makeblastdb:" ^ dbname) ~np:1 [
         mkdir_p dest;
         cmd "makeblastdb" [
                     option (flag string "-parse_seqids") parse_seqids ;
