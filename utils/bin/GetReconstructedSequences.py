@@ -92,7 +92,7 @@ for o_dir in [out_dir, out_dir + "/assemblies"]:
 ### Read all files in sp2seq_dir
 Seq2Sp_dict = {}
 
-def read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, File, String_Seq2Sp, sep="\t"):
+def read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
     logger.debug("Read %s", File)
     fam = os.path.basename(File).split('.')[0]
 
@@ -104,23 +104,15 @@ def read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, File, String_Seq2
                 logger.debug("Line (%s) has a problem", line)
             else:
                 (sp, seq) = line.split(":")
-                String_Seq2Sp.append("%s%s%s\n" %(seq, sep, sp))
                 if sp in RefinedSpecies:
                     Seq2Sp_dict[seq] = (sp, fam)
         f.close()
     
 
-    return (Seq2Sp_dict,String_Seq2Sp)
+    return (Seq2Sp_dict)
 
-String_Seq2Sp = []
 for f in glob.glob("%s/*sp2seq.txt" %sp2seq_dir):
-    (Seq2Sp_dict,String_Seq2Sp)  = read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, f, String_Seq2Sp, sep="\t")
-
-
-SeqSpLink_File = "%s/all_fam.seq2sp.tsv" %(out_dir)
-f_rewrite = open(SeqSpLink_File, "a")
-f_rewrite.write("".join(String_Seq2Sp) + "\n")
-f_rewrite.close()
+    Seq2Sp_dict  = read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, f)
 
 
 ### Read all alignment in alignment_dir

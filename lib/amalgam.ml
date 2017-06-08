@@ -91,7 +91,7 @@ let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} memory threads
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:true ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
@@ -324,7 +324,6 @@ let parse_apytram_results apytram_annotated_ref_fams =
     cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
   ]
 
-
 let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
 
 let seq_integrator
@@ -472,7 +471,7 @@ let realign_merged_families merged_and_reconciled_families configuration =
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
   let extension_list_merged = [(".fa","out/MSA_out");(".tree","out/GeneTree_out");(".sp2seq.txt","no_out/Sp2Seq_link")] in
-  let extension_list_filtered = [(".discarded.fa","out/FilterSummary_out");(".filter_summary.txt","no_out/FilterSummary_out")] in
+  let extension_list_filtered = [(".discarded.fa","out/FilterSummary_out");(".filter_summary.txt","out/FilterSummary_out")] in
 
   let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","out/GeneTreeReconciled_out");
                                    (".events.txt", "Species_tree/", "out/DL_out");
@@ -578,6 +577,29 @@ let get_reconstructed_sequences merged_and_reconciled_families_dirs configuratio
         ])
   else
     None
+
+(*
+option (flag string "--realign_ali") realign_ali;
+option (opt "-sptorefine" transform_species_list) species_to_refine_list;
+let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
+*)
+
+
+let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workflow) configuration =
+    let (ortho_dir,species_to_refine_list) = match configuration.run_reconciliation with
+        | true -> (Some(merged_and_reconciled_families_dirs / selector ["out/Orthologs_out"]),
+                   Some(List.map configuration.all_ref_samples ~f:(fun s -> s.species)))
+        | false -> (None, None)
+    in
+    workflow ~descr:"ExtractOrthologs.py" ~version:1 [
+            mkdir_p dest;
+            cmd "ExtractOrthologs.py"  [
+            ident dest;
+            dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
+            option (opt "" dep) ortho_dir ;
+            option (opt "" transform_species_list) species_to_refine_list ;
+            ]
+    ]
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
   let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
@@ -757,6 +779,8 @@ let build_app configuration =
   let merged_reconciled_and_realigned_families_dirs = merged_families_distributor merged_reconciled_and_realigned_families configuration in
 
   let reconstructed_sequences = get_reconstructed_sequences merged_reconciled_and_realigned_families_dirs configuration in
+  
+  let orthologs_per_seq = write_orthologs_relationships merged_reconciled_and_realigned_families_dirs configuration in
 
   (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
@@ -786,9 +810,16 @@ let build_app configuration =
       ;
        [["assembly_results_by_fam" ] %> (merged_reconciled_and_realigned_families_dirs / selector ["out/"])]
       ;
+      [["all_fam.seq2sp.tsv"] %> (orthologs_per_seq / selector ["all_fam.seq2sp.tsv"])]
+      ;
+      if configuration.run_reconciliation then
+        [["all_fam.orthologs.tsv"] %> (orthologs_per_seq/ selector["all_fam.orthologs.tsv"])]
+      else
+        []
+      ;
       match reconstructed_sequences with
         (*| Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"]); ["assembly_results_by_fam";"Sp2Seq_out"; "all_fam.seq2sp.tsv"] %> (w / selector ["all_fam.seq2sp.tsv"])]*)
-        | Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"]); ["all_fam.seq2sp.tsv"] %> (w / selector ["all_fam.seq2sp.tsv"])]
+        | Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"])]
         | None -> ()
       ;
       if configuration.debug then
