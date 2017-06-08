@@ -91,7 +91,7 @@ let trinity_assemblies_of_norm_fasta norm_fasta {trinity_samples} memory threads
   List.concat [
     List.filter_map norm_fasta ~f:(fun (s, norm_fasta) ->
         match (s.run_trinity, s.given_assembly) with
-        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:false ~full_cleanup:true ~memory ~threads norm_fasta)
+        | (true,false) -> Some (s, Trinity.trinity_fasta ~descr:(s.id ^ "_" ^ s.species) ~no_normalization:true ~full_cleanup:true ~memory ~threads norm_fasta)
         | (_, _)   -> None
       );
     List.filter_map trinity_samples ~f:(fun s ->
