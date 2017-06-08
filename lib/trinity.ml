@@ -220,7 +220,7 @@ let fastool ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta wo
   let descr = if descr = "" then
                   descr
                 else
-                  ":" ^ descr ^ " "
+                  ":" ^ descr
   in
   let script = [%bistro {|
     {{flag seq [string "ls "; w_input] check_input }}
