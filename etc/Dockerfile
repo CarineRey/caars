@@ -141,7 +141,7 @@ WORKDIR /data
 
 ##### update amalgam
 WORKDIR /opt/amalgam/
-RUN git fetch origin && git checkout test_aligner
+RUN git fetch origin && git checkout improve_outputs
 RUN make
 RUN cp /opt/amalgam/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
