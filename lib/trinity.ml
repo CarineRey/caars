@@ -195,6 +195,7 @@ let fasta_read_normalization_2
                 else
                   ":" ^ descr ^ " "
   in
+  let memory = int_of_float( float_of_int memory *. 0.75) in
   let script = [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
