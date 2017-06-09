@@ -95,12 +95,19 @@ let sample_fasta_orientation = function
   | Fasta_Paired_end ( lx, rx, o ) -> Right o
 
 
+
+
+let sample_file_orientation = function
+  | Sample_fasta x ->  sample_fasta_orientation x
+  | Sample_fastq x ->  sample_fastq_orientation x
+
+
+
 type rna_sample = {
   id : string ;
   species : string ;
   ref_species : string list;
   sample_file : ( string sample_fastq, string sample_fasta ) sample_file ;
-  sample_fastq: string sample_fastq ;
   run_trinity : bool ;
   run_transdecoder : bool ;
   path_assembly : string ;
