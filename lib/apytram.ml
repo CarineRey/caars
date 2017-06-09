@@ -86,7 +86,7 @@ let apytram_multi_species
     in
     let db_types =
       List.map compressed_reads_dbs ~f:(fun {s}->
-    seq ~sep:":" [string (string_of_db_type (sample_fastq_orientation s.sample_fastq)); string s.id]
+    seq ~sep:":" [string (string_of_db_type (sample_file_orientation s.sample_file)); string s.id]
       )
     in
     let formated_fasta =

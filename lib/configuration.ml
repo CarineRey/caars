@@ -28,6 +28,15 @@ let parse_fastq_path = function
   | "-" -> None
   | x -> Some x
 
+let parse_fastX_path f = match ( f, Filename.split_extension f) with
+  | ("-", _ ) -> None
+  | (x, ( _, Some "fa"  ))-> Some (Fasta x)
+  | (x, ( _, Some "fasta"  )) -> Some (Fasta x)
+  | (x, ( _, Some "fq"  )) -> Some (Fastq x)
+  | (x, ( _, Some "fastq"  )) -> Some (Fastq x)
+  | (x, ( _, Some y  )) -> failwith ({|Syntax error: sample file extension must be in  ["fa", ".fasta","fq","fastq"] (detected extension: |} ^ y  ^ ",  " ^ x ^" )." )
+  |  _  -> failwith ({|Syntax error: sample file extension must be in  ["fa", "fasta","fq","fastq"] |})
+
 let parse_orientation id = function
   | "F"  -> Some (Left F)
   | "R"  -> Some (Left R)
@@ -39,7 +48,7 @@ let parse_orientation id = function
   | _    -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|: orientation must be in ["F","R","RF","FR","US","UP"] |})
 
 let parse_line_fields_of_rna_conf_file = function
-  | [ id ; species ; ref_species ; path_fastq_single ; path_fastq_left ; path_fastq_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
+  | [ id ; species ; ref_species ; path_fastx_single ; path_fastx_left ; path_fastx_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
      let run_transdecoder = true in
 
      let ref_species = List.sort compare (String.split ~on:',' ref_species) in
@@ -58,16 +67,19 @@ let parse_line_fields_of_rna_conf_file = function
        | "no" | "No" | "n" | "N" -> false
        | _ -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|: run_apytram must be "yes" or "no" |})
      in
-
-     let sample_fastq = match (parse_fastq_path path_fastq_single,
-                             parse_fastq_path path_fastq_left,
-                             parse_fastq_path path_fastq_right,
+     let sample_file= match (parse_fastX_path path_fastx_single,
+                             parse_fastX_path path_fastx_left,
+                             parse_fastX_path path_fastx_right,
                              parse_orientation id orientation,
                              run_apytram,
                              run_trinity) with
-       | ( None    , Some  _, Some _, Some (Right o), _    , _    ) -> Fastq_Paired_end (path_fastq_left, path_fastq_right, o)
-       | ( Some  _ , None   , None  , Some (Left o) , _    , _    ) -> Fastq_Single_end (path_fastq_single, o)
-       | ( None    , None   , None  , None          , false, true ) -> Fastq_Single_end ("-", US)
+       | ( None    , Some  (Fastq _ ), Some (Fastq _ ), Some (Right o), _    , _   ) -> Sample_fastq (Fastq_Paired_end (path_fastx_left, path_fastx_right, o))
+       | ( None    , Some  (Fasta _ ), Some (Fasta _ ), Some (Right o), _    , _   ) -> Sample_fasta (Fasta_Paired_end (path_fastx_left, path_fastx_right, o))
+       | ( Some  (Fastq _) , None   , None  , Some (Left o) , _    , _    ) -> Sample_fastq(Fastq_Single_end (path_fastx_single, o))
+       | ( Some  (Fasta _) , None   , None  , Some (Left o) , _    , _    ) -> Sample_fasta(Fasta_Single_end (path_fastx_single, o))
+       | ( None    , None   , None  , None  , false, true ) -> Sample_fastq (Fastq_Single_end ("-", US))
+       | ( None    , Some  (Fasta _ ), Some (Fastq _ ), _ , _  , _   ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): You give  a fasta and a fastq file |})
+       | ( None    , Some  (Fastq _ ), Some (Fasta _ ), _ , _  , _   ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): You give  a fasta and a fastq file |})
        | ( None    , None   , None  , _             , true , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): You didn't give any RNA-seq data, but you ask to run apytram : it is impossible, apytram needs raw RNA-seq data.|})
        | ( Some  _ , None   , None  , Some (Right o), _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choice. Path for a single-end data but an orientation for a paired-end data.|})
        | ( None    , Some  _, Some _, Some (Left o) , _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choice. Paths for paired-end data but an orientation for a single-end data.|})
@@ -77,7 +89,7 @@ let parse_line_fields_of_rna_conf_file = function
      { id ;
        species ;
        ref_species ;
-       sample_fastq ;
+       sample_file ;
        run_trinity ;
        run_transdecoder ;
        path_assembly ;

@@ -57,19 +57,22 @@ let ref_blast_dbs_of_configuration_dir {all_ref_species} configuration_dir =
 let fastq_to_fasta_conversion {all_ref_samples} dep_input =
   let dep_input = None in
   List.filter_map all_ref_samples ~f:(fun s ->
-      let run_conversion = match (s.run_apytram,s.run_trinity, s.given_assembly) with
+      let need_rna = match (s.run_apytram,s.run_trinity, s.given_assembly) with
         |(true,_,_)         -> true
         |(false,true,true)  -> false
         |(false,true,false) -> true
         |(false,false,_)    -> false
       in
-      if run_conversion then
-        let sample_fastq = sample_fastq_map input s.sample_fastq in
+      if need_rna then
+        let sample_file = sample_file_map input s.sample_file in
         let sample_fastq_to_sample_fasta = function
           | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species) ~dep_input w , o )
           | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_left") ~dep_input lw , Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_right") ~dep_input rw , o)
         in
-        let sample_fasta = sample_fastq_to_sample_fasta sample_fastq in
+        let sample_fasta = match sample_file with
+            | Sample_fasta x -> x
+            | Sample_fastq x -> sample_fastq_to_sample_fasta x
+        in
         Some (s,sample_fasta)
       else
         None
