@@ -803,12 +803,18 @@ let build_app configuration =
     List.concat [
       [[ "families.txt" ] %>  (configuration_dir / selector [ "families.txt" ])]
         ;
-      List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-        [ "draft_assemblies" ; "raw_assemblies" ; "Draft_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+      List.concat_map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+        if s.given_assembly then
+          []
+        else
+          [[ "draft_assemblies" ; "raw_assemblies" ; "Draft_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly]
        )
         ;
-      List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-            [ "draft_assemblies" ; "cds" ; "Draft_assemblies.cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+      List.concat_map trinity_orfs ~f:(fun (s,trinity_orf) ->
+            if s.given_assembly then
+              []
+            else
+              [[ "draft_assemblies" ; "cds" ; "Draft_assemblies.cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf]
           )
       ;
        [["assembly_results_by_fam" ] %> (merged_reconciled_and_realigned_families_dirs / selector ["out/"])]
