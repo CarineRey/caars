@@ -377,7 +377,8 @@ if args.filter_threshold > 0:
             logger.debug("%s will be kept because its alignemnt lenght (%s) (with %s)  is > to %s and its identity %s >= 50 ", seqR_name, ali_p, closest_name, args.filter_threshold, id_p)
         else:
             logger.info("%s will be discarded because its alignemnt lenght (%s) (with %s)  is < to %s or its identity %s < 50 ", seqR_name,  ali_p, closest_name, args.filter_threshold, id_p)
-            list_otherseq.remove(closest_name)
+            if closest_name:
+                list_otherseq.remove(closest_name)
             (closest_name, d) = get_closest_seq(tree, seqR_name, list_otherseq)
             closest_sequence = prefilter_fasta.get(closest_name)
             logger.info("Test again with the second closest sequence (%s)", closest_name)
