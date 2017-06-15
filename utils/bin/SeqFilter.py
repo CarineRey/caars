@@ -51,15 +51,6 @@ from ete2 import Tree
 start_time = time.time()
 
 
-#SeqFilter.py -tmp example/working_dir/_bistro/tmp/015040fd9b1c0ddf57563c15db351e9d/dest/tmp \
-# -log example/working_dir/_bistro/tmp/015040fd9b1c0ddf57563c15db351e9d/dest/tmp/SeqFilter.fam_test.log \
-#   -ali example/working_dir/_bistro/cache/b9b56c6117af9be3c28f38d6ea3dba15/fam_test.fa
-#   -t /home/crey02/Documents/Projets/Convergences/Pipeline/AMALGAM/amalgam_git/example/working_dir/_bistro/cache/b9b56c6117af9be3c28f38d6ea3dba15/fam_test.tree \
-#   --realign_ali --resolve_polytomy -sptorefine Mus_musculus,Mesocricetus_auratus
-#   -sp2seq example/working_dir/_bistro/cache/b9b56c6117af9be3c28f38d6ea3dba15/fam_test.sp2seq.txt
-#   -out example/working_dir/_bistro/tmp/015040fd9b1c0ddf57563c15db351e9d/dest/fam_test
-
-
 ### Option defining
 parser = argparse.ArgumentParser(prog="SeqFilter.py",
                                  description='''Remove sequences if they have a percentage of alignement with its sister sequence under a given threshold.''')

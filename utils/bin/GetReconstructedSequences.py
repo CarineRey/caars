@@ -143,7 +143,7 @@ def read_ali_file(FastaFile, Seq2Sp_dict, AliDict):
 
 def write_seq(AliDict):
     for (SP, Fam) in AliDict.keys():
-        Fasta_File = "%s/assemblies/amalgam_sequences.%s.fa" %(out_dir,SP)
+        Fasta_File = "%s/assemblies/caars_sequences.%s.fa" %(out_dir,SP)
         string = []
         for (name, seq) in AliDict[(SP, Fam)].items():
             seq = "".join(seq).replace("-", "").replace("\n", "")
@@ -155,7 +155,7 @@ def write_seq(AliDict):
         f.close()
         
 def write_validated_sp2seq(Seq2Sp_dict):
-    SeqSpLink_File = "%s/assemblies/amalgam_sequences.seq2sp2fam.txt" %(out_dir)
+    SeqSpLink_File = "%s/assemblies/caars_sequences.seq2sp2fam.txt" %(out_dir)
     String = []
     sep = "\t"
     for seq in Seq2Sp_dict.keys():

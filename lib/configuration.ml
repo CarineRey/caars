@@ -160,7 +160,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
   else if Filename.is_relative species_tree_file then
-    failwith {|amalgam needs the absolute path of the species tree.|}
+    failwith {|caars needs the absolute path of the species tree.|}
   else if families = [] then
     failwith ({|No files with .fa extention in |} ^ alignments_dir)
   else

@@ -1,11 +1,11 @@
-amalgam:
-	ocamlbuild -use-ocamlfind -I lib -tag thread -pkgs bistro.utils,bistro.bioinfo,ppx_bistro app/amalgam_app.byte
-
+caars:
+	ocamlbuild -use-ocamlfind -I lib -tag thread -pkgs bistro.utils,bistro.bioinfo,ppx_bistro app/caars_app.byte
+	mv caars_app.byte Caars
 test:
-	cd example && bash Launch_amalgam.sh
+	cd example && bash Launch_caars.sh
 
 test2:
-	cd example && bash Launch_amalgam2.sh
+	cd example && bash Launch_caars2.sh
 
 clean_test:
 	cd example && rm -r working_dir/ output_dir/
@@ -17,4 +17,4 @@ clean:
 	ocamlbuild -clean
 	rm -f utils/lib/*.pyc
 
-.PHONY: amalgam test clean_test clean
+.PHONY: caars test clean_test clean
