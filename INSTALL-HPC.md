@@ -1,4 +1,4 @@
-# caars on HPC
+# CAARS on HPC
 
 **WORK IN PROGRESS**
 
@@ -16,7 +16,7 @@ apt-get install python-setuptools python-qt4 python-scipy python-mysqldb python-
 
 ## Installation on non-standard locations
 
-Here we describe a painfully, but complete, installation of caars and all it's dependencies (out of order). 
+Here we describe a painfully, but complete, installation of CAARS and all it's dependencies (out of order). 
 
 We will use [PSMN](http://www.ens-lyon.fr/PSMN/)'s case study as an example.
 
@@ -328,7 +328,7 @@ opam init
 eval `opam config env`
 ```
 
-* Install caars's OCaml depencies as standard user:
+* Install CAARS's OCaml depencies as standard user:
 
 ```sh
 opam pin add bistro --dev-repo
@@ -340,9 +340,9 @@ opam should automagically install bistro's dependencies:
 * solvuu-build
 * ocamlgraph
 
-### Caars developement version
+### CAARS developement version
 
-Finally (at last), install caars from [github](https://github.com/CarineRey/caars).
+Finally (at last), install CAARS from [github](https://github.com/CarineRey/caars).
 
 ```sh
 mkdir -p /applis/PSMN/debian7/caars

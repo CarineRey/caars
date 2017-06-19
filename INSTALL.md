@@ -1,4 +1,4 @@
-# caars 
+# CAARS 
 
 ## Dependencies tree
 
@@ -61,7 +61,7 @@ You may need root rights (use for instance ```sudo```)
 
 ## Installation on non-standard locations
 
-Here we describe a painfully, but complete, installation of caars and all it's dependencies (out of order).
+Here we describe a painfully, but complete, installation of CAARS and all it's dependencies (out of order).
 
 ### Python 2.7
 
@@ -343,7 +343,7 @@ opam init
 eval `opam config env`
 ```
 
-* Install caars OCaml depencies:
+* Install CAARS OCaml depencies:
 
 as user:
 
@@ -358,9 +358,9 @@ opam should install bistro's dependencies:
 * ocamlgraph
 
 
-### Caars
+### CAARS
 
-Finally (at last), install caars from [github](https://github.com/CarineRey/caars).
+Finally (at last), install CAARS from [github](https://github.com/CarineRey/caars).
 
 
 ```sh
