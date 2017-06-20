@@ -39,7 +39,7 @@ Indeed, CAARS builds links with absolute path which will be break if you don't u
 CAARS can be call directly in the docker container terminal.
 
 ```sh
-user_caars@1dbd8f2594cc:/shared/directory$ Caars -help
+user_caars@1dbd8f2594cc:/shared/directory$ caars -help
 ```
 
 All data use in the container must be contained in the $SHARED_DIRECTORY, indeed the container "sees" only directory tree from the shared directory. 
@@ -58,7 +58,7 @@ See [INSTALL.md](INSTALL.md) or [INSTALL-HPC.md](INSTALL-HPC.md).
 Example:
 
 ```
-Caars  --outdir OUTPUT_DIR --sample-sheet sample_sheet.tsv --species-tree /home/user/data/species_tree.nw --alignment-dir GENE_FAMILIES_MSA_DIR --seq2sp-dir GENE_FAMILIES_SEQ2SP_DIR --np 2 --memory 5
+caars  --outdir OUTPUT_DIR --sample-sheet sample_sheet.tsv --species-tree /home/user/data/species_tree.nw --alignment-dir GENE_FAMILIES_MSA_DIR --seq2sp-dir GENE_FAMILIES_SEQ2SP_DIR --np 2 --memory 5
 ```
 
 CAARS will work in a directory named ```_bistro``` build in the current directory.
@@ -75,9 +75,9 @@ See the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial) for more us
 
 
 ```
-Caars
+caars
 
-  Caars
+  caars
 
 === flags ===
 

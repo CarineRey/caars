@@ -1,6 +1,6 @@
 caars:
 	ocamlbuild -use-ocamlfind -I lib -tag thread -pkgs bistro.utils,bistro.bioinfo,ppx_bistro app/caars_app.byte
-	mv caars_app.byte Caars
+	mv caars_app.byte caars
 test:
 	cd example && bash Launch_CAARS.sh
 
