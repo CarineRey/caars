@@ -35,6 +35,7 @@
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
+open Core
 
 type ('a,'b) either =
   | Left of 'a
@@ -136,5 +137,12 @@ type compressed_read_db = {
   cluster_rep_blast_db : blast_db workflow;
 }
 
-
-
+let bash_script args code =
+  let prelude =
+    args
+    |> List.map ~f:(fun (k, v) ->
+        seq ~sep:"" [ string k ; string "=" ; v ]
+      )
+    |> seq ~sep:"\n"
+  in
+  seq ~sep:"\n" [ prelude ; string code ]

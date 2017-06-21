@@ -32,7 +32,7 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core.Std
+open Core
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
@@ -113,28 +113,28 @@ let config_output_fastq_paired_or_single = function
                          seq ~sep: " " [string "mv $rightlink";  dest // "right.norm.fq" ];
                       ]
 
-let fastq_read_normalization
-    max_cov
-    ~threads
-    ?(memory = 1)
-    (fastq : _ fastq workflow sample_fastq)
-    : _ fastq directory workflow =
-  let script = [%bistro{|
-    TRINITY_PATH=`which Trinity`
-    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
-    READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-    $READ_NORMALISATION_PATH  {{ config_fastq_paired_or_single fastq }} --seqType "fq" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
+(* let fastq_read_normalization *)
+(*     max_cov *)
+(*     ~threads *)
+(*     ?(memory = 1) *)
+(*     (fastq : _ fastq workflow sample_fastq) *)
+(*     : _ fastq directory workflow = *)
+(*   let script = [%bistro{| *)
+(*     TRINITY_PATH=`which Trinity` *)
+(*     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH` *)
+(*     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl *)
+(*     $READ_NORMALISATION_PATH  {{ config_fastq_paired_or_single fastq }} --seqType "fq" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }} *)
 
-    {{ config_output_fastq_paired_or_single fastq }}
+(*     {{ config_output_fastq_paired_or_single fastq }} *)
 
-    |}]
-  in
-  workflow ~descr:"fastq_read_normalization" ~version:2 ~np:threads ~mem:(1024 * memory) [
-    mkdir_p dest;
-    mkdir_p tmp;
-    cd tmp;
-    cmd "sh" [ file_dump script ]
-    ]
+(*     |}] *)
+(*   in *)
+(*   workflow ~descr:"fastq_read_normalization" ~version:2 ~np:threads ~mem:(1024 * memory) [ *)
+(*     mkdir_p dest; *)
+(*     mkdir_p tmp; *)
+(*     cd tmp; *)
+(*     cmd "sh" [ file_dump script ] *)
+(*     ] *)
 let config_fasta_paired_or_single = function
   | Fasta_Single_end (w, _ ) ->
         seq ~sep: " " [ string "--single" ; dep w ]
@@ -153,35 +153,51 @@ let config_output_fasta_paired_or_single = function
                          seq ~sep: " " [string "mv $rightlink";  dest // "right.norm.fa" ];
                       ]
 
-let fasta_read_normalization
-    ?(descr = "")
-    max_cov
-    ~threads
-    ?(memory = 1)
-    (fasta : fasta workflow sample_fasta)
-    : fasta directory workflow =
-  let descr = if descr = "" then
-                  descr
-                else
-                  ":" ^ descr ^ " "
-  in
-  let memory = int_of_float( float_of_int memory *. 0.75) in
-  let script = [%bistro{|
-    TRINITY_PATH=`which Trinity`
-    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
-    READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl
-    $READ_NORMALISATION_PATH  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }}
+(* let fasta_read_normalization *)
+(*     ?(descr = "") *)
+(*     max_cov *)
+(*     ~threads *)
+(*     ?(memory = 1) *)
+(*     (fasta : fasta workflow sample_fasta) *)
+(*     : fasta directory workflow = *)
+(*   let descr = if descr = "" then *)
+(*                   descr *)
+(*                 else *)
+(*                   ":" ^ descr ^ " " *)
+(*   in *)
+(*   let memory = int_of_float( float_of_int memory *. 0.75) in *)
+(*   let script = [%bistro{| *)
+(*     TRINITY_PATH=`which Trinity` *)
+(*     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH` *)
+(*     READ_NORMALISATION_PATH=$TRINTIY_DIR_PATH/util/insilico_read_normalization.pl *)
+(*     $READ_NORMALISATION_PATH  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }} *)
 
-    {{ config_output_fasta_paired_or_single fasta }}
+(*     {{ config_output_fasta_paired_or_single fasta }} *)
 
-    |}]
+(*     |}] *)
+(*   in *)
+(*   workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [ *)
+(*     mkdir_p dest; *)
+(*     mkdir_p tmp ; *)
+(*     cd tmp; *)
+(*     cmd "sh" [ file_dump script ]; *)
+(*     ] *)
+
+let fasta_read_normalization_script ~fasta ~max_cov =
+  let vars = [
+    "TRINITY_PATH", string "`which Trinity`" ;
+    "TRINTIY_DIR_PATH", string "`dirname $TRINITY_PATH`" ;
+    "PERL5LIB", string "$TRINTIY_DIR_PATH/PerlLib:$PERL5LIB" ;
+    "FA", config_fasta_paired_or_single fasta ;
+    "MEM", seq [ string "$((" ; mem ; string " / 1024))" ] ;
+    "MAX_COV", int max_cov ;
+    "NP", np ;
+    "TMP", tmp ;
+  ]
   in
-  workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
-    mkdir_p dest;
-    mkdir_p tmp ;
-    cd tmp;
-    cmd "sh" [ file_dump script ];
-    ]
+  bash_script vars {|
+    trinity.insilico_read_normalization.pl $FA --seqType "fa" --JM ${MEM}G --max_cov $MAX_COV --CPU $NP --output $TMP --trinity_dir $TRINTIY_DIR_PATH
+    |}
 
 let fasta_read_normalization_2
     ?(descr = "")
@@ -196,23 +212,12 @@ let fasta_read_normalization_2
                   ":" ^ descr ^ " "
   in
   let memory = int_of_float( float_of_int memory *. 0.75) in
-  let script = [%bistro{|
-    TRINITY_PATH=`which Trinity`
-    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
-    PERL5LIB=$TRINTIY_DIR_PATH/PerlLib:$PERL5LIB
-    trinity.insilico_read_normalization.pl  {{ config_fasta_paired_or_single fasta }} --seqType "fa" --JM {{ seq [ string "$((" ; mem ; string " / 1024))" ]}}G --max_cov {{ int max_cov }} --CPU {{ ident np }} --output {{ ident tmp }} --trinity_dir $TRINTIY_DIR_PATH
-
-    {{ config_output_fasta_paired_or_single fasta }}
-
-    |}]
-  in
   workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp ;
     cd tmp;
-    cmd "sh" [ file_dump script ];
+    cmd "sh" [ file_dump (fasta_read_normalization_script ~fasta ~max_cov) ];
     ]
-
 
 let fastool ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta workflow =
   let (check_input, w_input) = match dep_input with
@@ -224,13 +229,20 @@ let fastool ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta wo
                 else
                   ":" ^ descr
   in
-  let script = [%bistro {|
-    {{flag seq [string "ls "; w_input] check_input }}
-    TRINITY_PATH=`which Trinity`
-    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
-    FASTOOL_PATH=$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool
-    $FASTOOL_PATH --illumina-trinity --to-fasta  {{ dep fastq }} > {{ ident dest }}
-    |} ]
+  let script =
+    let vars = [
+      "TRINITY_PATH", string "`which Trinity`" ;
+      "TRINTIY_DIR_PATH", string "`dirname $TRINITY_PATH`" ;
+      "FASTOOL_PATH", string "$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool" ;
+      "CHECK", flag seq [string "ls "; w_input] check_input  ;
+      "FQ", dep fastq ;
+      "DEST", dest ;
+    ]
+    in
+    bash_script vars {|
+    $CHECK
+    $FASTOOL_PATH --illumina-trinity --to-fasta  $FQ > $DEST
+    |}
   in
   workflow ~descr:("fastq2fasta" ^ descr) ~np:1 [
     cmd "sh" [ file_dump script ];
@@ -243,18 +255,23 @@ let assembly_stats ?(descr="") (fasta:fasta workflow) : assembly_stats workflow 
                 else
                   ":" ^ descr ^ " "
    in
-   let script = [%bistro {|
-    TRINITY_PATH=`which Trinity`
-    TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
-    TRINITYSTATS_PATH=$TRINTIY_DIR_PATH/util/TrinityStats.pl
-    FASTA={{ dep fasta }}
+   let script =
+     let vars = [
+       "TRINITY_PATH", string "`which Trinity`" ;
+       "TRINTIY_DIR_PATH", string "`dirname $TRINITY_PATH`" ;
+       "TRINITYSTATS_PATH", string "$TRINTIY_DIR_PATH/util/TrinityStats.pl" ;
+       "FASTA" , dep fasta ;
+       "DEST", dest ;
+     ]
+     in
+     bash_script vars {|
     if [ -s $FASTA ]
     then
-    $TRINITYSTATS_PATH {{ dep fasta }} > {{ ident dest }}
+    $TRINITYSTATS_PATH $FASTA > $DEST
     else
-    echo "Empty file" > {{ ident dest }}
+    echo "Empty file" > $DEST
     fi
-    |} ]
+    |}
   in
   workflow ~descr:("assembly_stats_trinity" ^ descr) ~np:1 [
     cmd "sh" [ file_dump script ];

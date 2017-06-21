@@ -32,7 +32,7 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core.Std
+open Core
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std

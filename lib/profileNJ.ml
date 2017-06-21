@@ -32,14 +32,41 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core.Std
+open Core
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
+open Commons
 
 type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
+
+let script_pre ~tree ~tmp_treein ~link =
+  let args = [
+    "TREE", dep tree ;
+    "TMP_TREEIN", tmp_treein ;
+    "LINK", dep link ;
+    "DEST", dest ;
+  ]
+  in
+  bash_script args {|
+    cp $TREE $TMP_TREEIN
+    for l in $(cat $LINK); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq/$seq@$sp/" $TMP_TREEIN; done
+|}
+
+let script_post ~tree ~link ~tmp_treeout =
+  let args = [
+    "TREE", dep tree ;
+    "TMP_TREEOUT", tmp_treeout ;
+    "LINK", dep link ;
+  ]
+  in
+  bash_script args {|
+    name=`basename $TREE`
+    for l in $(cat $LINK); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq@$sp/$seq/" $TMP_TREEOUT; done
+    grep -v -e ">" $TMP_TREEOUT > $DEST/$name
+    |}
 
 let profileNJ
     ?(descr="")
@@ -51,25 +78,13 @@ let profileNJ
 
     let tmp_treein = tmp // "tree_in_pNJ.tree" in
     let tmp_treeout = tmp // "tree_in_pNJ.tree" in
-    
-    let script_pre = [%bistro {|
-    cp {{ dep tree }} {{ ident tmp_treein }}
-    for l in $(cat {{ dep link }}); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq/$seq@$sp/" {{ ident tmp_treein }}; done
-    |} ] in
-    
-    let script_post = [%bistro {|
-    name=`basename {{ dep tree }} `
-    for l in $(cat {{ dep link }}); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq@$sp/$seq/" {{ ident tmp_treeout }} ; done
-    grep -v -e ">" {{ ident tmp_treeout }} > {{ ident dest }}/$name
-    |} ]
-    in
 
     workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) [
     mkdir_p tmp;
     mkdir_p dest;
     cd tmp;
     (* Preparing profileNJ configuration files*)
-    cmd "sh" [ file_dump script_pre ];
+    cmd "sh" [ file_dump (script_pre ~tree ~tmp_treein ~link) ];
     cmd "profileNJ" [
               opt "-s" string sptreefile ;
               opt "-g" ident tmp_treein;
@@ -78,7 +93,5 @@ let profileNJ
               opt "--spos" string "postfix";
               opt "--sep" string "@";
               ];
-    cmd "sh" [ file_dump script_post ];
+    cmd "sh" [ file_dump (script_post ~tree ~link ~tmp_treeout) ];
     ]
-    
-    

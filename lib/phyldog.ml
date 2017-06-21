@@ -32,14 +32,43 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core.Std
+open Core
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
+open Commons
 
 type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
+
+let phyldog_script ~config_dir ~results_species ~tree ~results_genes =
+  let vars = [
+    "LIST_SPECIES", config_dir // "listSpecies.txt" ;
+    "TREE", dep tree ;
+    "RESULT_SPECIES", results_species ;
+    "NP", np ;
+    "GENERAL_OPTIONS", config_dir // "GeneralOptions.txt" ;
+    "RESULT_GENES", results_genes ;
+  ]
+  in
+  bash_script vars {|
+    nb_species=`wc -l $LIST_SPECIES`
+    filename=`basename $TREE`
+    family=${filename%.*}
+    touch ${RESULT_SPECIES}${family}.orthologs.txt
+    touch ${RESULT_SPECIES}${family}.events.txt
+    if [ $nb_species -gt 2 ]
+    then
+     mpirun -np $NP -mca btl sm,self phyldog param=$GENERAL_OPTIONS
+     cut -f 2 ${RESULTS_SPECIES}orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
+     cut -f 1,3- -d "," ${RESULTS_SPECIES}events.txt > ${RESULTS_SPECIES}${family}.events.txt
+    else
+     nw2nhx.py $TREE >  ${RESULTS_GENES}${family}.ReconciledTree
+    fi
+|}
+
+
 
 let phyldog_by_fam
     ?(descr="")
@@ -86,23 +115,7 @@ let phyldog_by_fam
               opt "-gene_trees_resdir" ident results_genes;
               opt "-optdir" seq [ ident config_dir ] ;
               ];
-    let script = [%bistro {|
-    nb_species=`wc -l < {{ident (config_dir // "listSpecies.txt")}} `
-    filename=`basename {{ dep tree }}`
-    family=${filename%.*}
-    touch {{ ident results_species}}"$family".orthologs.txt
-    touch {{ ident results_species}}"$family".events.txt
-    if [ $nb_species -gt 2 ]
-    then
-     mpirun -np {{ ident np  }} -mca btl sm,self phyldog param={{ident (config_dir // "GeneralOptions.txt")}}
-     cut -f 2 {{ ident results_species}}orthologs.txt > {{ ident results_species}}"$family".orthologs.txt
-     cut -f 1,3- -d "," {{ ident results_species}}events.txt > {{ ident results_species}}"$family".events.txt
-    else
-     nw2nhx.py {{ dep tree }} >  {{ ident results_genes }}"$family".ReconciledTree
-    fi
-    |} ]
-    in
-    cmd "sh" [ file_dump script ];
+    cmd "sh" [ file_dump (phyldog_script ~config_dir ~tree ~results_species ~results_genes) ];
     (*
     (* Run phyldog *)
     cmd "mpirun" [
