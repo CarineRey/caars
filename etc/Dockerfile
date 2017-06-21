@@ -31,7 +31,7 @@ RUN apt-get install --no-install-recommends -qy unzip \
                         ssh \ 
 #mpi needs something to communicate (rsh, ssh other)
 # to install fasttree
-                        fasttree
+                        fasttree \
                         sudo
 
 
