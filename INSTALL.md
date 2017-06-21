@@ -61,7 +61,7 @@ You may need root rights (use for instance ```sudo```)
 
 ## Installation on non-standard locations
 
-Here we describe a painfully, but complete, installation of CAARS and all it's dependencies (out of order).
+Here we describe a painfull, but complete, installation of CAARS and all its dependencies (out of order).
 
 ### Python 2.7
 
@@ -84,7 +84,7 @@ python -m easy_install --upgrade biopython
 
 ### Transdecoder >= 3.0.1
 
-Get it from [https://github.com/TransDecoder/TransDecoder](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it build cd-hit.
+Get it from [https://github.com/TransDecoder/TransDecoder](https://github.com/TransDecoder/TransDecoder). It's written in Perl, but it builds cd-hit.
 
 ``` sh
 mkdir -p /home/user/bin/TransDecoder
@@ -124,7 +124,7 @@ mafft is already packaged. See [Dependencies installation via distribution packa
 
 #### blast+ >= 2.6
 
-Blast+ is distributed as binary. Get it from [NCBI](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
+Blast+ is distributed as binary, which can be downloaded at the [NCBI](https://blast.ncbi.nlm.nih.gov/Blast.cgi).
 
 ```
 mkdir -p /home/user/bin/Blast/
