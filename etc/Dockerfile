@@ -1,5 +1,5 @@
 FROM carinerey/apytram
-MAINTAINER Carine Rey carine.rey@ens-lyon.fr
+MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 RUN apt-get clean && apt-get update
 
@@ -141,12 +141,12 @@ WORKDIR /data
 
 ##### update caars
 WORKDIR /opt/caars/
-RUN git fetch origin && git checkout improve_outputs
-RUN make
+RUN git fetch origin && git checkout renaming_caars
+RUN make clean && make
 RUN cp /opt/caars/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy sudo
 
-CMD ["caars_app.byte", "-h"]
+CMD ["caars", "-h"]
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
