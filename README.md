@@ -1,10 +1,10 @@
 # CAARS: Comparative Assembly and Annotation of RNA-Seq data
 
-A method to introduce RNA-seq data in existing multi-species multiple sequence alignments and reconstruct reliable phylogenies.
+A method to introduce RNA-Seq data in existing multi-species multiple sequence alignments and reconstruct reliable phylogenies.
 
 Any question or suggestion on the program can be addressed to: carine.rey@ens-lyon.org
 
-For more information gto to the wiki page [https://github.com/CarineRey/caars/wiki](https://github.com/CarineRey/caars/wiki)
+For more information see the wiki page [https://github.com/CarineRey/caars/wiki](https://github.com/CarineRey/caars/wiki)
 
 # Installation
 
@@ -29,22 +29,22 @@ And you're done!
 
 You **can** use:
  *  ``` -v $SHARED_DIR:$SHARED_DIR  ``` to share your working directory between your computer and the virtual environment in the docker container.
-Indeed, CAARS builds links with absolute path which will be break if you don't use the same directory tree.
+Indeed, CAARS builds links with absolute path which will be broken if you don't use the same directory tree.
 
  * ``` -e LOCAL_USER_ID=`id -u $USER` ``` to allow giving user rights on files created in the docker container.
  * ``` -e W_DIR=$SHARED_DIR ``` to set the working directory as the shared directory in the docker container.
 
-CAARS can be call directly in the docker container terminal.
+CAARS can be called directly in the docker container terminal.
 
 ```sh
 user_caars@1dbd8f2594cc:/shared/directory$ caars -help
 ```
 
-All data use in the container must be contained in the $SHARED_DIRECTORY, indeed the container "sees" only directory tree from the shared directory. 
+All data used in the container must be placed in the $SHARED_DIRECTORY, indeed the container "sees" only directory tree from the shared directory. 
 
-See the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial) for more usage.
+See the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial) for more information.
 
-If you have any problem don't hesitate to contact me (carine.rey@ens-lyon.org).
+If you have any problem do not hesitate to contact me (carine.rey@ens-lyon.org).
 
 
 ## Complete installation
@@ -63,7 +63,7 @@ CAARS will work in a directory named ```_caars``` build in the current directory
 This directory will contain all output files but under coded names.
 At the end, CAARS will build symbolic links between the OUTPUT_DIR and the ```_caars`` directory.
 
-To be sure to not lost your output file, copy the OUTPUT_DIR to a new directory by taking into account links.
+To be sure not to loose your output file, copy the OUTPUT_DIR to a new directory by taking into account links.
 For instance:
 ```
 cp -rL OUTPUT_DIR OK_OUTPUT_DIR
@@ -82,10 +82,10 @@ caars
   --alignment-dir PATH     Directory containing all gene family alignments
                            (Family_name.fa) in fasta format.
   --outdir PATH            Destination directory.
-  --sample-sheet PATH      sample sheet file.
+  --sample-sheet PATH      Sample sheet file.
   --seq2sp-dir PATH        Directory containing all link files
                            (Family_name.tsv). A line for each sequence and its
-                           species spaced by a tabulation.
+                           species spaced with tabulations.
   --species-tree ABSOLUTE  PATH Species tree file in nw format containing all
                            species. Warning absolute path is required.
   [--dag-graph PATH]       Write dag graph in an dot file (Can take a lot of
@@ -101,7 +101,7 @@ caars
   [--no-reconcile]         Not run final Reconciliation step
   [--np INT]               Number of CPUs (at least 2). (Default:2)
   [--quiet]                Do not report progress. Default: off
-  [--refinetree]           Refine topology during final Reconciliation step
+  [--refinetree]           Refine topology during final reconciliation step
                            (Default:false)
   [-build-info]            print info about this build and exit
   [-version]               print the version of this build and exit
@@ -126,7 +126,7 @@ Each filename must be composed of the name of the gene family and the extension 
 CAARS needs in input a sample sheet file.
 
 This file is composed of 10 tabulated delimited columns with headers:
-  * Sample ID: an unique identifiant (3 capital letters is recommended)
+  * Sample ID: an unique identifier (3 capital letters is recommended)
   * Sample species name: the species of the sample
   * Reference species name: A reference species to annotate the sample.
   * Path for a single-end RNA-seq run : Single *fastq* or *fasta* file path (authorized extension: .fa, .fasta, .fq, .fastq)
@@ -161,7 +161,7 @@ Go to the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial) page to h
 
 Two test datasets are also available in the source directory of CAARS.
 
-* A very little dataset (1 min):
+* A very small dataset (1 min):
 ```sh
 # In the CAARS directory (/opt/CAARS in the docker container) run:
 make test
@@ -172,7 +172,7 @@ bash Launch_CAARS.sh
 make clean_test
 ```
 
-* A little dataset (10 min):
+* A small dataset (10 min):
 ```sh
 # In the CAARS directory (/opt/CAARS in the docker container) run:
 make test2
