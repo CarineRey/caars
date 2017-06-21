@@ -116,7 +116,7 @@ type rna_sample = {
 }
 
 type config_rna_seq = rna_sample list
-type output = [ `amalgam_output ]
+type output = [ `caars_output ]
 type configuration_dir = [ `configuration ]
 
 type sp2seq_link

@@ -1,5 +1,5 @@
 FROM carinerey/apytram
-MAINTAINER Carine Rey carine.rey@ens-lyon.fr
+MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 RUN apt-get clean && apt-get update
 
@@ -128,25 +128,25 @@ ENV PERL5LIB /home/user/.opam/4.03.0/lib/perl5
 ##### install bistro
 RUN opam pin add bistro --dev-repo
 
-### install amalgam
-WORKDIR /opt/amalgam/
-RUN git clone https://github.com/carinerey/amalgam /opt/amalgam/ && make
-RUN cp /opt/amalgam/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
+### install caars
+WORKDIR /opt/caars/
+RUN git clone https://github.com/carinerey/caars /opt/caars/ && make
+RUN cp /opt/caars/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
-ENV PATH /opt/amalgam/utils/bin:/opt/amalgam:$PATH
-ENV PYTHONPATH /opt/amalgam/utils/lib
+ENV PATH /opt/caars/utils/bin:/opt/caars:$PATH
+ENV PYTHONPATH /opt/caars/utils/lib
 
 ##### build a working directory
 WORKDIR /data
 
-##### update amalgam
-WORKDIR /opt/amalgam/
-RUN git fetch origin && git checkout improve_outputs
-RUN make
-RUN cp /opt/amalgam/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
+##### update caars
+WORKDIR /opt/caars/
+RUN git fetch origin && git checkout renaming_caars
+RUN make clean && make
+RUN cp /opt/caars/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy sudo
 
-CMD ["amalgam_app.byte", "-h"]
+CMD ["caars", "-h"]
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]

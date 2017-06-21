@@ -48,7 +48,7 @@ let trinity_section trinity_assemblies_stats =
 
 (* http://ocsigen.org/tyxml/4.0.1/manual/intro*) 
 let render ~trinity_assemblies_stats =
-  let mytitle = "Amalgam report" in
+  let mytitle = "Caars report" in
   let contents =
     List.concat [
       [

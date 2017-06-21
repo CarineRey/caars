@@ -1,4 +1,4 @@
-# amalgam 
+# CAARS 
 
 ## Dependencies tree
 
@@ -61,7 +61,7 @@ You may need root rights (use for instance ```sudo```)
 
 ## Installation on non-standard locations
 
-Here we describe a painfully, but complete, installation of amalgam and all it's dependencies (out of order).
+Here we describe a painfully, but complete, installation of CAARS and all it's dependencies (out of order).
 
 ### Python 2.7
 
@@ -343,7 +343,7 @@ opam init
 eval `opam config env`
 ```
 
-* Install amalgam OCaml depencies:
+* Install CAARS OCaml depencies:
 
 as user:
 
@@ -358,25 +358,25 @@ opam should install bistro's dependencies:
 * ocamlgraph
 
 
-### Amalgam
+### CAARS
 
-Finally (at last), install amalgam from [github](https://github.com/CarineRey/amalgam).
+Finally (at last), install CAARS from [github](https://github.com/CarineRey/caars).
 
 
 ```sh
-git clone https://github.com/carinerey/amalgam /home/user/bin/amalgam/
-cd  /home/user/bin/amalgam/
+git clone https://github.com/carinerey/caars /home/user/bin/caars/
+cd  /home/user/bin/caars/
 make
 ```
 
-Add ```/home/user/bin/amalgam/``` to ```PATH```.
+Add ```/home/user/bin/caars/``` to ```PATH```.
 
 ``` sh
-export PATH=/home/user/bin/amalgam/:$PATH
+export PATH=/home/user/bin/caars/:$PATH
 ```
 
 To test that all is okay, you can run `make test`
 ``` sh
-cd  /home/user/bin/amalgam/
+cd  /home/user/bin/caars/
 make test
 ```

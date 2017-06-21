@@ -1,4 +1,4 @@
-# amalgam on HPC
+# CAARS on HPC
 
 **WORK IN PROGRESS**
 
@@ -16,7 +16,7 @@ apt-get install python-setuptools python-qt4 python-scipy python-mysqldb python-
 
 ## Installation on non-standard locations
 
-Here we describe a painfully, but complete, installation of amalgam and all it's dependencies (out of order). 
+Here we describe a painfully, but complete, installation of CAARS and all it's dependencies (out of order). 
 
 We will use [PSMN](http://www.ens-lyon.fr/PSMN/)'s case study as an example.
 
@@ -328,7 +328,7 @@ opam init
 eval `opam config env`
 ```
 
-* Install amalgam's OCaml depencies as standard user:
+* Install CAARS's OCaml depencies as standard user:
 
 ```sh
 opam pin add bistro --dev-repo
@@ -340,21 +340,21 @@ opam should automagically install bistro's dependencies:
 * solvuu-build
 * ocamlgraph
 
-### Amalgam developement version
+### CAARS developement version
 
-Finally (at last), install amalgam from [github](https://github.com/CarineRey/amalgam).
+Finally (at last), install CAARS from [github](https://github.com/CarineRey/caars).
 
 ```sh
-mkdir -p /applis/PSMN/debian7/amalgam
-cd /applis/PSMN/debian7/amalgam/
-git clone https://github.com/carinerey/amalgam dev
+mkdir -p /applis/PSMN/debian7/caars
+cd /applis/PSMN/debian7/caars/
+git clone https://github.com/carinerey/caars dev
 cd dev/
 make
 ```
 
 Add:
-* ```/applis/PSMN/debian7/amalgam/utils/bin:/applis/PSMN/debian7/amalgam``` to ```PATH```,
-* ```/applis/PSMN/debian7/amalgam/lib``` to ```PYTHONPATH```.
+* ```/applis/PSMN/debian7/caars/utils/bin:/applis/PSMN/debian7/caars``` to ```PATH```,
+* ```/applis/PSMN/debian7/caars/lib``` to ```PYTHONPATH```.
 
 Et voilà! You're done.
 
