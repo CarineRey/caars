@@ -40,6 +40,10 @@ type ('a,'b) either =
   | Left of 'a
   | Right of 'b
 
+type ('a,'b) fastX =
+  | Fasta of 'a
+  | Fastq of 'b
+
 type orientation_single =
   | F
   | R
@@ -49,6 +53,10 @@ type orientation_paired =
   | FR
   | RF
   | UP
+
+type ('a,'b) sample_file =
+  | Sample_fastq of 'a
+  | Sample_fasta of 'b
 
 type 'a sample_fastq =
   | Fastq_Single_end of 'a * orientation_single
@@ -74,6 +82,10 @@ let sample_fasta_map f = function
   | Fasta_Single_end ( x , o ) ->  Fasta_Single_end ( f x , o )
   | Fasta_Paired_end ( lx, rx, o ) -> Fasta_Paired_end (f lx, f rx, o)
 
+let sample_file_map f = function
+  | Sample_fasta x ->  Sample_fasta (sample_fasta_map f x)
+  | Sample_fastq x ->  Sample_fastq (sample_fastq_map f x)
+
 let sample_fastq_is_paired = function
   | Fastq_Single_end _ ->  false
   | Fastq_Paired_end _ -> true
@@ -83,11 +95,19 @@ let sample_fasta_orientation = function
   | Fasta_Paired_end ( lx, rx, o ) -> Right o
 
 
+
+
+let sample_file_orientation = function
+  | Sample_fasta x ->  sample_fasta_orientation x
+  | Sample_fastq x ->  sample_fastq_orientation x
+
+
+
 type rna_sample = {
   id : string ;
   species : string ;
   ref_species : string list;
-  sample_fastq : string sample_fastq ;
+  sample_file : ( string sample_fastq, string sample_fasta ) sample_file ;
   run_trinity : bool ;
   run_transdecoder : bool ;
   path_assembly : string ;
@@ -96,7 +116,7 @@ type rna_sample = {
 }
 
 type config_rna_seq = rna_sample list
-type output = [ `amalgam_output ]
+type output = [ `caars_output ]
 type configuration_dir = [ `configuration ]
 
 type sp2seq_link

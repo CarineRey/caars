@@ -1,3 +1,3 @@
 id	species	ref_species	path_fastq_single	path_fastq_left	path_fastq_right	orientation	run_trinity	path_assembly	run_apytram
-AMM	Mus_musculus	Homo_sapiens,Cavia_porcellus	-	../data/rna_seq/fastq/Mus_musculus.datatest.1.fastq	../data/rna_seq/fastq/Mus_musculus.datatest.2.fastq	UP	yes	-	yes
-AMA	Mesocricetus_auratus	Cavia_porcellus,Homo_sapiens	-	../data/rna_seq/fastq/Mesocricetus_auratus.datatest.1.fastq	../data/rna_seq/fastq/Mesocricetus_auratus.datatest.2.fastq	UP	yes	-	yes
+CMM	Mus_musculus	Homo_sapiens,Cavia_porcellus	-	../data/rna_seq/fastq/Mus_musculus.datatest.1.fastq	../data/rna_seq/fastq/Mus_musculus.datatest.2.fastq	UP	yes	-	yes
+CMA	Mesocricetus_auratus	Cavia_porcellus,Homo_sapiens	-	../data/rna_seq/fastq/Mesocricetus_auratus.datatest.1.fastq	../data/rna_seq/fastq/Mesocricetus_auratus.datatest.2.fastq	UP	yes	-	yes

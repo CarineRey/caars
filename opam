@@ -1,17 +1,17 @@
 opam-version: "1.2"
-name: "amalgam"
+name: "caars"
 version: "0.0"
-maintainer: "Carine Rey <carine.rey@ens-lyon.fr>"
+maintainer: "Carine Rey <carine.rey@ens-lyon.org>"
 authors: [
   "Bastien Boussau"
   "Carine Rey"
   "Marie Sémon"
   "Philippe Veber"
 ]
-homepage: "https://github.com/CarineRey/amalgam"
-bug-reports: "https://github.com/CarineRey/amalgam/issues"
+homepage: "https://github.com/CarineRey/caars"
+bug-reports: "https://github.com/CarineRey/caars/issues"
 license: "CeCILL"
-dev-repo: "https://github.com/CarineRey/amalgam.git"
+dev-repo: "https://github.com/CarineRey/caars.git"
 build: [
   [make]
   [make "META"]

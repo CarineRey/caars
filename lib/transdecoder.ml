@@ -51,7 +51,7 @@ let transdecoder
   let descr = if descr = "" then
                   descr
                 else
-                  ":" ^ descr ^ " "
+                  ":" ^ descr
   in
   let script = [%bistro{|
         if ! [ -x "$(command -v TransDecoder.LongOrfs)" ]; then   echo 'Transdecoder.LongOrfs is not installed.' >&2; exit 1; fi

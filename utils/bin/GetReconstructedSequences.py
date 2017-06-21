@@ -43,11 +43,11 @@ import re
 ### Set up the logger
 # create logger with 'spam_application'
 logger = logging.getLogger('GetReconstructedSequences')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARN)
 # create file handler which logs even debug messages
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG) #WARN
+ch.setLevel(logging.WARN) #WARN
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -82,18 +82,20 @@ if not os.path.isdir(sp2seq_dir):
 
 
 ### Set up the  output directory
-if os.path.isdir(out_dir):
-    logger.info("The output directory %s exists", out_dir)
-else: # we create the directory
-    logger.warning("The output directory %s does not exist, it will be created.", out_dir)
-    os.makedirs(out_dir)
+for o_dir in [out_dir, out_dir + "/assemblies"]:
+    if os.path.isdir(o_dir):
+        logger.info("The output directory %s exists", o_dir)
+    else: # we create the directory
+        logger.warning("The output directory %s does not exist, it will be created.", o_dir)
+        os.makedirs(o_dir)
 
 ### Read all files in sp2seq_dir
 Seq2Sp_dict = {}
 
-def read_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
+def read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
     logger.debug("Read %s", File)
     fam = os.path.basename(File).split('.')[0]
+
     if os.path.isfile(File):
         f = open(File, "r")
         for line in f:
@@ -105,10 +107,13 @@ def read_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
                 if sp in RefinedSpecies:
                     Seq2Sp_dict[seq] = (sp, fam)
         f.close()
-    return Seq2Sp_dict
+    
+
+    return (Seq2Sp_dict)
 
 for f in glob.glob("%s/*sp2seq.txt" %sp2seq_dir):
-    Seq2Sp_dict = read_seq2species_file(Seq2Sp_dict, RefinedSpecies, f)
+    Seq2Sp_dict  = read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, f)
+
 
 ### Read all alignment in alignment_dir
 def read_ali_file(FastaFile, Seq2Sp_dict, AliDict):
@@ -124,9 +129,12 @@ def read_ali_file(FastaFile, Seq2Sp_dict, AliDict):
                 if not Seq2Sp_dict.has_key(name):
                     name = ""
                 else:
-                    AliDict.setdefault(name, [])
+                    SP = Seq2Sp_dict[name]
+                    AliDict.setdefault(SP, {})
+                    AliDict[SP].setdefault(name, [])
             elif name:
-                AliDict[name].append(line)
+                SP = Seq2Sp_dict[name]
+                AliDict[SP][name].append(line)
             else:
                 pass
         f.close()
@@ -134,19 +142,20 @@ def read_ali_file(FastaFile, Seq2Sp_dict, AliDict):
 
 
 def write_seq(AliDict):
-    Fasta_File = "%s/amalgam_sequences.fa" %(out_dir)
-    string = []
-    for (name, seq) in AliDict.items():
-        seq = "".join(seq).replace("-", "").replace("\n", "")
-        string.extend([">", name, "\n",
-                       '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60)),"\n"])
+    for (SP, Fam) in AliDict.keys():
+        Fasta_File = "%s/assemblies/CAARS_sequences.%s.fa" %(out_dir,SP)
+        string = []
+        for (name, seq) in AliDict[(SP, Fam)].items():
+            seq = "".join(seq).replace("-", "").replace("\n", "")
+            string.extend([">", name,"\t", Fam, "\n",
+                           '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60)),"\n"])
     
-    f = open(Fasta_File, "w")
-    f.write("".join(string) + "\n")
-    f.close()
+        f = open(Fasta_File, "a")
+        f.write("".join(string) + "\n")
+        f.close()
         
 def write_validated_sp2seq(Seq2Sp_dict):
-    SeqSpLink_File = "%s/amalgam_sequences.seq2sp2fam.txt" %(out_dir)
+    SeqSpLink_File = "%s/assemblies/CAARS_sequences.seq2sp2fam.txt" %(out_dir)
     String = []
     sep = "\t"
     for seq in Seq2Sp_dict.keys():

@@ -165,6 +165,7 @@ let fasta_read_normalization
                 else
                   ":" ^ descr ^ " "
   in
+  let memory = int_of_float( float_of_int memory *. 0.75) in
   let script = [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
@@ -194,6 +195,7 @@ let fasta_read_normalization_2
                 else
                   ":" ^ descr ^ " "
   in
+  let memory = int_of_float( float_of_int memory *. 0.75) in
   let script = [%bistro{|
     TRINITY_PATH=`which Trinity`
     TRINTIY_DIR_PATH=`dirname $TRINITY_PATH`
@@ -220,7 +222,7 @@ let fastool ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta wo
   let descr = if descr = "" then
                   descr
                 else
-                  ":" ^ descr ^ " "
+                  ":" ^ descr
   in
   let script = [%bistro {|
     {{flag seq [string "ls "; w_input] check_input }}

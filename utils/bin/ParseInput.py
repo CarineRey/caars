@@ -48,11 +48,11 @@ import ete2
 ### Set up the logger
 # create logger with 'spam_application'
 logger = logging.getLogger('ParseInput')
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.WARN)
 # create file handler which logs even debug messages
 # create console handler with a higher log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING) #WARN
+ch.setLevel(logging.WARN) #WARN
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
 ch.setFormatter(formatter)
@@ -96,7 +96,7 @@ if not os.path.isdir(seq2sp_dir):
 
 ### Set up the  output directory
 if os.path.isdir(out_dir):
-    logger.info("The output directory %s exists", out_dir)
+    logger.debug("The output directory %s exists", out_dir)
 else: # we create the directory
     logger.warning("The output directory %s does not exist, it will be created.", out_dir)
     os.makedirs(out_dir)
@@ -106,7 +106,7 @@ else: # we create the directory
 t = ete2.Tree(species_tree_file)
 All_Species = [leaf.name for leaf in t.iter_leaves()]
 
-logger.info("Sp : %s", All_Species)
+logger.info("Sp:\n%s", ";".join(All_Species))
 
 ### Retrieve Reference species for Trinity or apytram:
 RefSpTrinity = []
@@ -115,6 +115,7 @@ RnaSp = []
 
 error_nb = 0
 
+logger.info("Parse the sample sheet")
 with open(config_file, "r") as f:
     HeaderConf = f.readline()
     for line in f:
@@ -151,12 +152,12 @@ with open(config_file, "r") as f:
             error_nb += 1
 
 
-    logger.info("Ref Trinity : %s", RefSpTrinity)
-    logger.info("Ref Apytram : %s", RefSpApytram)
-    logger.info("Rna species : %s", RnaSp)
+    logger.debug("Ref Trinity : %s", RefSpTrinity)
+    logger.debug("Ref Apytram : %s", RefSpApytram)
+    logger.debug("Rna species : %s", RnaSp)
 
 if error_nb > 0:
-    logger.error("%s errors\n", error_nb)
+    logger.error("%s errors in the sample sheet. Please correct them.\n", error_nb)
     sys.exit(1)
 
 ### Read all files in seq2sp_dir
@@ -175,6 +176,7 @@ def read_seq2species_file(Seq2Sp_dict, File):
         f.close()
     return Seq2Sp_dict
 
+logger.info("Parse each Sequence-Species link file")
 for f in glob.glob("%s/*.tsv" %seq2sp_dir):
     Seq2Sp_dict = read_seq2species_file(Seq2Sp_dict, f)
 
@@ -279,6 +281,9 @@ def write_seq_ref_apytram(Ref_dic_trinity, AliDict_i, Family):
 SeenSeq2SpDict = {}
 CountDict2 = {}
 Nb_Family = 0
+
+FamToDiscard_list = []
+logger.info("Parse each fasta file")
 for f in glob.glob("%s/*" %ali_dir):
     Family = os.path.basename(f).split('.')[0]
     Extention = os.path.basename(f).split('.')[1]
@@ -286,44 +291,74 @@ for f in glob.glob("%s/*" %ali_dir):
     AliDict_i, err = read_ali_file(f)
     Nb_seqs = len(AliDict_i.keys())
     SpeciesList = []
+    Missing_Seq = False
     for s in AliDict_i.keys():
         if s in Seq2Sp_dict:
             SpeciesList.append(Seq2Sp_dict[s])
         else:
-            logger.error("No sequence called %s in %s/*.tsv", s, seq2sp_dir)
-            sys.exit(1)
+            Reason = "No sequence called %s in %s/*.tsv" %(s, seq2sp_dir)
+            logger.error("[%s] -->\t%s",Family,Reason)
+            FamToDiscard_list.append((Family, Reason))
+            Missing_Seq = True
+            #sys.exit(1)
+    if Missing_Seq:
+        continue
     Nb_sp = len(set(SpeciesList))
     if  Extention != "fa":
-        logger.error("%s is not a fasta file with Family.fa as filename. (Detected extention %s)", f, Extention)
-        sys.exit(1)
+        Reason = "%s is not a fasta file with Family.fa as filename. (Detected extention %s)" %(f, Extention)
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+        continue
+        #sys.exit(1)
     if not os.path.isfile("%s/%s.%s" %(ali_dir, Family, "fa")):
-        logger.error("%s is not a fasta file with Family.fa as filename.(Detected file: %s/%s.%s)", f, ali_dir, Family, "fa")
-        sys.exit(1)
+        Reason = "%s is not a fasta file with Family.fa as filename.(Detected file: %s/%s.%s)" %(f, ali_dir, Family, "fa")
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+        continue
+        #sys.exit(1)
     if err:
-        logger.error("%s is not a fasta file", f)
-        sys.exit(1)
+        Reason = "%s is not a fasta file" %(f)
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+        continue
+        #sys.exit(1)
     if Nb_seqs < 3:
-        logger.error("%s has less than 3 sequences. (%s sequences detected in: %s)", Family, Nb_seqs, f)
+        Reason = "%s has less than 3 sequences. (%s sequences detected in: %s)" %(Family, Nb_seqs, f)
         if Nb_sp < 3:
-            logger.error("AND %s has less than 3 species. (%s species detected in: %s)", Family, Nb_sp, f)
-        sys.exit(1)
+            Reason += "AND %s has less than 3 species. (%s species detected in: %s)" %(Family, Nb_sp, f)
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+        next
+        #sys.exit(1)
     if Nb_sp < 3:
-        logger.error("%s has less than 3 species. (%s species detected in: %s)", Family, Nb_sp, f)
-        sys.exit(1)
+        Reason = "%s has less than 3 species. (%s species detected in: %s)" %(Family, Nb_sp, f)
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+        continue
+        #sys.exit(1)
+
     # Check all sequence name in Seq2SpDict
     if not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
-        logger.error("All sequences present in %s are not in a file from %s", f, seq2sp_dir)
-        sys.exit(1)
+        Reason = "All sequences present in %s are not in a file from %s" %(f, seq2sp_dir)
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+        continue
+        #sys.exit(1)
+
     # Check all sp in All_species and write each temporary files
     Ref_dic_trinity = {}
     Ref_dic_apytram = dict([(key, []) for key in RefSpApytram])
     SeenSeq2SpDict_i = {}
 
+    SupSpecies = False
     for seq in AliDict_i.keys():
         sp = Seq2Sp_dict[seq]
         if SeenSeq2SpDict.has_key(seq):
-            logger.error("Sequence name:%s is not unique", seq)
-            sys.exit(1)
+            SupSpecies = True
+            Reason = "Sequence name:%s is not unique" %(seq)
+            logger.error("[%s] -->\t%s",Family,Reason)
+            FamToDiscard_list.append((Family, Reason))
+            #sys.exit(1)
         SeenSeq2SpDict[seq] = sp
         SeenSeq2SpDict_i[seq] = sp
         CountDict2.setdefault(sp, {"Nb_seq":0, "Nb_family":0, "Families":[]})
@@ -337,13 +372,22 @@ for f in glob.glob("%s/*" %ali_dir):
             if sp in RefSpApytram:
                 Ref_dic_apytram.setdefault(sp, []).append(seq)
         elif not sp in All_Species:
-            logger.error("%s not in the species tree (%s)", Seq2Sp_dict[seq], species_tree_file)
-            sys.exit(1)
-
+            SupSpecies = True
+            Reason = "%s not in the species tree (%s)" %(Seq2Sp_dict[seq], species_tree_file)
+            logger.error("[%s] -->\t%s",Family,Reason)
+            FamToDiscard_list.append((Family, Reason))
+            #sys.exit(1)
+    
+    if SupSpecies:
+        continue
     write_validated_sp2seq(SeenSeq2SpDict_i, Family)
     write_seq_ref_Trinity(Ref_dic_trinity, AliDict_i, Family)
     write_seq_ref_apytram(Ref_dic_apytram, AliDict_i, Family)
 
+if FamToDiscard_list:
+    logger.error("Correct or remove families with errors (See above)")
+    #sys.stderr.write("\n".join(["%s\t%s" %(f,r) for (f,r) in FamToDiscard_list]))
+    sys.exit(1)
 
 # Statistics:
 # Number of sequences by species:

@@ -18,19 +18,19 @@ let sp2seq_link fam : (output, sp2seq_link) selector =
 let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~families ~memory : configuration_dir directory workflow =
   let families_out = dest // "families.txt" in
   let script = Bistro.Template.(
-      List.map families ~f:(fun f -> string f)
+      List.map ("Detected families:" :: families) ~f:(fun f -> string f)
       |> seq ~sep:"\n"
       )
       in
-  workflow ~np:1 ~descr:"Parse input" ~version:12 ~mem:(memory * 1024) [
+  workflow ~np:1 ~descr:"Parse input" ~version:13 ~mem:(memory * 1024) [
     mkdir_p dest;
-    cmd "cp" [ file_dump script; families_out];
     cmd "ParseInput.py"  [ dep sample_sheet ;
                            dep species_tree_file;
                            dep alignments_dir;
                            dep seq2sp_dir;
                            ident dest ;
-                         ]
+                         ];
+    cmd "cp" [ file_dump script; families_out];
   ]
 
 let ref_transcriptomes species : (configuration_dir, fasta) selector =
@@ -57,19 +57,22 @@ let ref_blast_dbs_of_configuration_dir {all_ref_species} configuration_dir =
 let fastq_to_fasta_conversion {all_ref_samples} dep_input =
   let dep_input = None in
   List.filter_map all_ref_samples ~f:(fun s ->
-      let run_conversion = match (s.run_apytram,s.run_trinity, s.given_assembly) with
+      let need_rna = match (s.run_apytram,s.run_trinity, s.given_assembly) with
         |(true,_,_)         -> true
         |(false,true,true)  -> false
         |(false,true,false) -> true
         |(false,false,_)    -> false
       in
-      if run_conversion then
-        let sample_fastq = sample_fastq_map input s.sample_fastq in
+      if need_rna then
+        let sample_file = sample_file_map input s.sample_file in
         let sample_fastq_to_sample_fasta = function
           | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species) ~dep_input w , o )
           | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_left") ~dep_input lw , Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_right") ~dep_input rw , o)
         in
-        let sample_fasta = sample_fastq_to_sample_fasta sample_fastq in
+        let sample_fasta = match sample_file with
+            | Sample_fasta x -> x
+            | Sample_fastq x -> sample_fastq_to_sample_fasta x
+        in
         Some (s,sample_fasta)
       else
         None
@@ -282,6 +285,7 @@ let checkfamily
   ~family
   ~ref_transcriptome
   ~seq2fam
+  ~evalue
   : fasta workflow =
   let tmp_checkfamily = dest // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
@@ -297,6 +301,7 @@ let checkfamily
       opt "-o" ident dest_checkfamily;
       (*opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));*)
       opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
+      opt "-e" float evalue; 
     ]
   ]
   / selector [ "sequences.fa" ]
@@ -308,7 +313,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
-    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db in
+    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-40 in
     (s, f, checked_families_fasta)
     )
 
@@ -323,7 +328,6 @@ let parse_apytram_results apytram_annotated_ref_fams =
   workflow ~version:4 ~descr:"Parse_apytram_results.py" ~np:1  [
     cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
   ]
-
 
 let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
 
@@ -361,7 +365,7 @@ let seq_integrator
 
   let tmp_merge = dest // "tmp" in
 
-  workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family ^ " ") [
+  workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family) [
     mkdir_p tmp_merge ;
     cmd "SeqIntegrator.py"  [
       opt "-tmp" ident tmp_merge;
@@ -391,7 +395,7 @@ let seq_filter
 
   let tmp_merge = dest // "tmp" in
 
-  workflow ~version:8 ~descr:("SeqFilter.py:" ^ family ^ " ") [
+  workflow ~version:8 ~descr:("SeqFilter.py:" ^ family) [
     mkdir_p tmp_merge ;
     cmd "SeqFilter.py"  [
       opt "-tmp" ident tmp_merge;
@@ -457,45 +461,44 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
 
 let realign_merged_families merged_and_reconciled_families configuration =
   List.map  merged_and_reconciled_families ~f:(fun (fam, reconciled_w, merged_w) ->
-    let ali = merged_w / selector [ fam ^ ".fa" ] in
+    (*let ali = merged_w / selector [ fam ^ ".fa" ] in
     let treein = reconciled_w / selector [ "Gene_trees/" ^ fam ^ ".ReconciledTree" ] in
-    let threads = 1 in
-    let maffttreein_realigned_w = Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in
+    let threads = 1 in*)
+    (*let maffttreein_realigned_w = Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in*)
     (*let mafftnogaptreein_realigned_w = Aligner.mafft_from_nogap ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in*)
     
-    let muscle_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~maxiters:1 ali in
-    let muscletreein_realigned_w = Aligner.muscletreein ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in
-    (*let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in
-    let musclenogaptreein_realigned_w = Aligner.musclenogaptreein ~descr:(":" ^ fam) ~treein  ~maxiters:1 ali in
-    *)
-    (fam, maffttreein_realigned_w, reconciled_w, merged_w, (*mafftnogaptreein_realigned_w,*) muscle_realigned_w, muscletreein_realigned_w (*, musclenogap_realigned_w, musclenogaptreein_realigned_w*))
+    (*let muscle_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~maxiters:1 ali in*)
+    (*let muscletreein_realigned_w = Aligner.muscletreein ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in*)
+    (*let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in*)
+    (*let musclenogaptreein_realigned_w = Aligner.musclenogaptreein ~descr:(":" ^ fam) ~treein  ~maxiters:1 ali in*)
+    (fam, (*maffttreein_realigned_w*)reconciled_w, merged_w (*mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w , musclenogap_realigned_w, musclenogaptreein_realigned_w*))
     )
 
 let merged_families_distributor merged_reconciled_and_realigned_families configuration=
-  let extension_list_merged = [(".fa","Merged_fasta");(".tree","Merged_tree");(".sp2seq.txt","Sp2Seq_link")] in
-  let extension_list_filtered = [(".discarded.fa","Filter_summary");(".filter_summary.txt","Filter_summary")] in
+  let extension_list_merged = [(".fa","out/MSA_out");(".tree","out/GeneTree_out");(".sp2seq.txt","no_out/Sp2Seq_link")] in
+  let extension_list_filtered = [(".discarded.fa","out/FilterSummary_out");(".filter_summary.txt","out/FilterSummary_out")] in
 
-  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","Reconciled_Gene_tree");
-                                   (".events.txt", "Species_tree/", "DL_events");
-                                   (".orthologs.txt", "Species_tree/", "Orthologs")] in
-  let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in
+  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","out/GeneTreeReconciled_out");
+                                   (".events.txt", "Species_tree/", "out/DL_out");
+                                   (".orthologs.txt", "Species_tree/", "out/Orthologs_out")] in
+  (*let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in*)
   workflow ~descr:"build_output_directory" ~version:1 (List.concat [
     [mkdir_p tmp;
 
-    mkdir_p (dest // "Merged_fasta");
-    mkdir_p (dest // "Merged_tree");
-    mkdir_p (dest // "Sp2Seq_link");
+    mkdir_p (dest // "out" // "MSA_out");
+    mkdir_p (dest // "out" // "GeneTree_out");
+    mkdir_p (dest // "no_out" // "Sp2Seq_link");
     ]
     ;
     if configuration.ali_sister_threshold > 0. && (List.length configuration.all_ref_samples) > 0 then
-        [mkdir_p (dest // "Filter_summary")]
+        [mkdir_p (dest // "out" // "FilterSummary_out")]
     else
         []
     ;
     if configuration.run_reconciliation then
-       [mkdir_p (dest // "Reconciled_Gene_tree");
-       mkdir_p (dest // "DL_events");
-       mkdir_p (dest // "Orthologs");
+       [mkdir_p (dest // "out" // "GeneTreeReconciled_out");
+       mkdir_p (dest // "out" // "DL_out");
+       mkdir_p (dest // "out" // "Orthologs_out");
        ]
     else
         []
@@ -507,7 +510,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     ;
     [
     let script = Bistro.Template.(
-      List.map merged_reconciled_and_realigned_families ~f:(fun (f, maffttreein_realigned_w, reconciled_w, merged_w, (*mafftnogaptreein_realigned_w,*) muscle_realigned_w, muscletreein_realigned_w(*, musclenogap_realigned_w, musclenogaptreein_realigned_w*)) ->
+      List.map merged_reconciled_and_realigned_families ~f:(fun (f, (*maffttreein_realigned_w,*) reconciled_w, merged_w (*mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w, musclenogap_realigned_w, musclenogaptreein_realigned_w*)) ->
           List.concat[
               List.map extension_list_merged ~f:(fun (ext,dir) ->
                 let input = merged_w / selector [ f ^ ext ] in
@@ -532,7 +535,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
                     )
                   ;
-                  if configuration.refineali then
+                  (*if configuration.refineali then
                   List.concat_map [
                                     (*(mafftnogaptreein_realigned_w,".mafft.nogap.treein");*)
                                     (maffttreein_realigned_w,".mafft.treein") ;
@@ -549,7 +552,8 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     )
                   else
                     []
-                ;]
+                *)
+                ]
               else
                   []
               ;
@@ -567,17 +571,40 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
 let get_reconstructed_sequences merged_and_reconciled_families_dirs configuration =
   if (List.length configuration.all_ref_samples) > 0 then
     let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
-    Some (workflow ~descr:"GetReconstructedSequences.py" ~version:2 [
+    Some (workflow ~descr:"GetReconstructedSequences.py" ~version:6 [
             mkdir_p dest;
             cmd "GetReconstructedSequences.py"  [
-            dep merged_and_reconciled_families_dirs // "Merged_fasta";
-            dep merged_and_reconciled_families_dirs // "Sp2Seq_link";
+            dep merged_and_reconciled_families_dirs // "out/MSA_out";
+            dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
             seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
             ident dest
             ]
         ])
   else
     None
+
+(*
+option (flag string "--realign_ali") realign_ali;
+option (opt "-sptorefine" transform_species_list) species_to_refine_list;
+let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
+*)
+
+
+let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workflow) configuration =
+    let (ortho_dir,species_to_refine_list) = match configuration.run_reconciliation with
+        | true -> (Some(merged_and_reconciled_families_dirs / selector ["out/Orthologs_out"]),
+                   Some(List.map configuration.all_ref_samples ~f:(fun s -> s.species)))
+        | false -> (None, None)
+    in
+    workflow ~descr:"ExtractOrthologs.py" ~version:1 [
+            mkdir_p dest;
+            cmd "ExtractOrthologs.py"  [
+            ident dest;
+            dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
+            option (opt "" dep) ortho_dir ;
+            option (opt "" transform_species_list) species_to_refine_list ;
+            ]
+    ]
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
   let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
@@ -639,7 +666,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     |(_, w1, None) -> [any w1]
     in
   let get_merged_reconciled_and_realigned_families = function
-    |(_ , w1, w2, w3, w4, w5(*, w6, w7, w8*)) -> [any w1; any w2; any w3; any w4; any w5(*; any w6; any w7; any w8*)]
+    |(_ , w1, w2 (*w3, w4, w5, w6, w7, w8*)) -> [any w1; any w2; (*any w3; any w4; any w5; any w6; any w7; any w8*)]
     in
   List.concat [
     [any configuration_dir];
@@ -757,6 +784,8 @@ let build_app configuration =
   let merged_reconciled_and_realigned_families_dirs = merged_families_distributor merged_reconciled_and_realigned_families configuration in
 
   let reconstructed_sequences = get_reconstructed_sequences merged_reconciled_and_realigned_families_dirs configuration in
+  
+  let orthologs_per_seq = write_orthologs_relationships merged_reconciled_and_realigned_families_dirs configuration in
 
   (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
@@ -771,23 +800,37 @@ let build_app configuration =
     | Fasta_Paired_end (lw, rw , _) -> [[ d ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ d ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> rw]
   in
   let repo = if configuration.just_parse_input then
-      [[ "Configuration" ] %>  configuration_dir ]
+      [[ "families.txt" ] %>  (configuration_dir / selector [ "families.txt" ])]
       else
     List.concat [
-      [[ "Configuration" ] %>  configuration_dir ]
+      [[ "families.txt" ] %>  (configuration_dir / selector [ "families.txt" ])]
         ;
-      List.map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
-        [ "draft_assemblies" ; "raw_assemblies" ; "Draft_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly
+      List.concat_map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
+        if s.given_assembly then
+          []
+        else
+          [[ "draft_assemblies" ; "raw_assemblies" ; "Draft_assemblies." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_assembly]
        )
         ;
-      List.map trinity_orfs ~f:(fun (s,trinity_orf) ->
-            [ "draft_assemblies" ; "orf_assemblies" ; "Draft_assemblies.cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf
+      List.concat_map trinity_orfs ~f:(fun (s,trinity_orf) ->
+            if s.given_assembly then
+              []
+            else
+              [[ "draft_assemblies" ; "cds" ; "Draft_assemblies.cds." ^ s.id ^ "_" ^ s.species ^ ".fa" ] %> trinity_orf]
           )
       ;
-      [["merged_families_dir"] %> merged_reconciled_and_realigned_families_dirs]
+       [["assembly_results_by_fam" ] %> (merged_reconciled_and_realigned_families_dirs / selector ["out/"])]
+      ;
+      [["all_fam.seq2sp.tsv"] %> (orthologs_per_seq / selector ["all_fam.seq2sp.tsv"])]
+      ;
+      if configuration.run_reconciliation then
+        [["all_fam.orthologs.tsv"] %> (orthologs_per_seq/ selector["all_fam.orthologs.tsv"])]
+      else
+        []
       ;
       match reconstructed_sequences with
-        | Some w -> [["reconstructed_sequences"] %> w]
+        (*| Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"]); ["assembly_results_by_fam";"Sp2Seq_out"; "all_fam.seq2sp.tsv"] %> (w / selector ["all_fam.seq2sp.tsv"])]*)
+        | Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"])]
         | None -> ()
       ;
       if configuration.debug then
