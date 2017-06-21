@@ -1,10 +1,8 @@
-# CAARS
+# CAARS: Comparative Assembly and Annotation of RNA-Seq data
 
-A method to introduce RNA-seq data in existing multi-species multi asequences alignments and reconstruct reliable phylogenies
+A method to introduce RNA-seq data in existing multi-species multiple sequence alignments and reconstruct reliable phylogenies.
 
-[ In development ]
-
-Any question or suggestion on the program can be addressed to: carine.rey@ens-lyon.fr
+Any question or suggestion on the program can be addressed to: carine.rey@ens-lyon.org
 
 For more information gto to the wiki page [https://github.com/CarineRey/caars/wiki](https://github.com/CarineRey/caars/wiki)
 
@@ -29,7 +27,7 @@ docker run -t -i -e LOCAL_USER_ID=`id -u $USER` -e W_DIR=$SHARED_DIR -v $SHARED_
 And you're done!
 
 
-You **must** use:
+You **can** use:
  *  ``` -v $SHARED_DIR:$SHARED_DIR  ``` to share your working directory between your computer and the virtual environment in the docker container.
 Indeed, CAARS builds links with absolute path which will be break if you don't use the same directory tree.
 
@@ -46,10 +44,10 @@ All data use in the container must be contained in the $SHARED_DIRECTORY, indeed
 
 See the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial) for more usage.
 
-Warning, the container is in development, if you have any problem don't hesitate to contact me (carine.rey@ens-lyon.fr).
+If you have any problem don't hesitate to contact me (carine.rey@ens-lyon.org).
 
 
-## complete installation
+## Complete installation
 
 See [INSTALL.md](INSTALL.md) or [INSTALL-HPC.md](INSTALL-HPC.md).
 
@@ -61,9 +59,9 @@ Example:
 caars  --outdir OUTPUT_DIR --sample-sheet sample_sheet.tsv --species-tree /home/user/data/species_tree.nw --alignment-dir GENE_FAMILIES_MSA_DIR --seq2sp-dir GENE_FAMILIES_SEQ2SP_DIR --np 2 --memory 5
 ```
 
-CAARS will work in a directory named ```_bistro``` build in the current directory.
+CAARS will work in a directory named ```_caars``` build in the current directory.
 This directory will contain all output files but under coded names.
-At the end, CAARS will build symbolic links between the OUTPUT_DIR and the ```_bistro``` directory.
+At the end, CAARS will build symbolic links between the OUTPUT_DIR and the ```_caars`` directory.
 
 To be sure to not lost your output file, copy the OUTPUT_DIR to a new directory by taking into account links.
 For instance:
@@ -115,7 +113,7 @@ caars
 
 ### alignment-dir
 
-A directory containing  fasta formated multi sequence alignments (MSA).
+A directory containing  fasta formated multiple sequence alignments (MSA).
 Each filename must be composed of the name of the gene family and the extension ".fa"
 
 ### seq2sp-dir
@@ -131,26 +129,22 @@ This file is composed of 10 tabulated delimited columns with headers:
   * Sample ID: an unique identifiant (3 capital letters is recommended)
   * Sample species name: the species of the sample
   * Reference species name: A reference species to annotate the sample.
-  * Path for a single-end RNA-seq run : Single *fastq* file path
-  * Path for a double-end RNA-seq run : Left *fastq* file path
-  * Path for a double-end RNA-seq run : Right *fastq* file path
+  * Path for a single-end RNA-seq run : Single *fastq* or *fasta* file path (authorized extension: .fa, .fasta, .fq, .fastq)
+  * Path for a double-end RNA-seq run : Left *fastq* or *fasta* file path
+  * Path for a double-end RNA-seq run : Right *fastq* or *fasta* file path
   * Strand and type of the RNA-seq run : F,R,RF,FR,US,UP
-<<<<<<< HEAD
-  * Run draft assembly on data : Yes or No
-=======
-  * Run the standard on data : Yes or No
->>>>>>> test_aligner
-  * Path to a given trinity assembly : fasta file path
+  * Run the standard assembly on data : Yes or No
+  * Path to a given assembly : *fasta* file path (must contain only cds)
   * Run apytram on data : Yes or No
 
 Column order must be conserved and also the header line.
 
 An example:
 
-id	|species	|ref_species	|path_fastq_single	|path_fastq_left	|path_fastq_right	|orientation	|run_draft	|path_assembly	|run_apytram
+id	|species	|ref_species	|path_fastx_single	|path_fastx_left	|path_fastx_right	|orientation	|run_standard	|path_assembly	|run_apytram
 ---|---|---|---|---|---|---|---|---|---
-AMH	|Mesocricetus_auratus	|Homo_sapiens	|-	|fastq/Mesocricetus_auratus.1.fq	|fastq/Mesocricetus_auratus.2.fq	|UP	|yes	|Trinity_assembly.AMH.fa	|yes
-AMM	|Mus_musculus	|Homo_sapiens,Cavia_porcellus	|fastq/Mus_musculus.fq	| -	|-	|F	|yes	|-	|yes
+CMA	|Mesocricetus_auratus	|Homo_sapiens	|-	|fastq/Mesocricetus_auratus.1.fq	|fastq/Mesocricetus_auratus.2.fq	|UP	|yes	|Trinity_assembly.AMH.fa	|yes
+CMM	|Mus_musculus	|Homo_sapiens,Cavia_porcellus	|fasta/Mus_musculus.fa	| -	|-	|F	|yes	|-	|yes
 
 
 ### species-tree
