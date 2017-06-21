@@ -18,6 +18,7 @@ if [ -n "$LOCAL_USER_ID" ]
 then
 USER_ID=${LOCAL_USER_ID:-9001}
 echo "Starting with UID : $USER_ID"
+echo "To be root type \" sudo su - \""
 useradd --shell /bin/bash -u $USER_ID -o -c "" -g sudo -m user_caars
 adduser user_caars sudo
 echo "user_caars ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
