@@ -6,11 +6,13 @@ Any question or suggestion on the program can be addressed to: carine.rey@ens-ly
 
 For more information see the wiki page [https://github.com/CarineRey/caars/wiki](https://github.com/CarineRey/caars/wiki)
 
+or the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial).
+
 # Installation
 
 ## Test version
 
-CAARS is available in a docker container available in DockerHub.
+CAARS is available in a docker image available on DockerHub .
 
 (If you don't have docker, you can find [here](https://docs.docker.com/linux/step_one/) installation instruction.)
 
@@ -42,8 +44,6 @@ user_caars@1dbd8f2594cc:/shared/directory$ caars -help
 
 All data used in the container must be placed in the $SHARED_DIRECTORY, indeed the container "sees" only directory tree from the shared directory. 
 
-See the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial) for more information.
-
 If you have any problem do not hesitate to contact me (carine.rey@ens-lyon.org).
 
 
@@ -68,9 +68,6 @@ For instance:
 ```
 cp -rL OUTPUT_DIR OK_OUTPUT_DIR
 ```
-
-See the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial) for more usage.
-
 
 ```
 caars
