@@ -47,7 +47,6 @@ let script_pre ~tree ~tmp_treein ~link =
     "TREE", dep tree ;
     "TMP_TREEIN", tmp_treein ;
     "LINK", dep link ;
-    "DEST", dest ;
   ]
   in
   bash_script args {|
@@ -60,6 +59,7 @@ let script_post ~tree ~link ~tmp_treeout =
     "TREE", dep tree ;
     "TMP_TREEOUT", tmp_treeout ;
     "LINK", dep link ;
+    "DEST", dest ;
   ]
   in
   bash_script args {|
@@ -77,7 +77,7 @@ let profileNJ
     : phylotree directory workflow =
 
     let tmp_treein = tmp // "tree_in_pNJ.tree" in
-    let tmp_treeout = tmp // "tree_in_pNJ.tree" in
+    let tmp_treeout = tmp // "tree_out_pNJ.tree" in
 
     workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) [
     mkdir_p tmp;

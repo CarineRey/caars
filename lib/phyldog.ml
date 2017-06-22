@@ -46,25 +46,25 @@ let phyldog_script ~config_dir ~results_species ~tree ~results_genes =
   let vars = [
     "LIST_SPECIES", config_dir // "listSpecies.txt" ;
     "TREE", dep tree ;
-    "RESULT_SPECIES", results_species ;
+    "RESULTS_SPECIES", results_species ;
     "NP", np ;
     "GENERAL_OPTIONS", config_dir // "GeneralOptions.txt" ;
     "RESULT_GENES", results_genes ;
   ]
   in
   bash_script vars {|
-    nb_species=`wc -l $LIST_SPECIES`
+    nb_species=`wc -l < $LIST_SPECIES`
     filename=`basename $TREE`
     family=${filename%.*}
-    touch ${RESULT_SPECIES}${family}.orthologs.txt
-    touch ${RESULT_SPECIES}${family}.events.txt
+    touch ${RESULTS_SPECIES}${family}.orthologs.txt
+    touch ${RESULTS_SPECIES}${family}.events.txt
     if [ $nb_species -gt 2 ]
     then
      mpirun -np $NP -mca btl sm,self phyldog param=$GENERAL_OPTIONS
      cut -f 2 ${RESULTS_SPECIES}orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
      cut -f 1,3- -d "," ${RESULTS_SPECIES}events.txt > ${RESULTS_SPECIES}${family}.events.txt
     else
-     nw2nhx.py $TREE >  ${RESULTS_GENES}${family}.ReconciledTree
+     nw2nhx.py $TREE ${RESULTS_SPECIES}${family}.ReconciledTree
     fi
 |}
 
