@@ -1,6 +1,6 @@
 language: c
 sudo: required
-install: wget https://raw.githubusercontent.com/CarineRey/caars/master/etc/travis.sh
+install: wget https://raw.githubusercontent.com/CarineRey/caars/travis/etc/travis.sh
 script: bash -ex .travis-opam.sh
 env:
   - OCAML_VERSION=4.03.0
