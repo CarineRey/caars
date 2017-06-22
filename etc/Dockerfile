@@ -141,9 +141,9 @@ ENV PYTHONPATH /opt/caars/utils/lib
 WORKDIR /data
 
 ##### update caars
-#WORKDIR /opt/caars/
-#RUN git fetch origin && git checkout renaming_caars
-#RUN make clean && make
+WORKDIR /opt/caars/
+RUN git fetch origin && git checkout update-wrt-bistro
+RUN make clean && make
 #RUN cp /opt/caars/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 
