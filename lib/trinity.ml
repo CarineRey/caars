@@ -135,11 +135,13 @@ let config_output_fastq_paired_or_single = function
 (*     cd tmp; *)
 (*     cmd "sh" [ file_dump script ] *)
 (*     ] *)
+
 let config_fasta_paired_or_single = function
   | Fasta_Single_end (w, _ ) ->
         seq ~sep: " " [ string "--single" ; dep w ]
   | Fasta_Paired_end (lw, rw , _) ->
        seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
+
 
 let config_output_fasta_paired_or_single = function
   | Fasta_Single_end (w, _ ) ->
@@ -199,6 +201,20 @@ let fasta_read_normalization_script ~fasta ~max_cov =
     trinity.insilico_read_normalization.pl $FA --seqType "fa" --JM ${MEM}G --max_cov $MAX_COV --CPU $NP --output $TMP --trinity_dir $TRINTIY_DIR_PATH
     |}
 
+
+
+let fasta_read_normalization_get_output ~fasta ~dest=
+  let (vars, code) = match fasta with
+    | Fasta_Single_end (w, _ ) -> (["DEST", dest;
+                                    "SINGLELINK", string "`readlink single.norm.fa`"],
+                                    {| mv $SINGLELINK $DEST/"single.norm.fa"|})
+    | Fasta_Paired_end (lw, rw , _) -> (["DEST", dest;
+                                         "LEFTLINK", string "`readlink left.norm.fa`";
+                                         "RIGHTLINK", string "`readlink right.norm.fa`"],
+                                       {|echo $LEFTLINK ; mv $LEFTLINK $DEST/"left.norm.fa"; mv $RIGHTLINK $DEST/"right.norm.fa"|})
+  in
+  bash_script vars code
+
 let fasta_read_normalization_2
     ?(descr = "")
     max_cov
@@ -209,7 +225,7 @@ let fasta_read_normalization_2
   let descr = if descr = "" then
                   descr
                 else
-                  ":" ^ descr ^ " "
+                  ":" ^ descr
   in
   let memory = int_of_float( float_of_int memory *. 0.75) in
   workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
@@ -217,6 +233,7 @@ let fasta_read_normalization_2
     mkdir_p tmp ;
     cd tmp;
     cmd "sh" [ file_dump (fasta_read_normalization_script ~fasta ~max_cov) ];
+    cmd "sh" [ file_dump (fasta_read_normalization_get_output ~fasta ~dest) ];
     ]
 
 let fastool ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta workflow =

@@ -141,7 +141,7 @@ let bash_script args code =
   let prelude =
     args
     |> List.map ~f:(fun (k, v) ->
-        seq ~sep:"" [ string k ; string "=" ; v ]
+        seq ~sep:"" [ string k ; string "=\"" ; v ;string "\""]
       )
     |> seq ~sep:"\n"
   in
