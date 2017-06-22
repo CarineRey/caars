@@ -127,11 +127,12 @@ ENV MANPATH /home/user/.opam/4.03.0/man
 ENV PERL5LIB /home/user/.opam/4.03.0/lib/perl5
 
 ##### install bistro
-RUN opam pin add bistro --dev-repo
+RUN opam install core=v0.9.1
+RUN opam install bistro=0.3.0
 
 ### install caars
 WORKDIR /opt/caars/
-RUN git clone https://github.com/carinerey/caars /opt/caars/ && make
+RUN git clone https://github.com/carinerey/caars /opt/caars/ # && make
 RUN cp /opt/caars/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 ENV PATH /opt/caars/utils/bin:/opt/caars:$PATH
@@ -141,9 +142,9 @@ ENV PYTHONPATH /opt/caars/utils/lib
 WORKDIR /data
 
 ##### update caars
-#WORKDIR /opt/caars/
-#RUN git fetch origin && git checkout renaming_caars
-#RUN make clean && make
+WORKDIR /opt/caars/
+RUN git fetch origin && git checkout update-wrt-bistro
+RUN make clean && make
 #RUN cp /opt/caars/etc/entrypoint.sh /usr/local/bin/entrypoint.sh
 #ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 

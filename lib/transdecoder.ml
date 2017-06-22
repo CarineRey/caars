@@ -38,7 +38,6 @@ open Bistro.EDSL
 open Bistro_bioinfo.Std
 
 
-
 let transdecoder
   ?(descr = "")
   ?only_best_orf
@@ -53,19 +52,23 @@ let transdecoder
                 else
                   ":" ^ descr
   in
-  let script = [%bistro{|
-        if ! [ -x "$(command -v TransDecoder.LongOrfs)" ]; then   echo 'Transdecoder.LongOrfs is not installed.' >&2; exit 1; fi
-        if ! [ -x "$(command -v TransDecoder.Predict)" ]; then   echo 'TransDecoder.Predict is not installed.' >&2; exit 1; fi
-        touch tmp
-        TransDecoder.LongOrfs -t {{ dep fasta }} {{ option (opt "-m" int ) pep_min_length }} {{ option (flag string "-S") only_top_strand }}
-        TransDecoder.Predict  -t {{ dep fasta }} --cpu {{ ident np }} {{option (flag string "--single_best_orf") only_best_orf }} {{option (opt "--retain_long_orfs" int ) retain_long_orfs}}
-        mv *.cds tmp
-        mv tmp orfs.cds
-        |}]
-  in
+  let tmp_file = string "tmp" in
   workflow ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     cd dest;
-    cmd "sh" [ file_dump script ]; 
+    cmd "touch" [ tmp_file ] ;
+    cmd "TransDecoder.LongOrfs" [
+      opt "-t" dep fasta ;
+      option (opt "-m" int ) pep_min_length ;
+      option (flag string "-S") only_top_strand ;
+    ] ;
+    cmd "TransDecoder.Predict" [
+      opt "-t" dep fasta ;
+      opt "--cpu" ident np ;
+      option (flag string "--single_best_orf") only_best_orf ;
+      option (opt "--retain_long_orfs" int ) retain_long_orfs ;
+    ] ;
+    mv (string "*.cds") tmp_file ;
+    mv tmp_file (string "orfs.cds")
   ]
   / selector [ "orfs.cds" ]

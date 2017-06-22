@@ -1,7 +1,8 @@
-open Core.Std
+open Core
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
+open Bistro_utils
 open Commons
 open Configuration
 
@@ -213,7 +214,7 @@ let seq_dispatcher
 
 let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs threads=
   List.map ~f:(fun (s,trinity_assembly) ->
-      let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
+      let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ~equal:( = ) ref_blast_dbs r) in
       let query = trinity_assembly in
       let query_species= s.species in
       let query_id = s.id in
@@ -236,11 +237,17 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
 
 
 let concat_without_error ?(descr="") l : fasta workflow =
-   let script = [%bistro{|
+  let script =
+    let vars = [
+      "FILE", seq ~sep:"" l ;
+      "DEST", dest ;
+    ]
+    in
+    bash_script vars {|
         touch tmp
-        cat tmp {{ seq ~sep:"" l }} > tmp1
-        mv tmp1 {{ ident dest }}
-        |}]
+        cat tmp $FILE > tmp1
+        mv tmp1 $DEST
+        |}
     in
     workflow ~descr:("concat_without_error" ^ descr) [
        mkdir_p tmp;
@@ -252,7 +259,7 @@ let build_target_query ref_species family configuration trinity_annotated_fams =
     let seq_dispatcher_results_dirs =
         List.filter_map configuration.apytram_samples ~f:(fun s ->
             if (s.ref_species = ref_species) && (s.run_trinity) then
-                Some (s , List.Assoc.find_exn trinity_annotated_fams s)
+                Some (s , List.Assoc.find_exn ~equal:( = ) trinity_annotated_fams s)
             else
                 None
             )
@@ -301,7 +308,7 @@ let checkfamily
       opt "-o" ident dest_checkfamily;
       (*opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));*)
       opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
-      opt "-e" float evalue; 
+      opt "-e" float evalue;
     ]
   ]
   / selector [ "sequences.fa" ]
@@ -312,7 +319,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let descr_ref = ":" ^(String.concat ~sep:"_" s.ref_species) in
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
-    let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ref_blast_dbs r) in
+    let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ~equal:( = ) ref_blast_dbs r) in
     let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-40 in
     (s, f, checked_families_fasta)
     )
@@ -416,7 +423,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
   List.map configuration.families ~f:(fun family ->
       let trinity_fam_results_dirs=
         List.map configuration.trinity_samples ~f:(fun s ->
-            (s , List.Assoc.find_exn trinity_annotated_fams s)
+            (s , List.Assoc.find_exn ~equal:( = ) trinity_annotated_fams s)
           )
       in
 
@@ -466,7 +473,7 @@ let realign_merged_families merged_and_reconciled_families configuration =
     let threads = 1 in*)
     (*let maffttreein_realigned_w = Aligner.mafft ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in*)
     (*let mafftnogaptreein_realigned_w = Aligner.mafft_from_nogap ~descr:(":" ^ fam) ~threads ~treein ~auto:false ali in*)
-    
+
     (*let muscle_realigned_w = Aligner.muscle ~descr:(":" ^ fam) ~maxiters:1 ali in*)
     (*let muscletreein_realigned_w = Aligner.muscletreein ~descr:(":" ^ fam) ~treein ~maxiters:1 ali in*)
     (*let musclenogap_realigned_w = Aligner.musclenogap ~descr:(":" ^ fam) ~maxiters:1 ali in*)
@@ -654,7 +661,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     | (_, Fasta_Single_end (w, _ )) -> [ any w ]
     | (_, Fasta_Paired_end (lw, rw , _)) -> [ any lw ; any rw ]
   in
-  let get_reads_blast_dbs_w x = [any x.concat_fasta; any x.index_concat_fasta; any x.rep_cluster_fasta; any x.reformated_cluster; any x.index_cluster ; any x.cluster_rep_blast_db ] in 
+  let get_reads_blast_dbs_w x = [any x.concat_fasta; any x.index_concat_fasta; any x.rep_cluster_fasta; any x.reformated_cluster; any x.index_cluster ; any x.cluster_rep_blast_db ] in
   let get_last_on_three x = match x with
     | (_, _, y) -> y in
   let get_second_on_three x = match x with
@@ -784,7 +791,7 @@ let build_app configuration =
   let merged_reconciled_and_realigned_families_dirs = merged_families_distributor merged_reconciled_and_realigned_families configuration in
 
   let reconstructed_sequences = get_reconstructed_sequences merged_reconciled_and_realigned_families_dirs configuration in
-  
+
   let orthologs_per_seq = write_orthologs_relationships merged_reconciled_and_realigned_families_dirs configuration in
 
   (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in

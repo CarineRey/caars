@@ -1,5 +1,6 @@
 open Bistro.Std
 open Bistro_bioinfo.Std
+open Bistro_utils
 open Commons
 
 val alignement_fasta : string -> (output, fasta) selector
