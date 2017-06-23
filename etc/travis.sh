@@ -1,3 +1,4 @@
+sudo add-apt-repository --yes ppa:avsm/ocaml42+opam12
 sudo apt-get update -qq
 sudo apt-get install -y opam git
 
