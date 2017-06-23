@@ -5,7 +5,7 @@ sudo apt-get install -y opam git
 opam init -y --comp="$OCAML_VERSION"
 eval $(opam config env)
 
-opam install -y #core=v0.9.1
+#opam install -y core=v0.9.1
 opam install -y bistro
 
 #git clone https://github.com/CarineRey/caars.git
