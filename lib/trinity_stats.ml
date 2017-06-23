@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 
 type t = {
   n50 : int option ;
@@ -7,7 +7,7 @@ type t = {
   gc : float option ;
 }
 
-let items = [ 
+let items = [
   `Total_trinity_genes, "Total trinity 'genes'", `int;
   `N50, "Contig N50", `int;
   `Total_trinity_transcripts, "Total trinity transcripts", `int;
@@ -22,13 +22,13 @@ let parse_value value_type s =
     | `float -> parse_float
   in
   f (String.strip s)
-  
+
 let extract_item lines (key, marker, value_type) =
   List.find_map lines ~f:(fun l ->
       match String.lsplit2 l ~on:':' with
       | None -> None
       | Some (left, right) ->
-        if String.strip left = marker 
+        if String.strip left = marker
         then Some (key, parse_value value_type right)
         else None
     )
@@ -36,15 +36,15 @@ let extract_item lines (key, marker, value_type) =
 
 let parse_aux items lines =
   List.filter_map items ~f:(extract_item lines)
-    
+
 let find_int dict key =
-  match List.Assoc.find dict key with
+  match List.Assoc.find ~equal:( = ) dict key with
   | None -> None
   | Some (`float _) -> None
   | Some (`int i) -> Some i
 
 let find_float dict key =
-  match List.Assoc.find dict key with
+  match List.Assoc.find ~equal:( = ) dict key with
   | None -> None
   | Some (`float f) -> Some f
   | Some (`int _) -> None

@@ -5,3 +5,5 @@ _build
 *.native
 _bistro/
 test_out/
+.merlin
+*.install

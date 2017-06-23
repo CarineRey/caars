@@ -37,6 +37,7 @@ open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
 open Bistro_utils
+open Caars_lib
 open Commons
 
 let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold debug just_parse_input html_report dag_dot quiet () =
