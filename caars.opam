@@ -11,8 +11,10 @@ authors: [
 homepage: "https://github.com/carinerey/caars"
 dev-repo: "https://github.com/carinerey/caars.git"
 bug-reports: "https://github.com/carinerey/caars/issues"
+dev-repo: "https://github.com/carinerey/caars.git"
 license: "CeCILL"
 build: ["jbuilder" "build" "-p" name "-j" jobs]
 depends: [
   "bistro" {>= "0.3.0"}
+  "jbuilder" {build & >= "1.0+beta8"}
 ]
