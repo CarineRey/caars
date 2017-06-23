@@ -1,4 +1,5 @@
-open Core.Std
+open Core
+open Bistro_utils
 open Tyxml_html
 open Commons
 
@@ -46,7 +47,7 @@ let trinity_section trinity_assemblies_stats =
     table ~a:[a_class ["table" ; "table-condensed"]] (List.concat [ table_headers; (List.map trinity_assemblies_stats ~f:foreach_sample)])
   ]
 
-(* http://ocsigen.org/tyxml/4.0.1/manual/intro*) 
+(* http://ocsigen.org/tyxml/4.0.1/manual/intro*)
 let render ~trinity_assemblies_stats =
   let mytitle = "Caars report" in
   let contents =
@@ -78,5 +79,3 @@ let save path doc =
 let generate ~trinity_assemblies_stats dest =
   let doc = render ~trinity_assemblies_stats in
   save dest doc
-
-
