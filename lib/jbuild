@@ -1,7 +1,7 @@
 (jbuild_version 1)
 
 (library
- ((name caars)
+ ((name caars_lib)
   (public_name caars)
   (libraries (bistro.bioinfo bistro.utils))
 ))

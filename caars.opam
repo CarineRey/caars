@@ -1,0 +1,18 @@
+opam-version: "1.2"
+name: "caars"
+version: "dev"
+maintainer: "Philippe Veber <philippe.veber@gmail.com>"
+authors: [
+  "Bastien Boussau <bastien.boussau@univ-lyon1.fr>"
+  "Carine Rey <carine.rey@ens-lyon.org>"
+  "Marie Sémon <marie.semon@ens-lyon.fr>"
+  "Philippe Veber <philippe.veber@gmail.com>"
+]
+homepage: "https://github.com/carinerey/caars"
+dev-repo: "https://github.com/carinerey/caars.git"
+bug-reports: "https://github.com/carinerey/caars/issues"
+license: "CeCILL"
+build: ["jbuilder" "build" "-p" name "-j" jobs]
+depends: [
+  "bistro" {>= "0.3.0"}
+]

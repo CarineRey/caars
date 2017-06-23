@@ -1,0 +1,7 @@
+(jbuild_version 1)
+
+(executable
+ ((name caars_app)
+  (public_name caars)
+  (libraries (caars))
+))
