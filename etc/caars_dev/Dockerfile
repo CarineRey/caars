@@ -1,4 +1,4 @@
-FROM carinerey/apytramFROM carinerey/caars_env
+FROM carinerey/caars_env
 MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 ### install caars master
