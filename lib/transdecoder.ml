@@ -36,7 +36,21 @@ open Core_kernel.Std
 open Bistro.Std
 open Bistro.EDSL
 open Bistro_bioinfo.Std
+open Commons
 
+
+
+let fasta_template ~fasta ~tmp_fasta =
+  let vars = [ "FASTA", dep fasta;
+               "FASTA_OK", ident tmp_fasta;
+               "NOTEMPTY", string {|`grep -c ">" -m 1 $FASTA`|};
+             ]
+  in
+  let code = {|if [[ "$NOTEMPTY" == "1" ]]; then ln -s $FASTA $FASTA_OK; else echo """>empty
+AT
+""" > $FASTA_OK; fi|}
+  in
+  bash_script vars code
 
 let transdecoder
   ?(descr = "")
@@ -52,23 +66,22 @@ let transdecoder
                 else
                   ":" ^ descr
   in
-  let tmp_file = string "tmp" in
+  let tmp_fasta = string "tmp" in
   workflow ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     cd dest;
-    cmd "touch" [ tmp_file ] ;
+    cmd "sh" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
     cmd "TransDecoder.LongOrfs" [
-      opt "-t" dep fasta ;
+      opt "-t" ident tmp_fasta ;
       option (opt "-m" int ) pep_min_length ;
       option (flag string "-S") only_top_strand ;
     ] ;
     cmd "TransDecoder.Predict" [
-      opt "-t" dep fasta ;
+      opt "-t" ident tmp_fasta ;
       opt "--cpu" ident np ;
       option (flag string "--single_best_orf") only_best_orf ;
       option (opt "--retain_long_orfs" int ) retain_long_orfs ;
     ] ;
-    mv (string "*.cds") tmp_file ;
-    mv tmp_file (string "orfs.cds")
+    mv (string "*.cds") (string "orfs.cds") ;
   ]
   / selector [ "orfs.cds" ]
