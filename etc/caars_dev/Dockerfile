@@ -1,4 +1,4 @@
-FROM carinerey/apytramFROM carinerey/caars_env
+FROM carinerey/caars_env
 MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 ### install caars master
@@ -9,7 +9,10 @@ ENV PYTHONPATH /opt/caars/utils/lib
 
 ##### update caars on the dev branch
 WORKDIR /opt/caars/
-RUN git fetch origin && git checkout update-wrt-bistro
+ARG BRANCH_DEV
+ENV BRANCH_DEV=${BRANCH_DEV}
+RUN echo BRANCH_DEV $BRANCH_DEV
+RUN git fetch origin && git checkout $BRANCH_DEV
 RUN make clean && make
 
 ##### build a working directory
