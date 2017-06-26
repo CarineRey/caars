@@ -6,4 +6,5 @@ os:
   - linux
 script:
   - docker build -t caars etc/caars/
-  - docker run -t carinerey/caars bash "cd /opt/caars; make test"
+  - echo """cd /opt/caars; make test""" > test.sh
+  - docker run -t -v $PWD:$PWD carinerey/caars bash $PWD/test.sh
