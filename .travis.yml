@@ -5,6 +5,8 @@ services:
 os:
   - linux
 script:
-  - echo $TRAVIS_BRANCH ; if [[ $TRAVIS_BRANCH == "master" ]] then DOCKER_caars="caars"; DOCKER_tuto="tuto_caars"; else DOCKER_caars="caars_dev"; DOCKER_tuto="tuto_caars_dev"; fi
+  - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
+  - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
+  - if [[ $BRANCH == "master" ]]; then DOCKER_caars="caars"; DOCKER_tuto="tuto_caars"; else DOCKER_caars="caars_dev"; DOCKER_tuto="tuto_caars_dev"; fi
   - docker build -t $DOCKER_caars etc/$DOCKER_caars/ && echo """cd /opt/caars; make test""" > test.sh && docker run -t -v $PWD:$PWD $DOCKER_caars bash $PWD/test.sh
   - git clone https://github.com/CarineRey/caars.wiki.git caars_wiki_git && docker build -t $DOCKER_tuto caars_wiki_git/etc/caars_tuto && docker run -t -e TUTO_DIR=$PWD/caars_wiki_git/scripts/ -v $PWD:$PWD  $DOCKER_tuto $PWD/caars_wiki_git/scripts/test_tuto.sh
