@@ -23,6 +23,7 @@ useradd --shell /bin/bash -u $USER_ID -o -c "" -g sudo -m user_caars
 adduser user_caars sudo
 echo "user_caars ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 export HOME=/home/user_caars
+cd $HOME
 exec /usr/local/bin/gosu user_caars "$@"
 else
 echo "Starting with UID : root"
