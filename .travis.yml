@@ -1,9 +1,9 @@
 language: c
 sudo: required
-install: wget https://raw.githubusercontent.com/CarineRey/caars/travis/etc/travis.sh
-script: bash -ex etc/travis.sh
-env:
-  - OCAML_VERSION=4.03.0
-  - OCAML_VERSION=4.04.1
+services:
+  - docker
 os:
   - linux
+script:
+  - docker build -t caars etc/caars/
+  - docker run -t carinerey/caars bash "cd /opt/caars; make test"
