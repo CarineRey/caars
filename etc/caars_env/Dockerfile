@@ -121,7 +121,7 @@ ENV PATH /usr/local/bin/:/root/.opam/4.03.0/bin/:$PATH
 ENV CAML_LD_LIBRARY_PATH /root/.opam/4.03.0/lib/stublibs
 ENV OCAML_TOPLEVEL_PATH /root/.opam/4.03.0/lib/toplevel
 ENV MANPATH /root/.opam/4.03.0/man
-ENV PERL5LIB /root/.opam/4.03.0/lib/perl5
+ENV PERL5LIB /root/.opam/4.03.0/lib/perl5:$PERL5LIB
 
 ##### install bistro
 RUN opam install -y bistro=0.3.0

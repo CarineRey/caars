@@ -72,7 +72,7 @@ let trinity_fasta
     let descr = if descr = "" then
                   descr
                 else
-                  ":" ^ descr ^ " "
+                  ":" ^ descr
     in
     workflow ~descr:("Trinity" ^ descr) ~np:threads ~mem:(1024 * memory) [
         mkdir_p dest;
