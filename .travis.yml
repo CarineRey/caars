@@ -5,6 +5,9 @@ services:
 os:
   - linux
 script:
-  - docker build -t caars etc/caars/
-  - echo """cd /opt/caars; make test""" > test.sh
-  - docker run -t -v $PWD:$PWD carinerey/caars bash $PWD/test.sh
+  - docker build -t caars etc/caars/ && \
+    echo """cd /opt/caars; make test""" > test.sh && \
+    docker run -t -v $PWD:$PWD caars bash $PWD/test.sh
+  - git clone https://github.com/CarineRey/caars.wiki.git caars_wiki_git && \
+    docker build -t tuto_caars caars_wiki_git/etc/caars/ && \
+    docker run -t -i -e TUTO_DIR=$PWD -v $PWD:$PWD  tuto_caars $PWD/test_tuto.sh
