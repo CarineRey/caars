@@ -4,20 +4,9 @@ services:
   - docker
 os:
   - linux
-env:
-  global:
-    - CACHE_DIR=$HOME/.cache/docker
-    - CACHE_FILE_ENV=$CACHE_DIR/caars_env.tar.gz
-cache:
-  directories:
-  - $CACHE_DIR
-    
-before_install:
-  - mkdir -p $CACHE_DIR
-  - if [ -f ${CACHE_FILE_ENV} ]; then gunzip -c ${CACHE_FILE_ENV} | docker load; fi
 
 install:
-  - if [ ! -f ${CACHE_FILE_ENV} ]; then docker pull carinerey/caars_env ; docker save carinerey/caars_env | gzip > ${CACHE_FILE_ENV}; fi
+  - docker pull carinerey/caars_env
 
 script:
   - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
