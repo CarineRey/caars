@@ -26,7 +26,7 @@ script:
   - docker build --build-arg BRANCH_DEV=$BRANCH  -t carinerey/$DOCKER_caars etc/$DOCKER_caars/ && echo """cd /opt/caars && make test""" > test.sh && docker run -t -v $PWD:$PWD carinerey/$DOCKER_caars bash $PWD/test.sh
   - git clone https://github.com/CarineRey/caars.wiki.git caars_wiki_git && docker build -t carinerey/$DOCKER_tuto caars_wiki_git/etc/$DOCKER_tuto && docker run -t -e TUTO_DIR=$PWD/caars_wiki_git/scripts/ -v $PWD:$PWD carinerey/$DOCKER_tuto $PWD/caars_wiki_git/scripts/test_tuto.sh
 after_success:
-  - docker login -u $DOCKER_USER -p $DOCKER_PASS
+  - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
   - export REPO_caars=$DOCKER_USER/$DOCKER_caars
   - export REPO_tuto=$DOCKER_USER/$DOCKER_tuto
   - docker push $REPO_caars
