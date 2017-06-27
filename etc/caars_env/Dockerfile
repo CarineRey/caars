@@ -111,21 +111,22 @@ RUN curl -o /usr/local/bin/gosu -SL "https://github.com/tianon/gosu/releases/dow
 
 
 ### install opam
+WORKDIR /home/caars_user
+ENV HOME /home/caars_user
 RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin 4.03.0
 ENV PATH /usr/local/bin/.opam/4.03.0/bin:$PATH
 
 RUN /usr/local/bin/opam init --comp 4.03.0
-RUN echo ". /root/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile
+RUN echo ". $HOME/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile
 
-ENV PATH /usr/local/bin/:/root/.opam/4.03.0/bin/:$PATH
-ENV CAML_LD_LIBRARY_PATH /root/.opam/4.03.0/lib/stublibs
-ENV OCAML_TOPLEVEL_PATH /root/.opam/4.03.0/lib/toplevel
-ENV MANPATH /root/.opam/4.03.0/man
-ENV PERL5LIB /root/.opam/4.03.0/lib/perl5:$PERL5LIB
+ENV PATH $HOME/.opam/4.03.0/bin/:$PATH
+ENV CAML_LD_LIBRARY_PATH $HOME/.opam/4.03.0/lib/stublibs
+ENV OCAML_TOPLEVEL_PATH $HOME/.opam/4.03.0/lib/toplevel
+ENV MANPATH $HOME/.opam/4.03.0/man:$MANPATH
+ENV PERL5LIB $HOME/.opam/4.03.0/lib/perl5:$PERL5LIB
 
 ##### install bistro
 RUN opam install -y bistro=0.3.0
-
 
 ##### install entrypoint
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -133,4 +134,5 @@ ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 ##### build a working directory
 WORKDIR /data
 
+RUN cat /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
