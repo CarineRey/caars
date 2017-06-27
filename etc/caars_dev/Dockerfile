@@ -19,4 +19,3 @@ RUN make clean && make
 WORKDIR /data
 
 CMD ["caars", "-h"]
-ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]

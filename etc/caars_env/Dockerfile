@@ -134,5 +134,4 @@ ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 ##### build a working directory
 WORKDIR /data
 
-RUN cat /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
