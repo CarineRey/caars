@@ -13,7 +13,7 @@ ARG BRANCH_DEV
 ENV BRANCH_DEV=${BRANCH_DEV}
 RUN echo BRANCH_DEV $BRANCH_DEV
 RUN git fetch origin && git checkout $BRANCH_DEV
-RUN make clean && make
+RUN make clean && make && make test && make clean_test
 
 ##### build a working directory
 WORKDIR /data
