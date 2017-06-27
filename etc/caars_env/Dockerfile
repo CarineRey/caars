@@ -134,4 +134,6 @@ ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 ##### build a working directory
 WORKDIR /data
 
+RUN apt-get install --no-install-recommends -qy  python-tk
+
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
