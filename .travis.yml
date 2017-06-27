@@ -12,8 +12,8 @@ script:
   - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
   - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
   - if [[ $BRANCH == "master" ]]; then DOCKER_caars="caars"; DOCKER_tuto="caars_tuto"; else DOCKER_caars="caars_dev"; DOCKER_tuto="caars_tuto_dev"; fi
-  - docker build --build-arg BRANCH_DEV=$BRANCH -t carinerey/$DOCKER_caars etc/$DOCKER_caars/ && echo """cd /opt/caars && make test""" > test.sh && docker run -t -v $PWD:$PWD carinerey/$DOCKER_caars bash $PWD/test.sh
-  - git clone https://github.com/CarineRey/caars.wiki.git caars_wiki_git && docker build -t carinerey/$DOCKER_tuto caars_wiki_git/etc/$DOCKER_tuto && docker run -t -e LOCAL_USER_ID=`id -u $USER` -e SHARED_DIR=$PWD -e TUTO_DIR=$PWD/caars_wiki_git/scripts/ -v $PWD:$PWD carinerey/$DOCKER_tuto $PWD/caars_wiki_git/scripts/test_tuto.sh
+  - docker build --build-arg BRANCH_DEV=$BRANCH -t carinerey/$DOCKER_caars etc/$DOCKER_caars/ && echo """cd /opt/caars && (make test || make test)""" > test.sh && docker run -v $PWD:$PWD -t carinerey/$DOCKER_caars bash $PWD/test.sh
+  - git clone https://github.com/CarineRey/caars.wiki.git caars_wiki_git && docker build -t carinerey/$DOCKER_tuto caars_wiki_git/etc/$DOCKER_tuto && docker run  -e LOCAL_USER_ID=`id -u $USER` -e SHARED_DIR=$PWD -e TUTO_DIR=$PWD/caars_wiki_git/scripts/ -v $PWD:$PWD -t carinerey/$DOCKER_tuto $PWD/caars_wiki_git/scripts/test_tuto.sh
 after_success:
   - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
   - export REPO_caars=$DOCKER_USER/$DOCKER_caars
