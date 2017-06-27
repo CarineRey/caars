@@ -1,5 +1,7 @@
 # CAARS: Comparative Assembly and Annotation of RNA-Seq data
 
+[![Build Status](https://travis-ci.org/CarineRey/caars.svg?branch=master)](https://travis-ci.org/CarineRey/caars)
+
 A method to introduce RNA-Seq data in existing multi-species multiple sequence alignments and reconstruct reliable phylogenies.
 
 Any question or suggestion on the program can be addressed to: carine.rey@ens-lyon.org
