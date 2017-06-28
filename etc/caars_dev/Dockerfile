@@ -11,7 +11,7 @@ ENV PYTHONPATH /opt/caars/utils/lib
 ARG BRANCH_DEV
 ENV BRANCH_DEV=${BRANCH_DEV}
 RUN echo BRANCH_DEV $BRANCH_DEV && git fetch origin && git checkout $BRANCH_DEV
-RUN make clean && (make test || make test)
+RUN make && (make test || make test) && make clean_test
 
 ##### build a working directory
 WORKDIR /data
