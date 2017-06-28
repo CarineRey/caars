@@ -36,7 +36,6 @@ RUN apt-get install --no-install-recommends -qy unzip \
                         aspcud \
                         less
 
-
 RUN pip install ete2
 
 
@@ -109,7 +108,6 @@ RUN curl -o /usr/local/bin/gosu -SL "https://github.com/tianon/gosu/releases/dow
     && rm /usr/local/bin/gosu.asc \
     && chmod +x /usr/local/bin/gosu
 
-
 ### install opam
 WORKDIR /home/caars_user
 ENV HOME /home/caars_user
@@ -133,7 +131,5 @@ ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ##### build a working directory
 WORKDIR /data
-
-
 
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
