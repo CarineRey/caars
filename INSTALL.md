@@ -26,7 +26,6 @@
     * boost from 1.49 to 1.55 (versions >1.55 won't do for now)
     * bpp >= 2.2.0 (Bio++)
 
-
 * PhyloMerge (0.2 from 2017/01)
     * bpp >= 2.2.0 (Bio++)
 
@@ -39,12 +38,8 @@
     * cd-hit >= 4.6.6
     * Trinity >=2.3
 
-
 * OCaml >= 4.03.0
-    * bistro
-        * oasis
-        * solvuu-build
-        * ocamlgraph
+    * bistro = 0.3.0
 
 
 ## dependencies installation via distribution packages
@@ -351,13 +346,6 @@ as user:
 opam install -y bistro=0.3.0
 ```
 
-opam should install bistro's dependencies:
-
-* oasis
-* solvuu-build
-* ocamlgraph
-
-
 ### CAARS
 
 Finally (at last), install CAARS from [github](https://github.com/CarineRey/caars).
@@ -370,6 +358,7 @@ make
 ```
 
 Add ```/home/user/bin/caars/``` to ```PATH```.
+Add ```/home/user/bin/caars/utils/bin/``` to ```PATH```.
 
 ``` sh
 export PATH=/home/user/bin/caars/:$PATH

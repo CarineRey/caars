@@ -2,7 +2,6 @@
 
 **WORK IN PROGRESS**
 
-
 ## System-wide installation
 
 Like standard locations, or distribution packages.
@@ -395,6 +394,6 @@ make
 
 Add:
 * ```/applis/PSMN/debian7/caars/utils/bin:/applis/PSMN/debian7/caars``` to ```PATH```,
-* ```/applis/PSMN/debian7/caars/lib``` to ```PYTHONPATH```.
+* ```/applis/PSMN/debian7/caars/utils/lib``` to ```PYTHONPATH```.
 
 Et voilà! You're done.
