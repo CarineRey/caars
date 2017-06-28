@@ -110,6 +110,53 @@ mv blast-2.6.0+ 2.6.0+
 
 Add ```/applis/PSMN/generic/Blast/2.6.0+/bin``` to ```PATH```.
 
+
+#### Seqtk  >= 1.2
+
+Toolkit for processing sequences in FASTA/Q formats [https://github.com/lh3/seqtk](https://github.com/lh3/seqtk)
+
+
+```sh
+mkdir -p /applis/PSMN/debian7/seqtk/1.2/
+cd ~/builds/
+git clone https://github.com/lh3/seqtk.git  seqtk
+cd seqtk/
+make
+```
+After successfull build:
+
+```sh
+cp seqtk /applis/PSMN/debian7/seqtk/1.2/
+```
+
+Add ```/applis/PSMN/debian7/seqtk/1.2/``` to ```PATH```.
+
+
+#### CD-HIT >= 4.6.6
+
+CD-HIT is a very widely used program for clustering and comparing protein or nucleotide sequences ([http://weizhongli-lab.org/cd-hit/](http://weizhongli-lab.org/cd-hit/)).
+
+
+
+
+```sh
+mkdir -p /applis/PSMN/debian7/cdhit/4.6.6/
+cd ~/builds/
+git clone https://github.com/weizhongli/cdhit.git  cdhit
+cd cdhit/cd-hit-auxtools
+make
+cd ../../
+make
+make install
+```
+After successfull build:
+
+```sh
+cp seqtk /applis/PSMN/debian7/seqtk/1.2/
+```
+
+Add ```/home/user/bin/cd-hit-auxtools``` to ```PATH```.
+
 #### Trinity >=2.3
 
 Trinity can be downloaded on [github](https://github.com/trinityrnaseq/trinityrnaseq/releases). 
@@ -331,14 +378,8 @@ eval `opam config env`
 * Install CAARS's OCaml depencies as standard user:
 
 ```sh
-opam pin add bistro --dev-repo
+opam install -y bistro=0.3.0
 ```
-
-opam should automagically install bistro's dependencies:
-
-* oasis
-* solvuu-build
-* ocamlgraph
 
 ### CAARS developement version
 
@@ -347,8 +388,8 @@ Finally (at last), install CAARS from [github](https://github.com/CarineRey/caar
 ```sh
 mkdir -p /applis/PSMN/debian7/caars
 cd /applis/PSMN/debian7/caars/
-git clone https://github.com/carinerey/caars dev
-cd dev/
+git clone https://github.com/carinerey/caars caars
+cd caars/
 make
 ```
 
@@ -357,10 +398,3 @@ Add:
 * ```/applis/PSMN/debian7/caars/lib``` to ```PYTHONPATH```.
 
 Et voilà! You're done.
-
-TO DO:
-
-* seqtk
-* biopython
-* cd-hit
-* remove sratoolkit

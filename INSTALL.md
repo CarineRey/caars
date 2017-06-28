@@ -348,7 +348,7 @@ eval `opam config env`
 as user:
 
 ```sh
-opam pin add bistro --dev-repo
+opam install -y bistro=0.3.0
 ```
 
 opam should install bistro's dependencies:
