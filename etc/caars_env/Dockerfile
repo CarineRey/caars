@@ -41,10 +41,9 @@ RUN pip install ete2
 
 #### install TransDecoder
 WORKDIR /opt
-RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.1.zip
-RUN unzip v3.0.1.zip  && rm v3.0.1.zip
-WORKDIR /opt/TransDecoder-3.0.1/
-RUN make
+RUN wget https://github.com/TransDecoder/TransDecoder/archive/v3.0.1.zip &&\
+    unzip v3.0.1.zip  && rm v3.0.1.zip && \
+    cd /opt/TransDecoder-3.0.1/ && make
 ENV PATH /opt/TransDecoder-3.0.1/:$PATH
 
 ### Install muscle
@@ -53,12 +52,33 @@ RUN wget http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.ta
     tar xvzf muscle3.8.31_i86linux64.tar.gz && rm muscle3.8.31_i86linux64.tar.gz && mv muscle3.8.31_i86linux64 muscle
 
 #### install bpp
-WORKDIR /opt
-RUN echo "deb http://biopp.univ-montp2.fr/repos/apt/ Trusty main" >> /etc/apt/sources.list;\
-    wget http://biopp.univ-montp2.fr/repos/apt/conf/biopp.gpg.key &&\
-    apt-key add biopp.gpg.key && \
-    apt-get update && \
-    apt-get install -qy libbpp-phyl-dev
+#WORKDIR /opt
+#RUN echo "deb http://biopp.univ-montp2.fr/repos/apt/ Trusty main" >> /etc/apt/sources.list;\
+#    wget http://biopp.univ-montp2.fr/repos/apt/conf/biopp.gpg.key &&\
+#    apt-key add biopp.gpg.key && \
+#    apt-get update && \
+#    apt-get install -qy libbpp-phyl-dev
+
+#### install bpp
+
+ENV bpp_dir=/usr/local/lib
+WORKDIR $bpp_dir/sources_bpp
+RUN git clone --branch rel220  https://github.com/BioPP/bpp-core && \
+    git clone --branch rel220  https://github.com/BioPP/bpp-seq && \
+    git clone --branch rel220  https://github.com/BioPP/bpp-phyl
+RUN cd  $bpp_dir/sources_bpp/bpp-core &&\
+    cmake . &&\
+    (make -j 4 || make) &&\
+    make install &&\
+    cd $bpp_dir/sources_bpp/bpp-seq &&\
+    cmake  . &&\
+    (make -j 4 || make) &&\
+    make install &&\
+    cd  $bpp_dir/sources_bpp/bpp-phyl &&\
+    cmake - . &&\
+    (make -j 4 || make) &&\
+    make install &&\
+    rm -r $bpp_dir/sources_bpp
 
 ##### install phylomerge
 RUN git clone https://github.com/boussau/phylomerge/ /opt/phylomerge
