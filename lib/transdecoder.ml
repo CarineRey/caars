@@ -70,7 +70,7 @@ let transdecoder
   workflow ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     cd dest;
-    cmd "sh" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
+    cmd "bash" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
     cmd "TransDecoder.LongOrfs" [
       opt "-t" ident tmp_fasta ;
       option (opt "-m" int ) pep_min_length ;

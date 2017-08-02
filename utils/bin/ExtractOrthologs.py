@@ -60,8 +60,11 @@ if not len(sys.argv) in [3,4,5]:
     logger.error("3 or 4 or 5 arguments are required")
     sys.exit(1)
 
+sep = "\t"
 out_dir = sys.argv[1]
 sp2seq_dir = sys.argv[2]
+
+
 if len(sys.argv) >= 4:
     ortho_dir = sys.argv[3]
     ### Check input data
@@ -74,7 +77,7 @@ if len(sys.argv) >= 5:
     RefinedSpecies = set(sys.argv[4].split(","))
 else:
     RefinedSpecies = ""
-    
+
 
 
 if not os.path.isdir(sp2seq_dir):
@@ -91,9 +94,7 @@ for o_dir in [out_dir]:
         os.makedirs(o_dir)
 
 ### Read all files in sp2seq_dir
-Seq2Sp_dict = {}
-
-def read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, File, String_Seq2Sp, sep="\t"):
+def read_seq2species_file(Seq2Sp_dict, RefinedSpecies, File):
     logger.debug("Read %s", File)
     fam = os.path.basename(File).split('.')[0]
 
@@ -105,24 +106,25 @@ def read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, File, String_Seq2
                 logger.debug("Line (%s) has a problem", line)
             else:
                 (sp, seq) = line.split(":")
-                String_Seq2Sp.append("%s%s%s" %(seq, sep, sp))
-                if sp in RefinedSpecies:
-                    Seq2Sp_dict[seq] = (sp, fam)
+                Seq2Sp_dict[seq] = (sp, fam)
         f.close()
-    
 
-    return (Seq2Sp_dict,String_Seq2Sp)
 
-String_Seq2Sp = []
+    return (Seq2Sp_dict)
+
+Seq2Sp_dict = {}
+for f in glob.glob("%s/*sp2seq.txt" %sp2seq_dir):
+    Seq2Sp_dict  = read_seq2species_file(Seq2Sp_dict, RefinedSpecies, f)
+
 SeqSpLink_File = "%s/all_fam.seq2sp.tsv" %(out_dir)
-with open(SeqSpLink_File, "w") as f_rewrite:
-    for f in glob.glob("%s/*sp2seq.txt" %sp2seq_dir):
-        (Seq2Sp_dict,String_Seq2Sp)  = read_rewrite_seq2species_file(Seq2Sp_dict, RefinedSpecies, f, String_Seq2Sp, sep="\t")
-        f_rewrite.write("\n".join(String_Seq2Sp) + "\n")
-
 
 if not ortho_dir:
+    with open(SeqSpLink_File, "w") as f_rewrite:
+        for (seq,(sp, fam)) in Seq2Sp_dict.items():
+            f_rewrite.write("\n".join("%s%s%s" %(seq, sep, sp)) + "\n")
+
     sys.exit(0)
+
 
 ### Read all orthologs file in ortho_dir
 def read_ortho_file(OrthoFile):
@@ -157,16 +159,20 @@ def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
     MinSize = min(SizeRange)
     MaxSize = max(SizeRange)
 
+    MaxOrthogGroups_dict = {}
+    MaxOrthogGroups_i = 1
+
     for Seq in ListSeqs:
         SeqFromRefinedSpecies = False
-        if Seq in Seq2Sp_dict:
+        (Sp, Fam) = Seq2Sp_dict[Seq]
+        if Sp in RefinedSpecies:
             SeqFromRefinedSpecies = True
         MinOrthogGroups = []
         MinOrthogGroupsR = []
         MaxOrthogGroups = []
-        
+
         i = MinSize
-        while (not MinOrthogGroups) and (i < MaxSize):
+        while (not MinOrthogGroups) and (i <= MaxSize):
             if i not in SizeRange:
                 i+=1
                 continue
@@ -174,12 +180,12 @@ def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
                 #print OrthoDict[i]
                 if Seq in g:
                     if SeqFromRefinedSpecies:
-                        if all([s in Seq2Sp_dict for s in g]):
+                        if all([Seq2Sp_dict[s][0] in RefinedSpecies for s in g]):
                             continue
                     if SeqFromRefinedSpecies:
                         for s in g:
                             if s != Seq:
-                                if not s in Seq2Sp_dict:
+                                if not Seq2Sp_dict[s][0] in RefinedSpecies:
                                     MinOrthogGroups.append(s)
                                 else:
                                     MinOrthogGroupsR.append(s)
@@ -187,7 +193,7 @@ def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
                         MinOrthogGroups = [s for s in g if s != Seq]
                     break
             i+=1
-        
+
         i = MaxSize
         while (not MaxOrthogGroups)  and (i > MinSize):
             if i not in SizeRange:
@@ -197,31 +203,42 @@ def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
                 if Seq in g:
                     MaxOrthogGroups = g
                     MaxOrthogGroups.sort()
+                    if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
+                        MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
+                        MaxOrthogGroups_i += 1
                     break
             i-=1
-        
-        ResDict[Seq] = [MinOrthogGroups, MinOrthogGroupsR, MaxOrthogGroups]
-    
+        ResDict[Seq] = [Sp, MinOrthogGroups, MinOrthogGroupsR, MaxOrthogGroups_dict[",".join(MaxOrthogGroups)]]
+
     return ResDict
 
-def write_orthologs_groups(OrthoDefDict, String=[]):
+def write_orthologs_groups(OrthoDefDict):
+    String_ortho=[]
+    String_sp_seq=[]
     for Seq in OrthoDefDict:
-        [MinOrthogGroups, MinOrthogGroupsR, MaxOrthogGroups] = OrthoDefDict[Seq]
+        [Sp, MinOrthogGroups, MinOrthogGroupsR, MaxOrthogGroups_i] = OrthoDefDict[Seq]
+
         if MinOrthogGroupsR:
-            String.append("\t".join([Seq, Fam, "".join([",".join(MinOrthogGroups),",[",",".join(MinOrthogGroupsR),"]"]),",".join(MaxOrthogGroups)]))
+                        String_ortho.append("\t".join([Seq, "".join([",".join(MinOrthogGroups),",[",",".join(MinOrthogGroupsR),"]"])]))
         else:
-            String.append("\t".join([Seq, Fam, ",".join(MinOrthogGroups),",".join(sorted(MaxOrthogGroups))]))
-    return "\n".join(String)
+                        String_ortho.append("\t".join([Seq, ",".join(MinOrthogGroups)]))
+
+        String_sp_seq.append("\t".join([Seq, Sp, Fam, "s%i" %(MaxOrthogGroups_i)]))
+
+    return ["\n".join(String_ortho),"\n".join(String_sp_seq)]
 
 
-
+SeqSpLink_File = "%s/all_fam.seq2sp.tsv" %(out_dir)
 Orthologs_File = "%s/all_fam.orthologs.tsv" %(out_dir)
 with open(Orthologs_File, "w") as o_write:
-    for f in glob.glob("%s/*orthologs.txt" %ortho_dir):
-        Fam = os.path.basename(f).split('.')[0]
-        (OrthoDict, Seqs) = read_ortho_file(f)
-        OrthoDefDict = define_orthologs_groups(OrthoDict, Seqs, Seq2Sp_dict)
-        o_write.write(write_orthologs_groups(OrthoDefDict)+"\n")
+    with open(SeqSpLink_File, "w") as s_write:
+        for f in glob.glob("%s/*orthologs.txt" %ortho_dir):
+            Fam = os.path.basename(f).split('.')[0]
+            (OrthoDict, Seqs) = read_ortho_file(f)
+            OrthoDefDict = define_orthologs_groups(OrthoDict, Seqs, Seq2Sp_dict)
+            o_string, s_string = write_orthologs_groups(OrthoDefDict)
+            o_write.write(o_string+"\n")
+            s_write.write(s_string+"\n")
 
 sys.exit(0)
 
