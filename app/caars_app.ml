@@ -97,4 +97,4 @@ let command =
     spec
     main
 
-let () = Command.run ~version:"1.0.0" command
+let () = Command.run ~version:"1.0.1" command
