@@ -67,8 +67,8 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
       if need_rna then
         let sample_file = sample_file_map input s.sample_file in
         let sample_fastq_to_sample_fasta = function
-          | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species) ~dep_input w , o )
-          | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_left") ~dep_input lw , Trinity.fastool ~descr:(s.id ^ "_" ^ s.species ^ "_right") ~dep_input rw , o)
+          | Fastq_Single_end (w, o ) -> Fasta_Single_end ( Trinity.fastq2fasta ~descr:(s.id ^ "_" ^ s.species) ~dep_input w , o )
+          | Fastq_Paired_end (lw, rw , o) -> Fasta_Paired_end ( Trinity.fastq2fasta ~descr:(s.id ^ "_" ^ s.species ^ "_left") ~dep_input lw , Trinity.fastq2fasta ~descr:(s.id ^ "_" ^ s.species ^ "_right") ~dep_input rw , o)
         in
         let sample_fasta = match sample_file with
             | Sample_fasta x -> x

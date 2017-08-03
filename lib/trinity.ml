@@ -236,35 +236,31 @@ let fasta_read_normalization_2
     cmd "sh" [ file_dump (fasta_read_normalization_get_output ~fasta ~dest) ];
     ]
 
-let fastool ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta workflow =
-  let (check_input, w_input) = match dep_input with
-                      | Some w -> (true, dep w)
-                      | None -> (false, ident dest)
-                    in
-  let descr = if descr = "" then
-                  descr
-                else
-                  ":" ^ descr
-  in
-  let script =
-    let vars = [
-      "TRINITY_PATH", string "`which Trinity`" ;
-      "TRINTIY_DIR_PATH", string "`dirname $TRINITY_PATH`" ;
-      "FASTOOL_PATH", string "$TRINTIY_DIR_PATH/trinity-plugins/fastool/fastool" ;
-      "CHECK", flag seq [string "ls "; w_input] check_input  ;
-      "FQ", dep fastq ;
-      "DEST", dest ;
-    ]
+let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta workflow =
+    let (check_input, w_input) = match dep_input with
+                        | Some w -> (true, dep w)
+                        | None -> (false, ident dest)
+                        in
+    let descr = if descr = "" then
+                    descr
+                    else
+                    ":" ^ descr
     in
-    bash_script vars {|
-    $CHECK
-    $FASTOOL_PATH --illumina-trinity --to-fasta  $FQ > $DEST
-    |}
-  in
-  workflow ~descr:("fastq2fasta" ^ descr) ~np:1 [
-    cmd "sh" [ file_dump script ];
-  ]
-
+    let script =
+        let vars = [
+        "CHECK", flag seq [string "ls "; w_input] check_input  ;
+        "FQ", dep fastq ;
+        "DEST", dest ;
+        ]
+        in
+        bash_script vars {|
+        $CHECK
+        seqtk seq -A $FQ > $DEST
+        |}
+    in
+    workflow ~descr:("fastq2fasta" ^ descr) ~np:1 [
+        cmd "sh" [ file_dump script ];
+    ]
 
 let assembly_stats ?(descr="") (fasta:fasta workflow) : assembly_stats workflow =
    let descr = if descr = "" then
