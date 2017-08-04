@@ -824,7 +824,7 @@ sub generate_stats_files {
         foreach my $info_aref (@$files_need_stats_aref) {
             my $stats_file = $info_aref->[-1];
             my $sorted_stats_file = $stats_file . ".sort";
-            my $cmd = "$sort_exec -k5,5 -T . -S $sort_mem $stats_file > $sorted_stats_file";
+            my $cmd = "mkfifo  $sorted_stats_file && $sort_exec -k5,5 -T . -S $sort_mem $stats_file > $sorted_stats_file &";
             push (@cmds, $cmd) unless (-e "$sorted_stats_file.ok");
             $info_aref->[-1] = $sorted_stats_file;
             push (@checkpoints, [$sorted_stats_file, "$sorted_stats_file.ok"]);
