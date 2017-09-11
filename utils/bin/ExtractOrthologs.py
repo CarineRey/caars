@@ -195,7 +195,7 @@ def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
             i+=1
 
         i = MaxSize
-        while (not MaxOrthogGroups)  and (i > MinSize):
+        while (not MaxOrthogGroups)  and (i >= MinSize):
             if i not in SizeRange:
                 i-=1
                 continue
