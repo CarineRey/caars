@@ -131,6 +131,7 @@ def read_ortho_file(OrthoFile):
     logger.debug("Read %s", OrthoFile)
     name = ""
     OrthoDict = {}
+    ParaDict = {}
     Seqs = []
     if os.path.isfile(OrthoFile):
         f = open(OrthoFile, "r")
@@ -144,20 +145,42 @@ def read_ortho_file(OrthoFile):
                 OrthoDict.setdefault(o_groups_size, [])
                 OrthoDict[o_groups_size].append(o_groups)
                 Seqs.extend(o_groups)
+            elif re.match("PARALOGY RELATIONSHIP: ", line):
+                line = line.replace("PARALOGY RELATIONSHIP: ","").strip()
+                p_groups = line.replace(", ",",").replace(" <===> ", ",").split(",")
+                p_groups_size = len(p_groups)
+                ParaDict.setdefault(p_groups_size, [])
+                ParaDict[p_groups_size].append(p_groups)
+                Seqs.extend(p_groups)
             else:
                 pass
         f.close()
     Seqs = set(Seqs)
-    return (OrthoDict, Seqs)
+    return (OrthoDict,ParaDict, Seqs)
 
 
 ### Define orthology relationships for each seq:
 
-def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
+def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
     ResDict = {}
-    SizeRange = OrthoDict.keys()
-    MinSize = min(SizeRange)
-    MaxSize = max(SizeRange)
+
+    if OrthoDict:
+        OrthoSizeRange = OrthoDict.keys()
+        OrthoMinSize = min(OrthoSizeRange)
+        OrthoMaxSize = max(OrthoSizeRange)
+    else:
+        OrthoSizeRange = []
+        OrthoMinSize = 0
+        OrthoMaxSize = 0
+
+    if ParaDict:
+        ParaSizeRange = ParaDict.keys()
+        ParaMinSize = min(ParaSizeRange)
+        ParaMaxSize = max(ParaSizeRange)
+    else:
+        ParaSizeRange = []
+        ParaMinSize = 0
+        ParaMaxSize = 0
 
     MaxOrthogGroups_dict = {}
     MaxOrthogGroups_i = 1
@@ -170,18 +193,16 @@ def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
         MinOrthogGroups = []
         MinOrthogGroupsR = []
         MaxOrthogGroups = []
+        MinParaGroups = []
 
-        i = MinSize
-        while (not MinOrthogGroups) and (i <= MaxSize):
-            if i not in SizeRange:
+        i = OrthoMinSize
+        while (not MinOrthogGroups) and (i <= OrthoMaxSize):
+            if i not in OrthoSizeRange:
                 i+=1
                 continue
             for g in OrthoDict[i]:
                 #print OrthoDict[i]
                 if Seq in g:
-                    if SeqFromRefinedSpecies:
-                        if all([Seq2Sp_dict[s][0] in RefinedSpecies for s in g]):
-                            continue
                     if SeqFromRefinedSpecies:
                         for s in g:
                             if s != Seq:
@@ -193,22 +214,42 @@ def define_orthologs_groups(OrthoDict, ListSeqs, Seq2Sp_dict = {}):
                         MinOrthogGroups = [s for s in g if s != Seq]
                     break
             i+=1
+        MinOrthogGroupsR = list(set(sorted(MinOrthogGroupsR)))
 
-        i = MaxSize
-        while (not MaxOrthogGroups)  and (i >= MinSize):
-            if i not in SizeRange:
+        if MinOrthogGroups:
+            i = OrthoMaxSize
+            while (not MaxOrthogGroups)  and (i >= OrthoMinSize):
+                if i not in OrthoSizeRange:
+                    i-=1
+                    continue
+                for g in OrthoDict[i]:
+                    if Seq in g:
+                        MaxOrthogGroups = g
+                        MaxOrthogGroups.sort()
+                        if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
+                            MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
+                            MaxOrthogGroups_i += 1
+                        break
                 i-=1
-                continue
-            for g in OrthoDict[i]:
-                if Seq in g:
-                    MaxOrthogGroups = g
-                    MaxOrthogGroups.sort()
-                    if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
-                        MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
-                        MaxOrthogGroups_i += 1
-                    break
-            i-=1
-        ResDict[Seq] = [Sp, MinOrthogGroups, MinOrthogGroupsR, MaxOrthogGroups_dict[",".join(MaxOrthogGroups)]]
+        else: # Get Min paralog group
+            i = ParaMinSize
+            while (not MinParaGroups) and (i <= ParaMaxSize):
+                if i not in ParaSizeRange:
+                    i+=1
+                    continue
+                for g in ParaDict[i]:
+                    if Seq in g:
+                        if SeqFromRefinedSpecies:
+                            if all([Seq2Sp_dict[s][0] in RefinedSpecies for s in g]):
+                                break
+                        MinParaGroups = [s for s in g if s != Seq]
+                        break
+                i+=1
+            MaxOrthogGroups = [Seq]
+            MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
+            MaxOrthogGroups_i += 1
+
+        ResDict[Seq] = [Sp, MinOrthogGroups, MinOrthogGroupsR, MinParaGroups, MaxOrthogGroups_dict[",".join(MaxOrthogGroups)]]
 
     return ResDict
 
@@ -216,14 +257,24 @@ def write_orthologs_groups(OrthoDefDict):
     String_ortho=[]
     String_sp_seq=[]
     for Seq in OrthoDefDict:
-        [Sp, MinOrthogGroups, MinOrthogGroupsR, MaxOrthogGroups_i] = OrthoDefDict[Seq]
+        [Sp, MinOrthogGroups, MinOrthogGroupsR, MinParaGroups, MaxOrthogGroups_i] = OrthoDefDict[Seq]
 
-        if MinOrthogGroupsR:
-                        String_ortho.append("\t".join([Seq, "".join([",".join(MinOrthogGroups),",[",",".join(MinOrthogGroupsR),"]"])]))
+        if MinOrthogGroups:
+            if MinOrthogGroupsR:
+                String_ortho.append("\t".join([Seq, "".join([",".join(MinOrthogGroups),",[",",".join(MinOrthogGroupsR),"]"])]))
+            else:
+                String_ortho.append("\t".join([Seq, ",".join(MinOrthogGroups)]))
+        elif MinParaGroups:
+            if not MinOrthogGroupsR:
+                String_ortho.append("\t".join([Seq, ";P(" + ",".join(MinParaGroups) +")"]))
+            else:
+                String_ortho.append("\t".join([Seq, "[" + ",".join(MinOrthogGroupsR) + "];P(" + ",".join(MinParaGroups) +")"]))
+
+        if MaxOrthogGroups_i:
+            ortho_subset = "s%i" %(MaxOrthogGroups_i)
         else:
-                        String_ortho.append("\t".join([Seq, ",".join(MinOrthogGroups)]))
-
-        String_sp_seq.append("\t".join([Seq, Sp, Fam, "s%i" %(MaxOrthogGroups_i)]))
+            ortho_subset = "NA"
+        String_sp_seq.append("\t".join([Seq, Sp, Fam, ortho_subset]))
 
     return ["\n".join(String_ortho),"\n".join(String_sp_seq)]
 
@@ -234,8 +285,8 @@ with open(Orthologs_File, "w") as o_write:
     with open(SeqSpLink_File, "w") as s_write:
         for f in glob.glob("%s/*orthologs.txt" %ortho_dir):
             Fam = os.path.basename(f).split('.')[0]
-            (OrthoDict, Seqs) = read_ortho_file(f)
-            OrthoDefDict = define_orthologs_groups(OrthoDict, Seqs, Seq2Sp_dict)
+            (OrthoDict, ParaDict, Seqs) = read_ortho_file(f)
+            OrthoDefDict = define_orthologs_groups(OrthoDict, ParaDict, Seqs, Seq2Sp_dict)
             o_string, s_string = write_orthologs_groups(OrthoDefDict)
             o_write.write(o_string+"\n")
             s_write.write(s_string+"\n")
