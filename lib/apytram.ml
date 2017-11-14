@@ -141,6 +141,7 @@ let apytram_multi_species
         opt "-out" seq [ident dest ; string "/apytram"] ;
         opt "-log" seq [ident dest ; string "/apytram.log"] ;
         opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;
+        flag string "--cds" true;
         (*flag string "--keep_tmp" true;
         opt "-tmp" ident  ( dest // "apytram_tmp" ) ;*)
         ]
