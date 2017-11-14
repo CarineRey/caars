@@ -7,3 +7,5 @@ _bistro/
 test_out/
 .merlin
 *.install
+example/*dir/*
+
