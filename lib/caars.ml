@@ -776,7 +776,10 @@ let build_app configuration =
     )
   in
 
-  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_thread_memory in
+  (*remove transdecoder after apytram
+  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_thread_memory in *)
+
+  let apytram_orfs_ref_fams = apytram_annotated_ref_fams_by_fam in
 
   let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
