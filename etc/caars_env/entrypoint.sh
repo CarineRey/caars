@@ -28,8 +28,7 @@ echo "To be root, type \" sudo su - \""
 useradd --shell /bin/bash -u $USER_ID -o -c "" -g sudo -m user_docker
 echo "user_docker ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 export HOME=/home/user_docker
-cd $HOME
-exec /usr/local/bin/gosu user_docker "$@"
+exec /usr/sbin/gosu user_docker "$@"
 else
 echo "Starting with UID : root"
 exec "$@"
