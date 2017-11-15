@@ -139,12 +139,13 @@ ENV LD_LIBRARY_PATH /usr/local/lib/
 RUN cmake ..  &&  make install
 #########
 
+## update apytram
+WORKDIR /opt/apytram
+RUN git pull
 
 ##### install entrypoint
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ##### build a working directory
 WORKDIR /data
-
-CMD ["caars", "-h"]
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
