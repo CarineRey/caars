@@ -60,7 +60,7 @@ let phyldog_script ~config_dir ~results_species ~tree ~results_genes =
     touch ${RESULTS_SPECIES}${family}.events.txt
     if [ $nb_species -gt 2 ]
     then
-     mpirun -np $NP -mca btl sm,self phyldog param=$GENERAL_OPTIONS
+     mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog param=$GENERAL_OPTIONS
      cut -f 2 ${RESULTS_SPECIES}orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
      cut -f 1,3- -d "," ${RESULTS_SPECIES}events.txt > ${RESULTS_SPECIES}${family}.events.txt
     else
