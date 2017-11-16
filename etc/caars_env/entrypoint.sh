@@ -9,8 +9,10 @@ USER_ID=${LOCAL_USER_ID:-9001}
 Xvfb :1 -screen 0 1024x768x16 &
 export DISPLAY=:1
 
-
-if [ -n "$SHARED_DIR" ]
+if [ -n "$CWD" ]
+then
+W_DIR=$CWD
+elif [ -n "$SHARED_DIR" ]
 then
 W_DIR=$SHARED_DIR
 fi

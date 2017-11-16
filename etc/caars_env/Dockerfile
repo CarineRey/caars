@@ -12,7 +12,6 @@ RUN apt-get install --no-install-recommends -qy unzip \
                         python-scipy \
                         python-mysqldb \
                         python-lxml \
-                        python-pip \
 #To install Transdecoder
                         libany-uri-escape-perl \
 #To install opam
@@ -131,12 +130,10 @@ RUN cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
 
 
 ######### phyldog
-RUN git clone https://github.com/Boussau/PHYLDOG /usr/local/phyldog && \
-    mkdir /usr/local/phyldog/build
-WORKDIR /usr/local/phyldog/build
-
 ENV LD_LIBRARY_PATH /usr/local/lib/
-RUN cmake ..  &&  make install
+RUN git clone https://github.com/Boussau/PHYLDOG /opt/phyldog/ && \
+    mkdir /opt/phyldog/build && cd /opt/phyldog/build && cmake ..  &&  make install
+ENV PATH /opt/phyldog/build/bin/:$PATH
 #########
 
 ## update apytram
