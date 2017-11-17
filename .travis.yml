@@ -17,7 +17,7 @@ script:
   - wget https://raw.githubusercontent.com/wiki/CarineRey/caars/src/test_tuto.sh
   - wget https://raw.githubusercontent.com/wiki/CarineRey/caars/src/Tutorial_quick.sh
   - wget https://raw.githubusercontent.com/wiki/CarineRey/caars/src/Tutorial_byyourself.sh
-  - sudo bash test_tuto.sh
+  - bash test_tuto.sh
 
 after_success:
   - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
