@@ -42,16 +42,15 @@ open Commons
 
 let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold debug just_parse_input html_report dag_dot quiet () =
   let logger quiet html_report dag_dot =
-  Bistro_logger.tee
-    (if quiet then Bistro_logger.null else Bistro_console_logger.create ())
-    (Bistro_logger.tee
-       (match dag_dot with
-        | Some path -> Bistro_dot_output.create path
-        | None -> Bistro_logger.null)
-       (match html_report with
-        | Some path -> Bistro_html_logger.create path
-        | None -> Bistro_logger.null)
-    )
+    Logger.tee [
+      if quiet then Logger.null else Console_logger.create () ;
+      (match dag_dot with
+       | Some path -> Dot_output.create path
+       | None -> Logger.null) ;
+      (match html_report with
+       | Some path -> Html_logger.create path
+       | None -> Logger.null) ;
+    ]
   in
   let run_reconciliation = match no_reconcile with
     | true -> false
@@ -66,9 +65,9 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
-  let caars_app = Caars.build_app configuration in
-  Bistro_app.(
-    run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" caars_app
+  let caars_term = Caars.build_term configuration in
+  Term.(
+    run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(`GB configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" caars_term
   )
 
 let spec =

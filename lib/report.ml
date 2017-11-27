@@ -32,7 +32,7 @@ let trinity_section trinity_assemblies_stats =
     ]
     ]
   in
-  let foreach_sample (sample, Bistro_app.Path assembly_stats) =
+  let foreach_sample (sample, Term.Path assembly_stats) =
     let { Trinity_stats.n50 ; nb_genes; gc; nb_transcripts } = Trinity_stats.parse assembly_stats in
     tr [
       td [ k sample.Commons.species ] ;

@@ -656,7 +656,7 @@ let output_of_phyldog phyldog merged_families families =
   ]
 
 let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families  ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir =
-  let any x = Bistro.Workflow x in
+  let any x = Bistro.Any_workflow x in
   let unwrap_fasta_sample = function
     | (_, Fasta_Single_end (w, _ )) -> [ any w ]
     | (_, Fasta_Paired_end (lw, rw , _)) -> [ any lw ; any rw ]
@@ -689,7 +689,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     [ any apytram_results_dir];
   ]
 
-let build_app configuration =
+let build_term configuration =
 
   (*let allocation_apytram = 80 in
   let allocation_trinity = 100 - allocation_apytram in
@@ -803,7 +803,7 @@ let build_app configuration =
 *)
 
 
-  let open Bistro_repo in
+  let open Repo in
 
   let target_to_sample_fasta s d = function
     | Fasta_Single_end (w, _ ) -> [[ d ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
@@ -903,12 +903,12 @@ let build_app configuration =
   in
 
   if configuration.just_parse_input then
-    let precious = [Bistro.Workflow configuration_dir] in
-    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
+    let precious = [Bistro.Any_workflow configuration_dir] in
+    let repo_app = Repo.to_term repo ~precious ~outdir:configuration.outdir in
     repo_app
   else
     let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
-    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
+    let repo_app = Repo.to_term repo ~precious ~outdir:configuration.outdir in
     repo_app
     (*let open Bistro_app in
     let stats_app =
