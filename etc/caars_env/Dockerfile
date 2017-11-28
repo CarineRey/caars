@@ -9,6 +9,7 @@ RUN apt-get install --no-install-recommends -qy unzip \
 #to install ete2
                         python-setuptools \
                         python-qt4 \
+                        python-tk \
                         python-scipy \
                         python-mysqldb \
                         python-lxml \

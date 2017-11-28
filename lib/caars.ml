@@ -613,6 +613,26 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
             ]
     ]
 
+
+let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration =
+    let formated_target_species = List.map configuration.all_ref_samples ~f:(fun s ->
+        seq ~sep:":" [string s.species ; string s.id]
+      )
+    in
+
+    workflow ~descr:"final_plots.py" ~version:3 [
+        mkdir_p dest;
+        cmd "final_plots.py" [
+            opt "-i_ortho" dep orthologs_per_seq;
+            opt "-i_filter" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/"]);
+            opt "-o" ident dest;
+            opt "-t_sp" (seq ~sep:",") formated_target_species;
+        ]
+    ]
+
+
+
+
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
   let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
   let treedir = merged_families_dirs / selector [ "Merged_tree" ] in
@@ -797,6 +817,8 @@ let build_app configuration =
 
   let orthologs_per_seq = write_orthologs_relationships merged_reconciled_and_realigned_families_dirs configuration in
 
+  let final_plots = build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration in
+
   (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
   let output = output_of_phyldog phyldog merged_families configuration.families in
@@ -833,6 +855,7 @@ let build_app configuration =
       ;
       [["all_fam.seq2sp.tsv"] %> (orthologs_per_seq / selector ["all_fam.seq2sp.tsv"])]
       ;
+      [["plots"] %> final_plots];
       if configuration.run_reconciliation then
         [["all_fam.orthologs.tsv"] %> (orthologs_per_seq/ selector["all_fam.orthologs.tsv"])]
       else
