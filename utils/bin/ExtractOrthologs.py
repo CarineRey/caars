@@ -224,9 +224,22 @@ def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
                     continue
                 for g in OrthoDict[i]:
                     if Seq in g:
-                        MaxOrthogGroups = g
-                        MaxOrthogGroups.sort()
-                        if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
+                        # Remove paralogs because we want 1:1 orthologs
+                        for i_p in ParaSizeRange:
+                            for g_p in ParaDict[i_p]:
+                                if i_p < len(g):
+                                    if set(g_p).issubset(set(g)):
+                                        g = list(set(g).difference(set(g_p)))
+
+                        if Seq in g:
+                            MaxOrthogGroups = g
+                            MaxOrthogGroups.sort()
+                            if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
+                                MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
+                                MaxOrthogGroups_i += 1
+
+                        else:
+                            MaxOrthogGroups = [Seq]
                             MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
                             MaxOrthogGroups_i += 1
                         break
