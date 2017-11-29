@@ -132,7 +132,7 @@ df_sp.sort_values('target_sp', inplace=True)
 color_di = {True:"#90EE90", False: "blue"}
 df_sp["color"] =  df_sp["target_sp"].replace(color_di)
 
-if os.environ['DISPLAY']:
+if os.environ.has_key("DISPLAY"):
     plt.figure();
     fig1 = df_sp.plot(kind='barh', x="sp", y="counts", title= "# of total sequences", stacked=True, color=df_sp["color"], legend=False)
     fig1_plot = fig1.get_figure()
@@ -148,7 +148,7 @@ if os.path.isfile(all_fam_orthologs_fn):
     df_subfam = df_seq2sp.groupby(['fam_subfam']).size().reset_index(name='counts')
     df_subfam.to_csv("%s/total_sp_per_subfam.tsv" %(OutDirName), index = False)
 
-    if os.environ['DISPLAY']:
+    if os.environ.has_key("DISPLAY"):
         plt.figure();
         fig2 = df_subfam.plot.hist(by='counts', bins=50, legend=False, color="b")
         fig2.set_xlabel("# of sequences per subfamily")
@@ -167,7 +167,7 @@ if os.path.isfile(all_fam_orthologs_fn):
     df_subfam_per_sp["%_sum"] = df_subfam_per_sp["sum"] * 100. / float(nb_sp)
     df_subfam_per_sp.to_csv("%s/nb_seq_per_sp_per_subfam.tsv" %(OutDirName))
 
-    if os.environ['DISPLAY']:
+    if os.environ.has_key("DISPLAY"):
         plt.figure();
         fig3 = df_subfam_per_sp["%_sum"].plot.hist(bins=50, legend=False, color="b", range=[0,100])
         fig3.set_xlabel("% of the whole number of species per subfamily")
@@ -212,7 +212,7 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
         #    ggtitle(t_sp)
         #ggsave(plot = p, filename = OutDirName + "/" + t_sp+'.pdf')
 
-        if os.environ['DISPLAY']:
+        if os.environ.has_key("DISPLAY"):
             plt.figure(1)
             fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
 
