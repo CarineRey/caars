@@ -125,17 +125,18 @@ plt.rcParams['figure.autolayout'] = True
 
 
 #### Fig 1
-plt.figure();
+
 df_sp = df_seq2sp.groupby(['sp']).size().reset_index(name='counts')
 df_sp["target_sp"] = df_sp["sp"].isin(target_species_l)
 df_sp.sort_values('target_sp', inplace=True)
 color_di = {True:"#90EE90", False: "blue"}
 df_sp["color"] =  df_sp["target_sp"].replace(color_di)
 
-
-fig1 = df_sp.plot(kind='barh', x="sp", y="counts", title= "# of total sequences", stacked=True, color=df_sp["color"], legend=False)
-fig1_plot = fig1.get_figure()
-fig1_plot.savefig("%s/total_seqs.pdf" %(OutDirName))
+if os.environ['DISPLAY']:
+    plt.figure();
+    fig1 = df_sp.plot(kind='barh', x="sp", y="counts", title= "# of total sequences", stacked=True, color=df_sp["color"], legend=False)
+    fig1_plot = fig1.get_figure()
+    fig1_plot.savefig("%s/total_seqs.pdf" %(OutDirName))
 
 if os.path.isfile(all_fam_orthologs_fn):
 
@@ -144,15 +145,15 @@ if os.path.isfile(all_fam_orthologs_fn):
 
     #### Fig 2
 
-    plt.figure();
     df_subfam = df_seq2sp.groupby(['fam_subfam']).size().reset_index(name='counts')
     df_subfam.to_csv("%s/total_sp_per_subfam.tsv" %(OutDirName), index = False)
 
-    fig2 = df_subfam.plot.hist(by='counts', bins=50, legend=False, color="b")
-    fig2.set_xlabel("# of sequences per subfamily")
-    fig2_plot = fig2.get_figure()
-    fig2_plot.savefig("%s/total_sp_per_subfam.pdf" %(OutDirName))
-
+    if os.environ['DISPLAY']:
+        plt.figure();
+        fig2 = df_subfam.plot.hist(by='counts', bins=50, legend=False, color="b")
+        fig2.set_xlabel("# of sequences per subfamily")
+        fig2_plot = fig2.get_figure()
+        fig2_plot.savefig("%s/total_sp_per_subfam.pdf" %(OutDirName))
 
     df_subfam = df_seq2sp.groupby(['fam_subfam', "sp"]).size().reset_index(name='counts')
     df_subfam.to_csv("%s/total_sp_per_subfam_sp.tsv" %(OutDirName), index = False)
@@ -160,17 +161,18 @@ if os.path.isfile(all_fam_orthologs_fn):
 
 
     #### Fig 3
-    plt.figure();
     df_subfam_per_sp = pd.crosstab(index=df_subfam['fam_subfam'], columns=[df_subfam['sp']])
     nb_sp = df_subfam_per_sp.shape[1]
     df_subfam_per_sp["sum"] = df_subfam_per_sp.sum(1)
     df_subfam_per_sp["%_sum"] = df_subfam_per_sp["sum"] * 100. / float(nb_sp)
     df_subfam_per_sp.to_csv("%s/nb_seq_per_sp_per_subfam.tsv" %(OutDirName))
 
-    fig3 = df_subfam_per_sp["%_sum"].plot.hist(bins=50, legend=False, color="b", range=[0,100])
-    fig3.set_xlabel("% of the whole number of species per subfamily")
-    fig3_plot = fig3.get_figure()
-    fig3_plot.savefig("%s/presence_sp_per_subfam.pdf" %(OutDirName))
+    if os.environ['DISPLAY']:
+        plt.figure();
+        fig3 = df_subfam_per_sp["%_sum"].plot.hist(bins=50, legend=False, color="b", range=[0,100])
+        fig3.set_xlabel("% of the whole number of species per subfamily")
+        fig3_plot = fig3.get_figure()
+        fig3_plot.savefig("%s/presence_sp_per_subfam.pdf" %(OutDirName))
 
 
 
@@ -197,15 +199,11 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
     df_filter_summary["sp"] = df_filter_summary["seq"].map(get_id)
     df_filter_summary["color"] =  df_filter_summary["s"].replace({"K":"#09BB21", "K2":"#FFA500", "D":"#D80002"})
 
-    print df_filter_summary
-    print df_filter_summary.shape
-
-
-
     for t_sp in target_species_l:
         print t_sp
         df_filter_summary_sp = df_filter_summary.copy()
         df_filter_summary_sp = df_filter_summary_sp[df_filter_summary.sp.eq(t_sp)]
+        df_filter_summary_sp.to_csv("%s/%s.filter_stats.tsv" %(OutDirName, t_sp))
 
         #df_filter_summary_sp_melt = pd.melt(df_filter_summary_sp[["seq", "%_id", "%_ali", "s"]], id_vars=['seq', "s"], value_vars=["%_id", "%_ali"])
         #print df_filter_summary_sp_melt
@@ -214,35 +212,27 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
         #    ggtitle(t_sp)
         #ggsave(plot = p, filename = OutDirName + "/" + t_sp+'.pdf')
 
+        if os.environ['DISPLAY']:
+            plt.figure(1)
+            fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
 
-        plt.figure(1)
-        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
-        print "K"
-        print df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["K","K2"])]
-        print "D"
-        print df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("D")]
-
-        print " "
-        ax1.hist([df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
+            ax1.hist([df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
                  df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("D")].values],
                  stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
 
-        handles, labels = ax1.get_legend_handles_labels()
-        ax1.legend(handles, labels)
+            handles, labels = ax1.get_legend_handles_labels()
+            ax1.legend(handles, labels)
+            ax1.set_xlabel("%_id")
+            ax1.set_title(t_sp)
 
-        ax2.hist([df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
+            ax2.hist([df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
                  df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].eq("D")].values],
                  stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
 
-        handles, labels = ax1.get_legend_handles_labels()
-        ax1.legend(handles, labels)
-        ax1.set_xlabel("%_id")
-        ax1.set_title(t_sp)
-
-        ax2.set_xlabel("%_ali")
-        handles2, labels2 = ax2.get_legend_handles_labels()
-        ax2.legend(handles2, labels2)
-        plt.tight_layout()
-        plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.pdf')
+            ax2.set_xlabel("%_ali")
+            handles2, labels2 = ax2.get_legend_handles_labels()
+            ax2.legend(handles2, labels2)
+            plt.tight_layout()
+            plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.pdf')
 
 
