@@ -89,11 +89,11 @@ if os.path.isfile(all_fam_seq2sp_fn):
 else:
     print "all_fam_seq2sp_fn not ok:" + all_fam_seq2sp_fn
 
+target_species_d = {}
+target_species_l = []
 
 if args.target_species:
     target_species_tmp = args.target_species.strip().split(",")
-    target_species_d = {}
-    target_species_l = []
     for x in target_species_tmp:
         sp, sp_id = x.split(":")
         target_species_d[sp_id] = sp
