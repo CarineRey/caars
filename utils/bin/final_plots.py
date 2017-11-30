@@ -51,9 +51,8 @@ requiredOptions.add_argument('-o', '--output_dir', type=str,
                    help="Output dir", required=True)
 ##############
 Options = parser.add_argument_group('Options')
-Options.add_argument('-t_sp', '--target_species', type=str, metavar="",
-                    help="",
-                    default="")
+Options.add_argument('-t_sp', '--target_species', type=str, metavar="sp1:ID1,sp2:ID2",
+                    help="", default="")
 ##############
 
 ### Option parsing

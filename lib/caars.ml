@@ -603,7 +603,7 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
                    Some(List.map configuration.all_ref_samples ~f:(fun s -> s.species)))
         | false -> (None, None)
     in
-    workflow ~descr:"ExtractOrthologs.py" ~version:1 [
+    workflow ~descr:"ExtractOrthologs.py" ~version:3 [
             mkdir_p dest;
             cmd "ExtractOrthologs.py"  [
             ident dest;
@@ -615,18 +615,20 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
 
 
 let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration =
-    let formated_target_species = List.map configuration.all_ref_samples ~f:(fun s ->
-        seq ~sep:":" [string s.species ; string s.id]
+    let formated_target_species = match configuration.all_ref_samples with
+        | [] -> None
+        | _ -> Some (List.map configuration.all_ref_samples ~f:(fun s ->
+        seq ~sep:":" [string s.species ; string s.id])
       )
     in
 
-    workflow ~descr:"final_plots.py" ~version:3 [
+    workflow ~descr:"final_plots.py" ~version:4 [
         mkdir_p dest;
         cmd "final_plots.py" [
             opt "-i_ortho" dep orthologs_per_seq;
             opt "-i_filter" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/"]);
             opt "-o" ident dest;
-            opt "-t_sp" (seq ~sep:",") formated_target_species;
+            option (opt "-t_sp" (seq ~sep:",")) formated_target_species;
         ]
     ]
 
