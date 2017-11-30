@@ -343,6 +343,7 @@ let seq_integrator
     ?resolve_polytomy
     ?species_to_refine_list
     ?no_merge
+    ?merge_criterion
     ~family
     ~trinity_fam_results_dirs
     ~apytram_results_dir
@@ -350,6 +351,12 @@ let seq_integrator
     alignment
   : _ directory workflow =
 
+  let merge_criterion_string  = match merge_criterion with
+    | Some Merge ->  None
+    | Some Length -> Some "length"
+    | Some Length_complete -> Some "length.complete"
+    | None -> None
+    in
   let get_trinity_file_list extension dirs =
     List.map  dirs ~f:(fun (s,dir) ->
         [ dep dir ; string ("/Trinity." ^ s.id ^ "." ^ s.species ^ "." ^ family ^ "." ^ extension) ; string ","]
@@ -380,6 +387,7 @@ let seq_integrator
       opt "-ali" string alignment ;
       opt "-fa" (seq ~sep:"") fasta;
       option (flag string "--realign_ali") realign_ali;
+      option (opt "--merge_criterion" string) merge_criterion_string;
       option (flag string "--no_merge") no_merge;
       option (flag string "--resolve_polytomy") resolve_polytomy;
       opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
@@ -418,7 +426,6 @@ let seq_filter
     ]
   ]
 
-
 let merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir =
   List.map configuration.families ~f:(fun family ->
       let trinity_fam_results_dirs=
@@ -426,14 +433,14 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
             (s , List.Assoc.find_exn ~equal:( = ) trinity_annotated_fams s)
           )
       in
-
+      let merge_criterion = configuration.merge_criterion in
       let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
       let w = if (List.length species_to_refine_list) = 0 then
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     else
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     in
       let tree = w / selector [family ^ ".tree"] in
       let alignment = w / selector [family ^ ".fa"] in

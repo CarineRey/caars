@@ -40,7 +40,7 @@ open Bistro_utils
 open Caars_lib
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold debug just_parse_input html_report dag_dot quiet () =
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug just_parse_input html_report dag_dot quiet () =
   let logger quiet html_report dag_dot =
   Bistro_logger.tee
     (if quiet then Bistro_logger.null else Bistro_console_logger.create ())
@@ -63,9 +63,10 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let just_parse_input = Option.value ~default:false just_parse_input in *)
   let refineali = false in
   let ali_sister_threshold = Option.value ~default:0.0 ali_sister_threshold in
+  let merge_criterion = Option.value ~default:"merge" merge_criterion in
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
-  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
+  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~merge_criterion ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
   let caars_app = Caars.build_app configuration in
   Bistro_app.(
     run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(1024 * configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" caars_app
@@ -85,6 +86,7 @@ let spec =
   +> flag "--refinetree"      no_arg            ~doc:" Refine topology during final Reconciliation step (Default:false)"
 (*  +> flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"*)
   +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of an Caars sequences on its (non Caars) closest sequence to be kept in the final output"
+  +> flag "--merge-criterion" (optional string) ~doc:"STR Merge criterion during reduundancy removing. It must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them."
   +> flag "--debug"           no_arg            ~doc:" Get intermediary files (Default:false)"
   +> flag "--just-parse-input"no_arg            ~doc:" Parse input and exit. Recommended to check all input files. (Default:false)"
   +> flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"

@@ -45,6 +45,11 @@ type ('a,'b) fastX =
   | Fasta of 'a
   | Fastq of 'b
 
+type merge_criterion =
+  | Merge
+  | Length
+  | Length_complete
+
 type orientation_single =
   | F
   | R

@@ -21,9 +21,10 @@ type t = {
   debug : bool;
   just_parse_input : bool;
   ali_sister_threshold : float;
+  merge_criterion : merge_criterion;
 }
 
-val load : 
+val load :
   sample_sheet:string ->
   species_tree_file:string ->
   alignments_dir:string ->
@@ -34,6 +35,7 @@ val load :
   refinetree:bool ->
   refineali:bool ->
   ali_sister_threshold:float ->
+  merge_criterion:string ->
   debug:bool ->
   just_parse_input:bool ->
   outdir:string ->
