@@ -22,6 +22,4 @@ script:
 after_success:
   - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
   - export REPO_caars=$DOCKER_USER/$DOCKER_caars
-  - export REPO_tuto=$DOCKER_USER/$DOCKER_tuto
   - docker push $REPO_caars
-  - docker push $REPO_tuto
