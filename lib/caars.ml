@@ -377,7 +377,7 @@ let seq_integrator
   let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
   let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
 
-  let tmp_merge = dest // "tmp" in
+  let tmp_merge = tmp // "tmp" in
 
   workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family) [
     mkdir_p tmp_merge ;
