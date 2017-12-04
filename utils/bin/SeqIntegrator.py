@@ -76,6 +76,9 @@ Options.add_argument('-sptorefine', type=str, default="",
                     help="A list of species names delimited by commas. These species will be concerned by merging. (default: All species will be concerned)")
 Options.add_argument('--no_merge', action='store_true', default=False,
                     help="not use phylo merge to merge sequences. (default: False)")
+Options.add_argument('--merge_criterion', type=str, choices = ["merge","length", "length.complete"],
+                    help="""choice.criterion=“length" or “length.complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them.""",
+                    default="merge")
 Options.add_argument('--realign_ali', action='store_true', default=False,
                     help="Realign the ali even if no sequences to add. (default: False)")
 Options.add_argument('--resolve_polytomy', action='store_true', default=False,
@@ -356,6 +359,7 @@ if StartingFastaFiles and Sp2SeqFiles:
             Int1Sp2Seq = "%s/Int1.sp2seq.txt" %TmpDirName
             PhylomergeProcess = PhyloPrograms.Phylomerge(ali, StartTreeFilename)
             PhylomergeProcess.TaxonToSequence = sp2seq
+            PhylomergeProcess.ChoiceCriterion = args.merge_criterion
             PhylomergeProcess.RearrangeTree = True
             PhylomergeProcess.BootstrapThreshold = 0.8
             PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName

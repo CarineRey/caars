@@ -343,6 +343,7 @@ let seq_integrator
     ?resolve_polytomy
     ?species_to_refine_list
     ?no_merge
+    ?merge_criterion
     ~family
     ~trinity_fam_results_dirs
     ~apytram_results_dir
@@ -350,6 +351,12 @@ let seq_integrator
     alignment
   : _ directory workflow =
 
+  let merge_criterion_string  = match merge_criterion with
+    | Some Merge ->  None
+    | Some Length -> Some "length"
+    | Some Length_complete -> Some "length.complete"
+    | None -> None
+    in
   let get_trinity_file_list extension dirs =
     List.map  dirs ~f:(fun (s,dir) ->
         [ dep dir ; string ("/Trinity." ^ s.id ^ "." ^ s.species ^ "." ^ family ^ "." ^ extension) ; string ","]
@@ -370,7 +377,7 @@ let seq_integrator
   let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
   let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
 
-  let tmp_merge = dest // "tmp" in
+  let tmp_merge = tmp // "tmp" in
 
   workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family) [
     mkdir_p tmp_merge ;
@@ -380,6 +387,7 @@ let seq_integrator
       opt "-ali" string alignment ;
       opt "-fa" (seq ~sep:"") fasta;
       option (flag string "--realign_ali") realign_ali;
+      option (opt "--merge_criterion" string) merge_criterion_string;
       option (flag string "--no_merge") no_merge;
       option (flag string "--resolve_polytomy") resolve_polytomy;
       opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
@@ -418,7 +426,6 @@ let seq_filter
     ]
   ]
 
-
 let merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir =
   List.map configuration.families ~f:(fun family ->
       let trinity_fam_results_dirs=
@@ -426,14 +433,14 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
             (s , List.Assoc.find_exn ~equal:( = ) trinity_annotated_fams s)
           )
       in
-
+      let merge_criterion = configuration.merge_criterion in
       let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
       let w = if (List.length species_to_refine_list) = 0 then
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     else
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     in
       let tree = w / selector [family ^ ".tree"] in
       let alignment = w / selector [family ^ ".fa"] in
@@ -603,7 +610,7 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
                    Some(List.map configuration.all_ref_samples ~f:(fun s -> s.species)))
         | false -> (None, None)
     in
-    workflow ~descr:"ExtractOrthologs.py" ~version:1 [
+    workflow ~descr:"ExtractOrthologs.py" ~version:3 [
             mkdir_p dest;
             cmd "ExtractOrthologs.py"  [
             ident dest;
@@ -612,6 +619,28 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
             option (opt "" transform_species_list) species_to_refine_list ;
             ]
     ]
+
+
+let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration =
+    let formated_target_species = match configuration.all_ref_samples with
+        | [] -> None
+        | _ -> Some (List.map configuration.all_ref_samples ~f:(fun s ->
+        seq ~sep:":" [string s.species ; string s.id])
+      )
+    in
+
+    workflow ~descr:"final_plots.py" ~version:4 [
+        mkdir_p dest;
+        cmd "final_plots.py" [
+            opt "-i_ortho" dep orthologs_per_seq;
+            opt "-i_filter" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/"]);
+            opt "-o" ident dest;
+            option (opt "-t_sp" (seq ~sep:",")) formated_target_species;
+        ]
+    ]
+
+
+
 
 let phyldog_of_merged_families_dirs configuration merged_families_dirs =
   let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
@@ -797,6 +826,8 @@ let build_term configuration =
 
   let orthologs_per_seq = write_orthologs_relationships merged_reconciled_and_realigned_families_dirs configuration in
 
+  let final_plots = build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration in
+
   (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
 
   let output = output_of_phyldog phyldog merged_families configuration.families in
@@ -833,6 +864,7 @@ let build_term configuration =
       ;
       [["all_fam.seq2sp.tsv"] %> (orthologs_per_seq / selector ["all_fam.seq2sp.tsv"])]
       ;
+      [["plots"] %> final_plots];
       if configuration.run_reconciliation then
         [["all_fam.orthologs.tsv"] %> (orthologs_per_seq/ selector["all_fam.orthologs.tsv"])]
       else

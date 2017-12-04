@@ -9,6 +9,7 @@ RUN apt-get install --no-install-recommends -qy unzip \
 #to install ete2
                         python-setuptools \
                         python-qt4 \
+                        python-tk \
                         python-scipy \
                         python-mysqldb \
                         python-lxml \
@@ -131,9 +132,18 @@ RUN cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
 
 
 ######### phyldog
-ENV LD_LIBRARY_PATH /usr/local/lib/
-RUN git clone https://github.com/Boussau/PHYLDOG /opt/phyldog/ && \
-    mkdir /opt/phyldog/build && cd /opt/phyldog/build && cmake ..  &&  make install
+# for libpll
+RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy flex bison autotools-dev autoconf libtool automake
+
+WORKDIR  /opt/phyldog/
+
+RUN git clone --branch faster_reconciliation  https://github.com/BenoitMorel/PHYLDOG.git /opt/phyldog/ && \
+    git checkout 4fe42b7e1831addcc77f92710350f7bfaaf1c9c2
+
+RUN sed -e "s|git@github.com:ddarriba/pll-modules.git| --branch dev https://github.com/ddarriba/pll-modules.git|" -i ./build_libpll2.sh && ./build_libpll2.sh
+
+RUN mv /opt/phyldog/libpll2_dependencies/include/pll /opt/phyldog/libpll2_dependencies/include/pllmodules
+RUN mkdir -p build && cd /opt/phyldog/build && cmake  -DCMAKE_LIBRARY_PATH=/opt/phyldog/libpll2_dependencies/libs -DCMAKE_INCLUDE_PATH=/opt/phyldog/libpll2_dependencies/include ..  &&  make -j 4 install
 ENV PATH /opt/phyldog/build/bin/:$PATH
 #########
 
