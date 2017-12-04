@@ -120,6 +120,7 @@ RUN opam install -y bistro=0.3.0
 #RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy flex bison autotools-dev autoconf libtool automake
 #RUN git clone --branch 0.3.2 https://github.com/xflouris/libpll.git && \
 #    cd libpll  && ./autogen.sh &&  ./configure && make && make install  
+RUN opam pin add bistro --dev-repo
 
 ######### libpll-1.0.2
 COPY libpll-1.0.2-sse3-64.tar.gz /opt/libpll-1.0.2-sse3-64.tar.gz
