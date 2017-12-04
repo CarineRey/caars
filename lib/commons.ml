@@ -151,3 +151,5 @@ let bash_script args code =
     |> seq ~sep:"\n"
   in
   seq ~sep:"\n" [ prelude ; string code ]
+
+let env = docker_image ~account:"carinerey" ~name:"caars_env" ~tag:"0.2.0-bistrodev" ()

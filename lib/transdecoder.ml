@@ -69,19 +69,23 @@ let transdecoder
   let tmp_fasta = string "tmp" in
   workflow ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
-    cd dest;
-    cmd "bash" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
-    cmd "TransDecoder.LongOrfs" [
-      opt "-t" ident tmp_fasta ;
-      option (opt "-m" int ) pep_min_length ;
-      option (flag string "-S") only_top_strand ;
-    ] ;
-    cmd "TransDecoder.Predict" [
-      opt "-t" ident tmp_fasta ;
-      opt "--cpu" ident np ;
-      option (flag string "--single_best_orf") only_best_orf ;
-      option (opt "--retain_long_orfs" int ) retain_long_orfs ;
-    ] ;
-    mv (string "*.cds") (string "orfs.cds") ;
+    docker env (
+      and_list [
+        cd dest;
+        cmd "bash" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
+        cmd "TransDecoder.LongOrfs" ~env [
+          opt "-t" ident tmp_fasta ;
+          option (opt "-m" int ) pep_min_length ;
+          option (flag string "-S") only_top_strand ;
+        ] ;
+        cmd "TransDecoder.Predict" ~env [
+          opt "-t" ident tmp_fasta ;
+          opt "--cpu" ident np ;
+          option (flag string "--single_best_orf") only_best_orf ;
+          option (opt "--retain_long_orfs" int ) retain_long_orfs ;
+        ] ;
+        mv (string "*.cds") (string "orfs.cds") ;
+      ] ;
+    )
   ]
   / selector [ "orfs.cds" ]

@@ -41,7 +41,7 @@ open Commons
 let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta workflow) : blast_db workflow =
     workflow ~descr:("makeblastdb:" ^ dbname) ~np:1 [
         mkdir_p dest;
-        cmd "makeblastdb" [
+        cmd "makeblastdb" ~env [
                     option (flag string "-parse_seqids") parse_seqids ;
                     option (flag string "-hash_index") hash_index ;
                     opt "-in" dep fasta;

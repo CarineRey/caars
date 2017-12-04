@@ -25,12 +25,12 @@ let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~fa
       in
   workflow ~np:1 ~descr:"Parse input" ~version:13 ~mem:(memory * 1024) [
     mkdir_p dest;
-    cmd "ParseInput.py"  [ dep sample_sheet ;
-                           dep species_tree_file;
-                           dep alignments_dir;
-                           dep seq2sp_dir;
-                           ident dest ;
-                         ];
+    cmd "ParseInput.py"  ~env [ dep sample_sheet ;
+                                dep species_tree_file;
+                                dep alignments_dir;
+                                dep seq2sp_dir;
+                                ident dest ;
+                              ];
     cmd "cp" [ file_dump script; families_out];
   ]
 
@@ -136,19 +136,19 @@ let concat ?(descr="") = function
 
 let build_biopythonindex ?(descr="") (fasta:fasta workflow)  : index workflow =
   workflow ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
-    cmd "build_biopythonindex_fasta.py" [ ident dest; dep fasta ]
+    cmd "build_biopythonindex_fasta.py" ~env [ ident dest; dep fasta ]
   ]
 
 let reformat_cdhit_cluster ?(descr="") cluster : fasta workflow =
   workflow ~version:1 ~descr:("reformat_cdhit_cluster2fasta.py" ^ descr) [
-    cmd "reformat_cdhit_cluster2fasta.py" [ dep cluster  ; ident dest]
+    cmd "reformat_cdhit_cluster2fasta.py" ~env [ dep cluster  ; ident dest]
   ]
 
 let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta workflow) : cdhit directory workflow =
   let out = dest // "cluster_rep.fa" in
   workflow ~version:1 ~descr:("cdhitlap" ^ descr) [
     mkdir_p dest;
-    cmd "cd-hit-lap" [
+    cmd "cd-hit-lap" ~env [
         opt "-i" dep fasta;
         opt "-o" ident out ;
         option ( opt "-p" float ) p;
@@ -197,7 +197,7 @@ let seq_dispatcher
     ~seq2fam : fasta workflow =
   workflow ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
     mkdir_p tmp;
-    cmd "SeqDispatcher.py"  [
+    cmd "SeqDispatcher.py" ~env [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
       opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
       opt "-tmp" ident tmp ;
@@ -299,7 +299,7 @@ let checkfamily
   workflow ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
-    cmd "CheckFamily.py"  [
+    cmd "CheckFamily.py" ~env [
       opt "-tmp" ident tmp_checkfamily ;
       opt "-i" dep input ;
       opt "-t" dep ref_transcriptome ;
@@ -333,7 +333,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
     )
   in
   workflow ~version:4 ~descr:"Parse_apytram_results.py" ~np:1  [
-    cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
+    cmd "Parse_apytram_results.py" ~env [ file_dump config ; dest ]
   ]
 
 let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
@@ -381,7 +381,7 @@ let seq_integrator
 
   workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family) [
     mkdir_p tmp_merge ;
-    cmd "SeqIntegrator.py"  [
+    cmd "SeqIntegrator.py" ~env [
       opt "-tmp" ident tmp_merge;
       opt "-log" seq [ tmp_merge ; string ("/SeqIntegrator." ^ family ^ ".log" )] ;
       opt "-ali" string alignment ;
@@ -412,7 +412,7 @@ let seq_filter
 
   workflow ~version:8 ~descr:("SeqFilter.py:" ^ family) [
     mkdir_p tmp_merge ;
-    cmd "SeqFilter.py"  [
+    cmd "SeqFilter.py" ~env [
       opt "-tmp" ident tmp_merge;
       opt "-log" seq [ tmp_merge ; string ("/SeqFilter." ^ family ^ ".log" )] ;
       opt "-ali" dep alignment ;
@@ -587,7 +587,7 @@ let get_reconstructed_sequences merged_and_reconciled_families_dirs configuratio
     let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
     Some (workflow ~descr:"GetReconstructedSequences.py" ~version:6 [
             mkdir_p dest;
-            cmd "GetReconstructedSequences.py"  [
+            cmd "GetReconstructedSequences.py" ~env [
             dep merged_and_reconciled_families_dirs // "out/MSA_out";
             dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
             seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
@@ -612,7 +612,7 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
     in
     workflow ~descr:"ExtractOrthologs.py" ~version:3 [
             mkdir_p dest;
-            cmd "ExtractOrthologs.py"  [
+            cmd "ExtractOrthologs.py" ~env [
             ident dest;
             dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
             option (opt "" dep) ortho_dir ;
@@ -631,7 +631,7 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
 
     workflow ~descr:"final_plots.py" ~version:4 [
         mkdir_p dest;
-        cmd "final_plots.py" [
+        cmd "final_plots.py" ~env [
             opt "-i_ortho" dep orthologs_per_seq;
             opt "-i_filter" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/"]);
             opt "-o" ident dest;
@@ -939,14 +939,19 @@ let build_term configuration =
     let repo_app = Repo.to_term repo ~precious ~outdir:configuration.outdir in
     repo_app
   else
+    let open Term in
     let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
-    let repo_app = Repo.to_term repo ~precious ~outdir:configuration.outdir in
-    repo_app
-    (*let open Bistro_app in
-    let stats_app =
-        List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
+    let repo_term = Repo.to_term repo ~precious ~outdir:configuration.outdir in
+    let report_term =
+      let assoc_arg xs =
+        List.map xs ~f:(fun (s, w) -> (s, pureW w))
         |> assoc
+      in
+      pure
+        (fun trinity_assemblies_stats ->
+           Report.generate
+             ~trinity_assemblies_stats
+             (Filename.concat configuration.outdir "report_end.html"))
+      $ assoc_arg trinity_assemblies_stats
     in
-    let f_app = pure (fun () trinity_assemblies_stats -> Report.generate ~trinity_assemblies_stats (Filename.concat configuration.outdir "report_end.html")) in
-    f_app $ repo_app $ stats_app
-    *)
+    pure (fun () () -> ()) $ repo_term $ report_term

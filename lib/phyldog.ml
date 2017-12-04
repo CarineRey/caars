@@ -98,7 +98,7 @@ let phyldog_by_fam
     mkdir_p (dest // "tmp_phyldog");
     cd (dest // "tmp_phyldog");
     (* Preparing phyldog configuration files*)
-    cmd "PhyldogPrepDataByFam.py" [
+    cmd "PhyldogPrepDataByFam.py" ~env [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
               option (opt "-species_tree_file" string) sptreefile ;
@@ -115,7 +115,7 @@ let phyldog_by_fam
               opt "-gene_trees_resdir" ident results_genes;
               opt "-optdir" seq [ ident config_dir ] ;
               ];
-    cmd "sh" [ file_dump (phyldog_script ~config_dir ~tree ~results_species ~results_genes) ];
+    cmd "sh" ~env [ file_dump (phyldog_script ~config_dir ~tree ~results_species ~results_genes) ];
     (*
     (* Run phyldog *)
     cmd "mpirun" [
@@ -152,7 +152,7 @@ let phyldog
     mkdir_p (dest // "tmp_phyldog");
     cd (dest // "tmp_phyldog");
     (* Preparing phyldog configuration files*)
-    cmd "PhyldogPrepData.py" [
+    cmd "PhyldogPrepData.py" ~env [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
               option (opt "-species_tree_file" string) sptreefile ;
@@ -169,7 +169,7 @@ let phyldog
               opt "-optdir" seq [ ident config_dir ] ;
               ];
     (* Run phyldog *)
-    cmd "mpirun" [
+    cmd "mpirun" ~env [
             opt "-np" ident np ;
             string "phyldog";
             seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];

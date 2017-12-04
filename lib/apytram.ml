@@ -112,7 +112,7 @@ let apytram_multi_species
 
 
     workflow  ~version:5 ~descr:("apytram.py" ^ descr) ~np:threads ~mem:(memory * 1024) [
-    cmd "apytram.py" [
+    cmd "apytram.py" ~env [
         opt "-q" seq [dep query ; string ":"; string fam] ;
         option (opt "-i" int ) i ;
         option (opt "-e" float ) evalue;

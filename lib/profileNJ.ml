@@ -82,16 +82,20 @@ let profileNJ
     workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) [
     mkdir_p tmp;
     mkdir_p dest;
-    cd tmp;
-    (* Preparing profileNJ configuration files*)
-    cmd "sh" [ file_dump (script_pre ~tree ~tmp_treein ~link) ];
-    cmd "profileNJ" [
-              opt "-s" string sptreefile ;
-              opt "-g" ident tmp_treein;
-              opt "-o" ident tmp_treeout;
-              opt "--seuil" float threshold;
-              opt "--spos" string "postfix";
-              opt "--sep" string "@";
-              ];
-    cmd "sh" [ file_dump (script_post ~tree ~link ~tmp_treeout) ];
+    docker env (
+      and_list [
+        cd tmp;
+        (* Preparing profileNJ configuration files*)
+        cmd "sh" [ file_dump (script_pre ~tree ~tmp_treein ~link) ];
+        cmd "profileNJ" [
+          opt "-s" string sptreefile ;
+          opt "-g" ident tmp_treein;
+          opt "-o" ident tmp_treeout;
+          opt "--seuil" float threshold;
+          opt "--spos" string "postfix";
+          opt "--sep" string "@";
+        ];
+        cmd "sh" [ file_dump (script_post ~tree ~link ~tmp_treeout) ];
+      ]
+    )
     ]

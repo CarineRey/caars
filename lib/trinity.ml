@@ -76,7 +76,7 @@ let trinity_fasta
     in
     workflow ~descr:("Trinity" ^ descr) ~np:threads ~mem:(1024 * memory) [
         mkdir_p dest;
-        cmd "Trinity" [
+        cmd "Trinity" ~env [
             string "--no_version_check";
             opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
             opt "--CPU" ident np ;
@@ -231,10 +231,14 @@ let fasta_read_normalization_2
   workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * memory) [
     mkdir_p dest;
     mkdir_p tmp ;
-    cd tmp;
-    cmd "sh" [ file_dump (fasta_read_normalization_script ~fasta ~max_cov) ];
-    cmd "sh" [ file_dump (fasta_read_normalization_get_output ~fasta ~dest) ];
-    ]
+    docker env (
+      and_list [
+        cd tmp ;
+        cmd "sh" [ file_dump (fasta_read_normalization_script ~fasta ~max_cov) ];
+        cmd "sh" [ file_dump (fasta_read_normalization_get_output ~fasta ~dest) ];
+      ]
+    )
+  ]
 
 let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta workflow =
     let (check_input, w_input) = match dep_input with
@@ -259,7 +263,7 @@ let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fast
         |}
     in
     workflow ~descr:("fastq2fasta" ^ descr) ~np:1 [
-        cmd "sh" [ file_dump script ];
+        cmd "sh" ~env [ file_dump script ];
     ]
 
 let assembly_stats ?(descr="") (fasta:fasta workflow) : assembly_stats workflow =
@@ -287,5 +291,5 @@ let assembly_stats ?(descr="") (fasta:fasta workflow) : assembly_stats workflow 
     |}
   in
   workflow ~descr:("assembly_stats_trinity" ^ descr) ~np:1 [
-    cmd "sh" [ file_dump script ];
+    cmd "sh" ~env [ file_dump script ];
   ]
