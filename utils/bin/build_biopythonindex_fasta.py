@@ -65,6 +65,7 @@ if len(sys.argv) != 3:
 index_file = sys.argv[1]
 fasta_file = sys.argv[2]
 
+
 logger.debug("Index file: %s", index_file)
 logger.debug("Fasta file: %s", fasta_file)
 
