@@ -137,7 +137,7 @@ RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -
 WORKDIR  /opt/phyldog/
 
 RUN git clone --branch faster_reconciliation  https://github.com/BenoitMorel/PHYLDOG.git /opt/phyldog/ && \
-    git checkout 4fe42b7e1831addcc77f92710350f7bfaaf1c9c2
+    git checkout 938e6b94bb659db5ffcdfefcf97420b7decb8c4b
 
 RUN sed -e "s|git@github.com:ddarriba/pll-modules.git| --branch dev https://github.com/ddarriba/pll-modules.git|" -i ./build_libpll2.sh && ./build_libpll2.sh
 
@@ -148,10 +148,17 @@ ENV PATH /opt/phyldog/build/bin/:$PATH
 
 ## update apytram
 WORKDIR /opt/apytram
-RUN git pull
+RUN git pull && git checkout ab9e8eb
 
 ##### install entrypoint
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
+
+
+##### install local dependencies
+WORKDIR /opt/caars_py_lib
+COPY utils/bin/* /usr/bin/
+COPY utils/lib/*.py /opt/caars_py_lib/
+ENV PYTHONPATH  /opt/caars_py_lib:$PYTHONPATH
 
 ##### build a working directory
 WORKDIR /data
