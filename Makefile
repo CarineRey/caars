@@ -17,4 +17,11 @@ clean:
 	ocamlbuild -clean
 	rm -f utils/lib/*.pyc
 
-.PHONY: caars test clean_test clean
+build_caars_env_docker:
+	cd etc && ./build_caars_env.sh
+build_caars_docker:
+	cd etc && ./build_caars.sh
+build_caars_dev_docker:
+	cd etc && ./build_caars_dev.sh
+
+.PHONY: caars test clean_test clean test2 clean_test2 build_caars_env_docker build_caars_docker build_caars_dev_docker
