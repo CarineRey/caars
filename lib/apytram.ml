@@ -96,7 +96,7 @@ let apytram_multi_species
     in
     let formated_fastaidx =
       List.map compressed_reads_dbs ~f:(fun db ->
-    seq [dep db.index_concat_fasta ; string ":"; string db.s.id]
+    seq [dep db.index_concat_fasta // "index" ; string ":"; string db.s.id]
       )
     in
     let formated_cluster =
@@ -106,7 +106,7 @@ let apytram_multi_species
     in
     let formated_clusteridx =
       List.map compressed_reads_dbs ~f:(fun db ->
-    seq [dep db.index_cluster ; string ":"; string db.s.id]
+    seq [dep db.index_cluster // "index" ; string ":"; string db.s.id]
       )
     in
 

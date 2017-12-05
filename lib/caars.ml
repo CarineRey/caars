@@ -134,9 +134,18 @@ let concat ?(descr="") = function
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
+(*
+FIXME : DOC !!!
+*)
 let build_biopythonindex ?(descr="") (fasta:fasta workflow)  : index workflow =
   workflow ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
-    cmd "build_biopythonindex_fasta.py" ~env [ ident dest; dep fasta ]
+    mkdir_p dest ;
+    docker env (
+      and_list [
+        cmd "ln" [ string "-s" ; dep fasta ; dest // "seq.fa" ] ;
+        cmd "build_biopythonindex_fasta.py" ~env [ dest // "index" ; dest // "seq.fa" ]
+      ]
+    )
   ]
 
 let reformat_cdhit_cluster ?(descr="") cluster : fasta workflow =
@@ -384,7 +393,7 @@ let seq_integrator
     cmd "SeqIntegrator.py" ~env [
       opt "-tmp" ident tmp_merge;
       opt "-log" seq [ tmp_merge ; string ("/SeqIntegrator." ^ family ^ ".log" )] ;
-      opt "-ali" string alignment ;
+      opt "-ali" dep alignment ;
       opt "-fa" (seq ~sep:"") fasta;
       option (flag string "--realign_ali") realign_ali;
       option (opt "--merge_criterion" string) merge_criterion_string;
@@ -434,7 +443,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
           )
       in
       let merge_criterion = configuration.merge_criterion in
-      let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
+      let alignment = input (configuration.alignments_dir ^ "/" ^ family ^ ".fa")  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
       let w = if (List.length species_to_refine_list) = 0 then
@@ -465,12 +474,12 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let ali = merged_family / selector [ fam ^ ".fa" ] in
     let tree = merged_family / selector [ fam ^ ".tree" ] in
     let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
-    let sptreefile = configuration.species_tree_file in
+    let sptreefile = input configuration.species_tree_file in
     let profileNJ_tree = (ProfileNJ.profileNJ ~descr:(":" ^ fam) ~sptreefile ~link ~tree ~threshold:1.0 ) / selector [ fam ^ ".tree" ] in
     let threads = Pervasives.min 2 configuration.threads in
     let memory = Pervasives.min 1 (Pervasives.(configuration.memory / configuration.threads)) in
     let topogene = configuration.refinetree in
-    (fam, Phyldog.phyldog_by_fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    (fam, Phyldog.phyldog_by_fam ~family:fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =
@@ -529,14 +538,14 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
               List.map extension_list_merged ~f:(fun (ext,dir) ->
                 let input = merged_w / selector [ f ^ ext ] in
                 let output = dest // dir // (f ^ ext)  in
-                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                seq ~sep:" " [ string "cp"; dep input ; ident output ]
               )
               ;
               if (configuration.ali_sister_threshold > 0.) &&  ((List.length configuration.all_ref_samples) > 0) then
                 List.map extension_list_filtered ~f:(fun (ext,dir) ->
                     let input = merged_w / selector [ f ^ ext ] in
                     let output = dest // dir // (f ^ ext)  in
-                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    seq ~sep:" " [ string "cp"; dep input ; ident output ]
                 )
               else
                 []
@@ -546,7 +555,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                   List.map extension_list_reconciled ~f:(fun (ext,dirin,dirout) ->
                     let input = reconciled_w / selector [ dirin ^ f ^ ext ] in
                     let output = dest // dirout // (f ^ ext)  in
-                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    seq ~sep:" " [ string "cp"; dep input ; ident output ]
                     )
                   ;
                   (*if configuration.refineali then
@@ -561,7 +570,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     List.map extension_list_realigned ~f:(fun (ext,dir) ->
                         let input = w in
                         let output = dest // dir // (f ^ e ^ ext)  in
-                        seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                        seq ~sep:" " [ string "cp"; dep input ; ident output ]
                     )
                     )
                   else
@@ -638,19 +647,6 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
             option (opt "-t_sp" (seq ~sep:",")) formated_target_species;
         ]
     ]
-
-
-
-
-let phyldog_of_merged_families_dirs configuration merged_families_dirs =
-  let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
-  let treedir = merged_families_dirs / selector [ "Merged_tree" ] in
-  let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in
-  let sptreefile = configuration.species_tree_file in
-  let threads_max = (List.length configuration.families) + 1 in
-  let threads = Pervasives.min threads_max configuration.threads in
-  let memory = configuration.memory in
-  Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~sptreefile ~linkdir ~treedir seqdir
 
 
 
@@ -828,11 +824,6 @@ let build_term configuration =
 
   let final_plots = build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration in
 
-  (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
-
-  let output = output_of_phyldog phyldog merged_families configuration.families in
-*)
-
 
   let open Repo in
 
@@ -948,10 +939,12 @@ let build_term configuration =
         |> assoc
       in
       pure
-        (fun trinity_assemblies_stats ->
+        (fun trinity_assemblies_stats final_plots () ->
            Report.generate
              ~trinity_assemblies_stats
+             ~final_plots
              (Filename.concat configuration.outdir "report_end.html"))
       $ assoc_arg trinity_assemblies_stats
+      $ pureW final_plots
     in
-    pure (fun () () -> ()) $ repo_term $ report_term
+    report_term $ repo_term
