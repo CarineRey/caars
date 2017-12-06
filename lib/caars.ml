@@ -623,7 +623,7 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
                    Some(List.map configuration.all_ref_samples ~f:(fun s -> s.species)))
         | false -> (None, None)
     in
-    workflow ~descr:"ExtractOrthologs.py" ~version:3 [
+    workflow ~descr:"ExtractOrthologs.py" ~version:4 [
             mkdir_p dest;
             cmd "ExtractOrthologs.py" ~env [
             ident dest;

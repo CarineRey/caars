@@ -121,7 +121,7 @@ SeqSpLink_File = "%s/all_fam.seq2sp.tsv" %(out_dir)
 if not ortho_dir:
     with open(SeqSpLink_File, "w") as f_rewrite:
         for (seq,(sp, fam)) in Seq2Sp_dict.items():
-            f_rewrite.write("\n".join("%s%s%s" %(seq, sep, sp)) + "\n")
+            f_rewrite.write("%s%s%s\n" %(seq, sep, sp))
 
     sys.exit(0)
 
