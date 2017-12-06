@@ -135,7 +135,11 @@ let concat ?(descr="") = function
     ]
 
 (*
-FIXME : DOC !!!
+Fasta file and its index must be in the same directory due to biopython
+wich retains the relative path between these 2 files.
+A different location is incompatible with the bistro docker usage
+workflow by worflow.
+To avoid to cp the complete fasta file we use a symbolic link.
 *)
 let build_biopythonindex ?(descr="") (fasta:fasta workflow)  : index workflow =
   workflow ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
