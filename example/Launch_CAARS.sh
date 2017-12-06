@@ -15,14 +15,10 @@ START=$(date +%s)
 mkdir -p $WORKING_DIR
 cd $WORKING_DIR
 
-../../caars  --outdir $OUTPUT_DIR"_merge" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 2 --memory 5 --mpast 50
-../../caars  --outdir $OUTPUT_DIR"_length" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 2 --memory 5 --mpast 50 --merge-criterion length
-../../caars  --outdir $OUTPUT_DIR"_length_complete" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 2 --memory 5 --mpast 50 --merge-criterion length_complete
+../../caars  --outdir $OUTPUT_DIR --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 2 --memory 5 --mpast 50
 
-files="$OUTPUT_DIR"_merge"/assembly_results_only_seq/CAARS_sequences.seq2sp2fam.txt
-$OUTPUT_DIR"_length"/assembly_results_only_seq/CAARS_sequences.seq2sp2fam.txt
-$OUTPUT_DIR"_length_complete"/assembly_results_only_seq/CAARS_sequences.seq2sp2fam.txt
-"
+files="$OUTPUT_DIR/assembly_results_only_seq/CAARS_sequences.seq2sp2fam.txt"
+
 for file in $files
 do
 if [ -s "$file" ]
