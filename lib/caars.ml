@@ -629,7 +629,7 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
       )
     in
 
-    workflow ~descr:"final_plots.py" ~version:4 [
+    workflow ~descr:"final_plots.py" ~version:6 [
         mkdir_p dest;
         cmd "final_plots.py" [
             opt "-i_ortho" dep orthologs_per_seq;

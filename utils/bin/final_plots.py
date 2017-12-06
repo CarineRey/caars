@@ -135,7 +135,7 @@ if os.environ.has_key("DISPLAY"):
     plt.figure();
     fig1 = df_sp.plot(kind='barh', x="sp", y="counts", title= "# of total sequences", stacked=True, color=df_sp["color"], legend=False)
     fig1_plot = fig1.get_figure()
-    fig1_plot.savefig("%s/total_seqs.pdf" %(OutDirName))
+    fig1_plot.savefig("%s/total_seqs.svg" %(OutDirName))
 
 if os.path.isfile(all_fam_orthologs_fn):
 
@@ -171,7 +171,7 @@ if os.path.isfile(all_fam_orthologs_fn):
         fig3 = df_subfam_per_sp["%_sum"].plot.hist(bins=50, legend=False, color="b", range=[0,100])
         fig3.set_xlabel("% of the whole number of species per subfamily")
         fig3_plot = fig3.get_figure()
-        fig3_plot.savefig("%s/presence_sp_per_subfam.pdf" %(OutDirName))
+        fig3_plot.savefig("%s/presence_sp_per_subfam.svg" %(OutDirName))
 
 
 
@@ -232,6 +232,6 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
             handles2, labels2 = ax2.get_legend_handles_labels()
             ax2.legend(handles2, labels2)
             plt.tight_layout()
-            plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.pdf')
+            plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.svg')
 
 
