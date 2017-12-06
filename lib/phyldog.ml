@@ -47,7 +47,7 @@ let phyldog_script ~config_dir ~results_species ~tree ~results_genes =
     "LIST_SPECIES", config_dir // "listSpecies.txt" ;
     "TREE", dep tree ;
     "RESULTS_SPECIES", results_species ;
-    "NP", string 2 ;
+    "NP", string "2" ;
     "GENERAL_OPTIONS", config_dir // "GeneralOptions.txt" ;
     "RESULT_GENES", results_genes ;
   ]
