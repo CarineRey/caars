@@ -49,6 +49,8 @@ let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
     "RESULTS_SPECIES", results_species ;
     "NP", string "2" ;
     "GENERAL_OPTIONS", config_dir // "GeneralOptions.txt" ;
+    "GENERAL_OPTIONS_CAT", config_dir // "GeneralOptions_cat.txt" ;
+    "CONFIG_DIR", config_dir ;
     "RESULT_GENES", results_genes ;
     "FAMILY", string family ;
   ]
@@ -60,14 +62,19 @@ let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
     family=${FAMILY}
     touch ${RESULTS_SPECIES}${family}.orthologs.txt
     touch ${RESULTS_SPECIES}${family}.events.txt
+    cat $GENERAL_OPTIONS $CONFIG_DIR/*opt > $GENERAL_OPTIONS_CAT
+    #cat $TREE
     if [ $nb_species -gt 2 ]
     then
-     echo mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=PLL param=$GENERAL_OPTIONS
-     mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=PLL param=$GENERAL_OPTIONS
-     cut -f 2 ${RESULTS_SPECIES}orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
-     cut -f 1,3- -d "," ${RESULTS_SPECIES}events.txt > ${RESULTS_SPECIES}${family}.events.txt
+     #echo mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
+     #mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
+     #echo phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
+     phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
+     cut -f 2 none_orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
+     cut -f 1,3- -d "," none_events.txt > ${RESULTS_SPECIES}${family}.events.txt
+     cp none_reconciled.tree  ${RESULT_GENES}${family}.ReconciledTree
     else
-     nw2nhx.py $TREE ${RESULTS_GENES}${family}.ReconciledTree
+     nw2nhx.py $TREE ${RESULT_GENES}${family}.ReconciledTree
     fi
 |}
 
