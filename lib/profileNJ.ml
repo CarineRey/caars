@@ -65,19 +65,33 @@ let script_post ~tree ~link ~tmp_treeout =
   bash_script args {|
     name=`basename $TREE`
     for l in $(cat $LINK); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq@$sp/$seq/" $TMP_TREEOUT; done
-    grep -v -e ">" $TMP_TREEOUT > $DEST/$name
+    grep -v -e ">" $TMP_TREEOUT > $TMP_TREEOUT"_only_tree"
+    cat   $TMP_TREEOUT"_only_tree"  $TREE  > $DEST/$name
     |}
 
 let profileNJ
     ?(descr="")
     ~sptreefile
-    ~threshold
     ~link
     ~tree
     : phylotree directory workflow =
 
+    let threshold_l = [1.0; 0.99; 0.95; 0.9; 0.85] in 
     let tmp_treein = tmp // "tree_in_pNJ.tree" in
-    let tmp_treeout = tmp // "tree_out_pNJ.tree" in
+    let tmp_treeout = tmp // ("tree_out_pNJ.*.tree") in
+    
+    let cmd_profileNJ = List.map threshold_l ~f:(fun t ->
+    let str_number = Printf.sprintf "%.2f" t in
+    let tmp_treeout = tmp // ("tree_out_pNJ." ^ str_number ^ ".tree") in
+    cmd "profileNJ" ~env [
+      opt "-s" dep sptreefile ;
+      opt "-g" ident tmp_treein;
+      opt "-o" ident tmp_treeout;
+      opt "--seuil" float t;
+      opt "--spos" string "postfix";
+      opt "--sep" string "@";
+    ]
+    ) in
 
     workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) [
     mkdir_p tmp;
@@ -85,13 +99,6 @@ let profileNJ
     cd tmp;
     (* Preparing profileNJ configuration files*)
     cmd "sh" [ file_dump (script_pre ~tree ~tmp_treein ~link) ];
-    cmd "profileNJ" [
-              opt "-s" string sptreefile ;
-              opt "-g" ident tmp_treein;
-              opt "-o" ident tmp_treeout;
-              opt "--seuil" float threshold;
-              opt "--spos" string "postfix";
-              opt "--sep" string "@";
-              ];
+     md_profileNJ)
     cmd "sh" [ file_dump (script_post ~tree ~link ~tmp_treeout) ];
     ]

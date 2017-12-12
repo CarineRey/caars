@@ -142,7 +142,24 @@ RUN git clone --branch faster_reconciliation  https://github.com/BenoitMorel/PHY
 RUN sed -e "s|git@github.com:ddarriba/pll-modules.git| --branch dev https://github.com/ddarriba/pll-modules.git|" -i ./build_libpll2.sh && ./build_libpll2.sh
 
 RUN mv /opt/phyldog/libpll2_dependencies/include/pll /opt/phyldog/libpll2_dependencies/include/pllmodules
-RUN mkdir -p build && cd /opt/phyldog/build && cmake  -DCMAKE_LIBRARY_PATH=/opt/phyldog/libpll2_dependencies/libs -DCMAKE_INCLUDE_PATH=/opt/phyldog/libpll2_dependencies/include ..  &&  make -j 4 install
+
+
+# RUN sed "s/install(TARGETS phyldog DESTINATION bin)//" -i src/CMakeLists.txt && \
+# echo '''\n\
+# ADD_EXECUTABLE(phyldog_light Phyldog_light.cpp ${PHYLDOGLIGHT_SRCS})\n\
+# target_link_libraries(phyldog_light\n\
+#   ${PLL_LIBRARIES}\n\
+#   ${PLLMODULES_LIBRARIES}\n\
+#   ${BPP_LIBRARIES}\n\
+# )\n\
+# \n\
+# install(TARGETS phyldog DESTINATION bin)\n\
+# install(TARGETS phyldog_light DESTINATION bin)\n\
+# ''' >> src/CMakeLists.txt
+
+RUN mkdir -p build && cd /opt/phyldog/build && cmake  -DCMAKE_LIBRARY_PATH=/opt/phyldog/libpll2_dependencies/libs -DCMAKE_INCLUDE_PATH=/opt/phyldog/libpll2_dependencies/include ..   && (make -j 4 install || make install)
+
+
 ENV PATH /opt/phyldog/build/bin/:$PATH
 #########
 
