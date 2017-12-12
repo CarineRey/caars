@@ -138,7 +138,7 @@ RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -
 WORKDIR  /opt/phyldog/
 
 RUN git clone --branch faster_reconciliation  https://github.com/BenoitMorel/PHYLDOG.git /opt/phyldog/ && \
-    git checkout 938e6b94bb659db5ffcdfefcf97420b7decb8c4b
+    git checkout 258b66e71fa3196d73d0496848fdd5f54d21f724
 
 RUN sed -e "s|git@github.com:ddarriba/pll-modules.git| --branch dev https://github.com/ddarriba/pll-modules.git|" -i ./build_libpll2.sh && ./build_libpll2.sh
 
