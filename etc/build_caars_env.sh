@@ -9,4 +9,8 @@ REPO=carinerey/$IMAGE_NAME:$TAG
 cp -r ../utils $DOCKERFILE_DIR
 docker build -t $REPO $DOCKERFILE_DIR
 rm -r $DOCKERFILE_DIR/utils
-docker push $REPO
+
+if [[ $1 == "push_yes" ]]
+then
+    docker push $REPO
+fi
