@@ -23,5 +23,11 @@ build_caars_docker:
 	cd etc && ./build_caars.sh
 build_caars_dev_docker:
 	cd etc && ./build_caars_dev.sh
+push_caars_env_docker:
+	cd etc && ./build_caars_env.sh push_yes
+push_caars_docker:
+	cd etc && ./build_caars.sh push_yes
+push_caars_dev_docker:
+	cd etc && ./build_caars_dev.sh push_yes
 
 .PHONY: caars test clean_test clean test2 clean_test2 build_caars_env_docker build_caars_docker build_caars_dev_docker
