@@ -479,7 +479,7 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let threads = 1 in
     let memory = Pervasives.min 1 (Pervasives.(configuration.memory / configuration.threads)) in
     let topogene = configuration.refinetree in
-    (fam, Phyldog.phyldog_by_fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    (fam, Phyldog.phyldog_by_fam ~family:fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =

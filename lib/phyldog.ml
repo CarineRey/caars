@@ -42,22 +42,22 @@ type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
 
-let phyldog_script ~config_dir ~results_species ~tree ~results_genes =
+let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
   let vars = [
     "LIST_SPECIES", config_dir // "listSpecies.txt" ;
     "TREE", dep tree ;
     "RESULTS_SPECIES", results_species ;
-    "NP", string "2" ;
     "GENERAL_OPTIONS", config_dir // "GeneralOptions.txt" ;
     "GENERAL_OPTIONS_CAT", config_dir // "GeneralOptions_cat.txt" ;
     "CONFIG_DIR", config_dir ;
-    "RESULT_GENES", results_genes ;
+    "RESULTS_GENES", results_genes ;
+    "FAMILY", string family ;
   ]
   in
   bash_script vars {|
     nb_species=`wc -l < $LIST_SPECIES`
     filename=`basename $TREE`
-    family=${filename%.*}
+    family=${FAMILY}
     touch ${RESULTS_SPECIES}${family}.orthologs.txt
     touch ${RESULTS_SPECIES}${family}.events.txt
     cat $GENERAL_OPTIONS $CONFIG_DIR/*opt > $GENERAL_OPTIONS_CAT
@@ -70,9 +70,9 @@ let phyldog_script ~config_dir ~results_species ~tree ~results_genes =
      phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
      cut -f 2 none_orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
      cut -f 1,3- -d "," none_events.txt > ${RESULTS_SPECIES}${family}.events.txt
-     cp none_reconciled.tree  ${RESULT_GENES}${family}.ReconciledTree
+     cp none_reconciled.tree  ${RESULTS_GENES}${family}.ReconciledTree
     else
-     nw2nhx.py $TREE ${RESULT_GENES}${family}.ReconciledTree
+     nw2nhx.py $TREE ${RESULTS_GENES}${family}.ReconciledTree
     fi
 |}
 
@@ -89,6 +89,7 @@ let phyldog_by_fam
     ?topogene
     ?timelimit
     ?(memory = 1)
+    ~family
     ~threads
     ~link
     ~tree
@@ -108,7 +109,7 @@ let phyldog_by_fam
     cmd "PhyldogPrepDataByFam.py" [
               option (opt "-datatype" string) datatype ;
               option (opt "-dataformat" string) dataformat ;
-              option (opt "-species_tree_file" string) sptreefile ;
+              option (opt "-species_tree_file" dep) sptreefile ;
               option (flag string "-topospecies") topospecies ;
               option (opt "-dlopt" string) dlopt ;
               option (opt "-max_gap" float) max_gap ;
@@ -116,13 +117,14 @@ let phyldog_by_fam
               option (flag string "-equgenomes") equgenomes ;
               option (flag string "-topogene") topogene ;
               opt "-link" dep link;
+              opt "-family" string family ;
               opt "-seq" dep ali;
               opt "-starting_tree" dep tree;
               opt "-species_tree_resdir" ident results_species;
               opt "-gene_trees_resdir" ident results_genes;
               opt "-optdir" seq [ ident config_dir ] ;
               ];
-    cmd "sh" [ file_dump (phyldog_script ~config_dir ~tree ~results_species ~results_genes) ];
+    cmd "sh" [ file_dump (phyldog_script ~family ~config_dir ~tree ~results_species ~results_genes) ];
     (*
     (* Run phyldog *)
     cmd "mpirun" [

@@ -83,7 +83,7 @@ let profileNJ
     let cmd_profileNJ = List.map threshold_l ~f:(fun t ->
     let str_number = Printf.sprintf "%.2f" t in
     let tmp_treeout = tmp // ("tree_out_pNJ." ^ str_number ^ ".tree") in
-    cmd "profileNJ" ~env [
+    cmd "profileNJ" [
       opt "-s" dep sptreefile ;
       opt "-g" ident tmp_treein;
       opt "-o" ident tmp_treeout;
@@ -93,12 +93,12 @@ let profileNJ
     ]
     ) in
 
-    workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) [
-    mkdir_p tmp;
+    workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) (List.concat [
+    [mkdir_p tmp;
     mkdir_p dest;
     cd tmp;
     (* Preparing profileNJ configuration files*)
-    cmd "sh" [ file_dump (script_pre ~tree ~tmp_treein ~link) ];
-     md_profileNJ)
-    cmd "sh" [ file_dump (script_post ~tree ~link ~tmp_treeout) ];
-    ]
+    cmd "sh" [ file_dump (script_pre ~tree ~tmp_treein ~link) ]];
+    cmd_profileNJ;
+    [cmd "sh" [ file_dump (script_post ~tree ~link ~tmp_treeout) ]];
+    ])
