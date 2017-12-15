@@ -42,31 +42,36 @@ type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
 
-let script_pre ~tree ~tmp_treein ~link =
+let script_pre ~tmp_smap ~link =
   let args = [
-    "TREE", dep tree ;
-    "TMP_TREEIN", tmp_treein ;
+    "TMP_SMAP", tmp_smap ;
     "LINK", dep link ;
   ]
   in
   bash_script args {|
-    cp $TREE $TMP_TREEIN
-    for l in $(cat $LINK); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq/$seq@$sp/" $TMP_TREEIN; done
+    cut -f 1 -d ":" $LINK > sp.txt
+    cut -f 2 -d ":" $LINK > seq.txt
+    paste seq.txt sp.txt > $TMP_SMAP
 |}
 
-let script_post ~tree ~link ~tmp_treeout =
+let script_post ~tree ~tmp_treeout_prefix ~tmp_treeout_prefix2=
   let args = [
     "TREE", dep tree ;
-    "TMP_TREEOUT", tmp_treeout ;
-    "LINK", dep link ;
+    "TMP_TREEOUT_PREFIX", tmp_treeout_prefix ;
+    "TMP_TREEOUT_PREFIX2", tmp_treeout_prefix2 ;
     "DEST", dest ;
   ]
   in
   bash_script args {|
     name=`basename $TREE`
-    for l in $(cat $LINK); do sp=`echo $l| cut -f 1 -d ":"`; seq=`echo $l| cut -f 2 -d ":"`; sed -i "s/$seq@$sp/$seq/" $TMP_TREEOUT; done
-    grep -v -e ">" $TMP_TREEOUT > $TMP_TREEOUT"_only_tree"
-    cat   $TMP_TREEOUT"_only_tree"  $TREE  > $DEST/$name
+    #get only tree
+    cat $TMP_TREEOUT_PREFIX $TMP_TREEOUT_PREFIX2 > trees.txt
+    grep -v -h -e ">" trees.txt > only_trees.txt
+    echo >> $TREE
+    echo >> only_trees.txt
+    cat only_trees.txt  $TREE | awk NF > all.tree
+    sameroot.py  all.tree all_same_root.tree
+    cat  all_same_root.tree | sort | uniq  > $DEST/$name
     |}
 
 let profileNJ
@@ -77,28 +82,28 @@ let profileNJ
     : phylotree directory workflow =
 
     let threshold_l = [1.0; 0.99; 0.95; 0.9; 0.85] in 
-    let tmp_treein = tmp // "tree_in_pNJ.tree" in
-    let tmp_treeout = tmp // ("tree_out_pNJ.*.tree") in
+    let tmp_smap = tmp // "smap.txt" in
+    let tmp_treeout_prefix = tmp // ("tree_out_pNJ.1.0.tree") in
+    let tmp_treeout_prefix2 = tmp // ("tree_out_pNJ.0*.tree") in
     
     let cmd_profileNJ = List.map threshold_l ~f:(fun t ->
     let str_number = Printf.sprintf "%.2f" t in
     let tmp_treeout = tmp // ("tree_out_pNJ." ^ str_number ^ ".tree") in
     cmd "profileNJ" [
       opt "-s" dep sptreefile ;
-      opt "-g" ident tmp_treein;
+      opt "-S" ident tmp_smap ;
+      opt "-g" dep tree;
       opt "-o" ident tmp_treeout;
       opt "--seuil" float t;
-      opt "--spos" string "postfix";
-      opt "--sep" string "@";
     ]
     ) in
 
-    workflow ~descr:("profileNJ" ^ descr) ~version:3 ~np:1 ~mem:(1024) (List.concat [
+    workflow ~descr:("profileNJ" ^ descr) ~version:4 ~np:1 ~mem:(1024) (List.concat [
     [mkdir_p tmp;
     mkdir_p dest;
     cd tmp;
     (* Preparing profileNJ configuration files*)
-    cmd "sh" [ file_dump (script_pre ~tree ~tmp_treein ~link) ]];
+    cmd "sh" [ file_dump (script_pre ~tmp_smap ~link) ]];
     cmd_profileNJ;
-    [cmd "sh" [ file_dump (script_post ~tree ~link ~tmp_treeout) ]];
+    [cmd "sh" [ file_dump (script_post ~tree ~tmp_treeout_prefix ~tmp_treeout_prefix2) ]];
     ])

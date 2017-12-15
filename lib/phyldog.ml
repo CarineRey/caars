@@ -61,16 +61,17 @@ let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
     touch ${RESULTS_SPECIES}${family}.orthologs.txt
     touch ${RESULTS_SPECIES}${family}.events.txt
     cat $GENERAL_OPTIONS $CONFIG_DIR/*opt > $GENERAL_OPTIONS_CAT
-    #cat $TREE
+    wc -l $TREE
     if [ $nb_species -gt 2 ]
     then
      #echo mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
      #mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
      #echo phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
-     phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
-     cut -f 2 none_orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
-     cut -f 1,3- -d "," none_events.txt > ${RESULTS_SPECIES}${family}.events.txt
-     cp none_reconciled.tree  ${RESULTS_GENES}${family}.ReconciledTree
+     phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT output.file=${family}
+     ls
+     cut -f 2 ${family}_orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
+     cut -f 1,3- -d "," ${family}_events.txt > ${RESULTS_SPECIES}${family}.events.txt
+     cp ${family}_reconciled.tree  ${RESULTS_GENES}${family}.ReconciledTree
     else
      nw2nhx.py $TREE ${RESULTS_GENES}${family}.ReconciledTree
     fi
