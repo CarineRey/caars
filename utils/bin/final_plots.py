@@ -186,52 +186,53 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
     for f in summary_files:
         if os.path.exists(f) and os.path.getsize(f) > 1:
             list_df.append(pd.read_table(f, names=["seq", "n_seq", "%_id", "%_ali", "t", "s"]))
+    
+    if list_df:
+        df_filter_summary = pd.concat(list_df)
 
-    df_filter_summary = pd.concat(list_df)
-
-    def get_id(seq):
-        seq = seq.split("_")[0]
-        sp_id = ''.join([x for x in seq if x.isalpha()][2:])
-        return target_species_d[sp_id]
+        def get_id(seq):
+            seq = seq.split("_")[0]
+            sp_id = ''.join([x for x in seq if x.isalpha()][2:])
+            return target_species_d[sp_id]
 
 
-    df_filter_summary["sp"] = df_filter_summary["seq"].map(get_id)
-    df_filter_summary["color"] =  df_filter_summary["s"].replace({"K":"#09BB21", "K2":"#FFA500", "D":"#D80002"})
+        df_filter_summary["sp"] = df_filter_summary["seq"].map(get_id)
+        df_filter_summary["color"] =  df_filter_summary["s"].replace({"K":"#09BB21", "K2":"#FFA500", "D":"#D80002"})
 
-    for t_sp in target_species_l:
-        print t_sp
-        df_filter_summary_sp = df_filter_summary.copy()
-        df_filter_summary_sp = df_filter_summary_sp[df_filter_summary.sp.eq(t_sp)]
-        df_filter_summary_sp.to_csv("%s/%s.filter_stats.tsv" %(OutDirName, t_sp))
+        for t_sp in target_species_l:
+            print t_sp
+            df_filter_summary_sp = df_filter_summary.copy()
+            df_filter_summary_sp = df_filter_summary_sp[df_filter_summary.sp.eq(t_sp)]
+            df_filter_summary_sp.to_csv("%s/%s.filter_stats.tsv" %(OutDirName, t_sp))
 
-        #df_filter_summary_sp_melt = pd.melt(df_filter_summary_sp[["seq", "%_id", "%_ali", "s"]], id_vars=['seq', "s"], value_vars=["%_id", "%_ali"])
-        #print df_filter_summary_sp_melt
-        #p = ggplot(aes(x="value", fill = "s"), data=df_filter_summary_sp_melt) + theme_bw() +\
-        #    geom_histogram(bins = 100, color="black") + facet_grid("variable ~ .", scales="free") + \
-        #    ggtitle(t_sp)
-        #ggsave(plot = p, filename = OutDirName + "/" + t_sp+'.pdf')
+            #df_filter_summary_sp_melt = pd.melt(df_filter_summary_sp[["seq", "%_id", "%_ali", "s"]], id_vars=['seq', "s"], value_vars=["%_id", "%_ali"])
+            #print df_filter_summary_sp_melt
+            #p = ggplot(aes(x="value", fill = "s"), data=df_filter_summary_sp_melt) + theme_bw() +\
+            #    geom_histogram(bins = 100, color="black") + facet_grid("variable ~ .", scales="free") + \
+            #    ggtitle(t_sp)
+            #ggsave(plot = p, filename = OutDirName + "/" + t_sp+'.pdf')
 
-        if os.environ.has_key("DISPLAY"):
-            plt.figure(1)
-            fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
+            if os.environ.has_key("DISPLAY"):
+                plt.figure(1)
+                fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
 
-            ax1.hist([df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
-                 df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("D")].values],
-                 stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
+                ax1.hist([df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
+                     df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("D")].values],
+                     stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
 
-            handles, labels = ax1.get_legend_handles_labels()
-            ax1.legend(handles, labels)
-            ax1.set_xlabel("%_id")
-            ax1.set_title(t_sp)
+                handles, labels = ax1.get_legend_handles_labels()
+                ax1.legend(handles, labels)
+                ax1.set_xlabel("%_id")
+                ax1.set_title(t_sp)
 
-            ax2.hist([df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
-                 df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].eq("D")].values],
-                 stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
+                ax2.hist([df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
+                     df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].eq("D")].values],
+                     stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
 
-            ax2.set_xlabel("%_ali")
-            handles2, labels2 = ax2.get_legend_handles_labels()
-            ax2.legend(handles2, labels2)
-            plt.tight_layout()
-            plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.svg')
+                ax2.set_xlabel("%_ali")
+                handles2, labels2 = ax2.get_legend_handles_labels()
+                ax2.legend(handles2, labels2)
+                plt.tight_layout()
+                plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.svg')
 
 
