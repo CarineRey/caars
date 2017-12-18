@@ -225,9 +225,9 @@ def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
                 for g in OrthoDict[i]:
                     if Seq in g:
                         # Remove paralogs because we want 1:1 orthologs
-                        for i_p in ParaSizeRange:
+                        for i_p in sorted(ParaSizeRange,reverse=True):
                             for g_p in ParaDict[i_p]:
-                                if i_p < len(g):
+                                if i_p <= len(g):
                                     if set(g_p).issubset(set(g)):
                                         g = list(set(g).difference(set(g_p)))
 
