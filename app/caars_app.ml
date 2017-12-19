@@ -40,7 +40,7 @@ open Bistro_utils
 open Caars_lib
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug just_parse_input html_report dag_dot quiet () =
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug just_parse_input html_report dag_dot quiet use_docker () =
   let logger quiet html_report dag_dot =
     Logger.tee [
       if quiet then Logger.null else Console_logger.create () ;
@@ -68,7 +68,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~merge_criterion ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
   let caars_term = Caars.build_term configuration in
   Term.(
-    run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(`GB configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" caars_term
+    run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(`GB configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" ~use_docker caars_term
   )
 
 let spec =
@@ -91,6 +91,7 @@ let spec =
   +> flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"
   +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in an dot file (Can take a lot of time)"
   +> flag "--quiet"           no_arg            ~doc:" Do not report progress.  Default: off"
+  +> flag "--use-docker"      no_arg            ~doc:" Use docker in caars.  Default: off"
 
 let command =
   Command.basic
