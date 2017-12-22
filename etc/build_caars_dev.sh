@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eo
+set -euo pipefail +o nounset
 
 ### CAARS_DEV
 IMAGE_NAME=caars_dev
@@ -11,7 +11,9 @@ TAG=$BRANCH
 docker build --no-cache --build-arg BRANCH_DEV=$BRANCH -t $REPO:$TAG $DOCKERFILE_DIR && \
 docker push $REPO:$TAG
 
-if [[ $1 == "push_yes" ]]
+push_flag=$1
+
+if [[ $push_flag == "push_yes" ]]
 then
     docker push $REPO:$TAG
 fi

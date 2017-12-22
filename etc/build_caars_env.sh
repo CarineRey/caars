@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eo
+set -euo pipefail +o nounset
 
 IMAGE_NAME=caars_env
 DOCKERFILE_DIR=caars_env
@@ -10,7 +10,9 @@ cp -r ../utils $DOCKERFILE_DIR
 docker build -t $REPO $DOCKERFILE_DIR
 rm -r $DOCKERFILE_DIR/utils
 
-if [[ $1 == "push_yes" ]]
+push_flag=$1
+
+if [[ $push_flag == "push_yes" ]]
 then
     docker push $REPO
 fi

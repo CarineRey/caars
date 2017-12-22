@@ -46,56 +46,31 @@ RUN wget http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.ta
 #### install bpp
 
 ENV bpp_dir=/usr/local/lib
+
 WORKDIR $bpp_dir/sources_bpp
-RUN git clone --branch rel220  https://github.com/BioPP/bpp-core && \
-    git clone --branch rel220  https://github.com/BioPP/bpp-seq && \
-    git clone --branch rel220  https://github.com/BioPP/bpp-phyl
-RUN cd  $bpp_dir/sources_bpp/bpp-core &&\
+RUN git clone  https://github.com/BioPP/bpp-core &&\
+    cd  $bpp_dir/sources_bpp/bpp-core &&\
+    git checkout 1020f99f55fc6e122ff5d70b5ef4bae272307951 &&\
     cmake . &&\
     (make -j 4 || make) &&\
-    make install &&\
+    make install
+    
+WORKDIR $bpp_dir/sources_bpp
+RUN git clone https://github.com/BioPP/bpp-seq &&\
     cd $bpp_dir/sources_bpp/bpp-seq &&\
+    git checkout 42f56bbd4802c08c30d92c521c58eef49793d4bd &&\
     cmake  . &&\
     (make -j 4 || make) &&\
-    make install &&\
+    make install
+
+WORKDIR $bpp_dir/sources_bpp
+RUN git clone https://github.com/BioPP/bpp-phyl &&\
     cd  $bpp_dir/sources_bpp/bpp-phyl &&\
+    git checkout ee223fb9b937c6dc7aab457547c2912c1bf434c0 &&\
     cmake - . &&\
     (make -j 4 || make) &&\
     make install &&\
     rm -r $bpp_dir/sources_bpp
-
-##### install phylomerge
-RUN git clone https://github.com/boussau/phylomerge/ /opt/phylomerge
-WORKDIR /opt/phylomerge
-RUN bash ./compile
-ENV PATH /opt/phylomerge:$PATH
-
-#### install profileNJ
-RUN pip install --upgrade pip
-RUN pip install ete3==3.0.0b35
-RUN pip install profileNJ
-
-##### install phyldog
-
-# ######### libpll-1.0.11
-# ##  WORKDIR /root/usr/bin
-# ##  RUN wget http://www.libpll.org/Downloads/libpll-1.0.11.tar.gz && \
-# ##      tar xzf libpll-1.0.11.tar.gz
-# ##  
-# ##  WORKDIR /root/usr/bin/libpll-1.0.11
-# ##  ENV CXX /usr/bin/g++-4.9
-# ##  RUN ./configure && make install
-# ##  
-# ##  WORKDIR /opt/phyldog/build
-# ##  RUN cmake .. -DCMAKE_CXX_COMPILER=/usr/bin/g++-4.9 && make install
-# #########
-# 
-# ######### libpll-1.0.2
-# #WORKDIR /opt/
-# #RUN wget http://www.libpll.org/Downloads/libpll-1.0.2-sse3-64.tar.gz && \
-# #    tar xzf libpll-1.0.2-sse3-64.tar.gz && rm libpll-1.0.2-sse3-64.tar.gz
-# #WORKDIR /opt/libpll-1.0.2-sse3-64/
-# #RUN cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
 
 
 ### install opam
@@ -114,55 +89,39 @@ ENV MANPATH $HOME/.opam/4.03.0/man:$MANPATH
 ENV PERL5LIB $HOME/.opam/4.03.0/lib/perl5:$PERL5LIB
 
 ##### install bistro
-RUN opam install -y bistro=0.3.0
-
-######### libpll (new depot github)
-#WORKDIR /opt/
-#RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy flex bison autotools-dev autoconf libtool automake
-#RUN git clone --branch 0.3.2 https://github.com/xflouris/libpll.git && \
-#    cd libpll  && ./autogen.sh &&  ./configure && make && make install  
+#RUN opam install -y bistro=0.3.0
 RUN opam pin add bistro --dev-repo
 
-######### libpll-1.0.2
-COPY libpll-1.0.2-sse3-64.tar.gz /opt/libpll-1.0.2-sse3-64.tar.gz
-WORKDIR /opt/
-RUN tar xzf libpll-1.0.2-sse3-64.tar.gz && rm libpll-1.0.2-sse3-64.tar.gz
-WORKDIR /opt/libpll-1.0.2-sse3-64/
-RUN cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
+##### install phyldog
+WORKDIR  /opt/phyldog/
 
-
-######### phyldog
 # for libpll
 RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy flex bison autotools-dev autoconf libtool automake
 
+######### pll
+COPY libpll-1.0.2-sse3-64.tar.gz /opt/libpll-1.0.2-sse3-64.tar.gz
+WORKDIR /opt/
+RUN tar xzf libpll-1.0.2-sse3-64.tar.gz && rm libpll-1.0.2-sse3-64.tar.gz
+RUN cd /opt/libpll-1.0.2-sse3-64/ && cp libpll-sse3* /usr/local/lib && cp -r include/pll /usr/local/include/
+
+######### libpll2
 WORKDIR  /opt/phyldog/
-
-RUN git clone --branch faster_reconciliation  https://github.com/BenoitMorel/PHYLDOG.git /opt/phyldog/ && \
-    git checkout 258b66e71fa3196d73d0496848fdd5f54d21f724
-
+RUN git clone --branch faster_reconciliation  https://github.com/BenoitMorel/PHYLDOG.git /opt/phyldog/ &&\
+    git checkout bea224f1d46ed17474627f33774f2a9798ef38d9
 RUN sed -e "s|git@github.com:ddarriba/pll-modules.git| --branch dev https://github.com/ddarriba/pll-modules.git|" -i ./build_libpll2.sh && ./build_libpll2.sh
-
 RUN mv /opt/phyldog/libpll2_dependencies/include/pll /opt/phyldog/libpll2_dependencies/include/pllmodules
-
-
-# RUN sed "s/install(TARGETS phyldog DESTINATION bin)//" -i src/CMakeLists.txt && \
-# echo '''\n\
-# ADD_EXECUTABLE(phyldog_light Phyldog_light.cpp ${PHYLDOGLIGHT_SRCS})\n\
-# target_link_libraries(phyldog_light\n\
-#   ${PLL_LIBRARIES}\n\
-#   ${PLLMODULES_LIBRARIES}\n\
-#   ${BPP_LIBRARIES}\n\
-# )\n\
-# \n\
-# install(TARGETS phyldog DESTINATION bin)\n\
-# install(TARGETS phyldog_light DESTINATION bin)\n\
-# ''' >> src/CMakeLists.txt
-
 RUN mkdir -p build && cd /opt/phyldog/build && cmake  -DCMAKE_LIBRARY_PATH=/opt/phyldog/libpll2_dependencies/libs -DCMAKE_INCLUDE_PATH=/opt/phyldog/libpll2_dependencies/include ..   && (make -j 4 install || make install)
-
-
 ENV PATH /opt/phyldog/build/bin/:$PATH
-#########
+
+#### install profileNJ
+RUN pip install --upgrade pip
+RUN pip install ete3==3.0.0b35
+RUN pip install profileNJ
+
+##### install phylomerge
+RUN git clone https://github.com/boussau/phylomerge/ /opt/phylomerge &&\
+    cd /opt/phylomerge && bash ./compile
+ENV PATH /opt/phylomerge:$PATH
 
 ## update apytram
 WORKDIR /opt/apytram
@@ -170,7 +129,6 @@ RUN git pull && git checkout ab9e8eb
 
 ##### install entrypoint
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
-
 
 ##### install local dependencies
 WORKDIR /opt/caars_py_lib
