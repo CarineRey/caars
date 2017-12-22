@@ -3,6 +3,8 @@ caars:
 	cp _build/default/app/caars_app.exe caars
 test:
 	cd example && bash Launch_CAARS.sh
+test_docker:
+	cd example && bash Launch_CAARS.sh docker
 
 test2:
 	cd example && bash Launch_CAARS2.sh
