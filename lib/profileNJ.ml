@@ -70,8 +70,7 @@ let script_post ~tree ~tmp_treeout_prefix ~tmp_treeout_prefix2=
     echo >> $TREE
     echo >> only_trees.txt
     cat only_trees.txt  $TREE | awk NF > all.tree
-    sameroot.py  all.tree all_same_root.tree
-    cat  all_same_root.tree | sort | uniq  > $DEST/$name
+    cat  all.tree | sort | uniq  > $DEST/$name
     |}
 
 let profileNJ
@@ -81,7 +80,7 @@ let profileNJ
     ~tree
     : phylotree directory workflow =
 
-    let threshold_l = [1.0; 0.99; 0.95; 0.9; 0.85] in 
+    let threshold_l = [1.0; 0.98; 0.96; 0.94; 0.92; 0.9; 0.85] in
     let tmp_smap = tmp // "smap.txt" in
     let tmp_treeout_prefix = tmp // ("tree_out_pNJ.1.0.tree") in
     let tmp_treeout_prefix2 = tmp // ("tree_out_pNJ.0*.tree") in
@@ -89,7 +88,7 @@ let profileNJ
     let cmd_profileNJ = List.map threshold_l ~f:(fun t ->
     let str_number = Printf.sprintf "%.2f" t in
     let tmp_treeout = tmp // ("tree_out_pNJ." ^ str_number ^ ".tree") in
-    cmd "profileNJ" [
+    cmd "profileNJ" ~env [
       opt "-s" dep sptreefile ;
       opt "-S" ident tmp_smap ;
       opt "-g" dep tree;
