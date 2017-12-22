@@ -307,7 +307,7 @@ let checkfamily
   ~seq2fam
   ~evalue
   : fasta workflow =
-  let tmp_checkfamily = dest // "tmp" in
+  let tmp_checkfamily = tmp // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
   workflow ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
@@ -421,7 +421,7 @@ let seq_filter
     ~sp2seq
     : _ directory workflow  =
 
-  let tmp_merge = dest // "tmp" in
+  let tmp_merge = tmp // "tmp" in
 
   workflow ~version:8 ~descr:("SeqFilter.py:" ^ family) [
     mkdir_p tmp_merge ;
