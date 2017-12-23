@@ -79,10 +79,10 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
         None
     )
 
-let normalize_fasta fasta_reads memory threads =
+let normalize_fasta fasta_reads memory max_memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
       let max_cov = 20 in
-      let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample in
+      let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory ~max_memory fasta_sample in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
         | Fasta_Paired_end (lw, rw , o) -> Fasta_Paired_end ( normalization_dir / selector ["left.norm.fa"] , normalization_dir / selector ["right.norm.fa"], o )
@@ -753,7 +753,7 @@ let build_term configuration =
 
   let fasta_reads = fastq_to_fasta_conversion configuration configuration_dir in
 
-  let norm_fasta = normalize_fasta fasta_reads divided_sample_memory divided_sample_threads in
+  let norm_fasta = normalize_fasta fasta_reads divided_sample_memory configuration.memory divided_sample_threads in
 
   let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration divided_sample_memory divided_sample_threads in
 
