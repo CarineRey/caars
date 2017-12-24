@@ -231,7 +231,7 @@ let fasta_read_normalization_2
 
   let bistro_memory = if max_memory > 2
                       then
-                         Pervasives.(max max_memory (int_of_float( float_of_int memory *. 2.)))
+                         Pervasives.(min max_memory (int_of_float( float_of_int memory *. 2.)))
                       else
                          1
                       in
