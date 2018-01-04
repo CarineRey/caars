@@ -54,22 +54,25 @@ let script_pre ~tmp_smap ~link =
     paste seq.txt sp.txt > $TMP_SMAP
 |}
 
-let script_post ~tree ~tmp_treeout_prefix ~tmp_treeout_prefix2=
+let script_post ~tree ~tmp_rerooted_tree ~tmp_treeout_prefix=
   let args = [
     "TREE", dep tree ;
+    "TMP_REROOTED_TREE", tmp_rerooted_tree ;
     "TMP_TREEOUT_PREFIX", tmp_treeout_prefix ;
-    "TMP_TREEOUT_PREFIX2", tmp_treeout_prefix2 ;
     "DEST", dest ;
   ]
   in
   bash_script args {|
     name=`basename $TREE`
-    #get only tree
-    cat $TMP_TREEOUT_PREFIX $TMP_TREEOUT_PREFIX2 > trees.txt
+    #get only trees
+    cat $TMP_TREEOUT_PREFIX > trees.txt
     grep -v -h -e ">" trees.txt > only_trees.txt
+    #Add empty lines
     echo >> $TREE
+    echo >> $TMP_REROOTED_TREE
     echo >> only_trees.txt
-    cat only_trees.txt  $TREE | awk NF > all.tree
+    #Remove empty line
+    cat only_trees.txt $TREE $TMP_REROOTED_TREE| awk NF > all.tree
     cat  all.tree | sort | uniq  > $DEST/$name
     |}
 
@@ -80,22 +83,31 @@ let profileNJ
     ~tree
     : phylotree directory workflow =
 
-    let threshold_l = [1.0; 0.98; 0.96; 0.94; 0.92; 0.9; 0.85] in
     let tmp_smap = tmp // "smap.txt" in
-    let tmp_treeout_prefix = tmp // ("tree_out_pNJ.1.0.tree") in
-    let tmp_treeout_prefix2 = tmp // ("tree_out_pNJ.0*.tree") in
+    let tmp_rerooted_tree = tmp // "rerooted_tree.txt" in
     
-    let cmd_profileNJ = List.map threshold_l ~f:(fun t ->
+    let reroot_cmd = [cmd "reroot_midpoint.py" ~env [dep tree; ident tmp_rerooted_tree]] in
+
+    let threshold_l = [1.0; 0.98; 0.96; 0.94; 0.92; 0.9; 0.85] in
+    let tree_l = [ (dep tree, ""); (ident tmp_rerooted_tree, ".rerooted") ] in
+
+    let tmp_treeout_prefix = tmp // ("tree_out_pNJ.*.tree") in
+
+    let cmd_profileNJ_x tree_x tree_str = List.map threshold_l ~f:(fun t ->
     let str_number = Printf.sprintf "%.2f" t in
-    let tmp_treeout = tmp // ("tree_out_pNJ." ^ str_number ^ ".tree") in
+    let tmp_treeout = tmp // ("tree_out_pNJ." ^ str_number ^ tree_str ^ ".tree") in
     cmd "profileNJ" ~env [
       opt "-s" dep sptreefile ;
       opt "-S" ident tmp_smap ;
-      opt "-g" dep tree;
+      opt "-g" ident tree_x;
       opt "-o" ident tmp_treeout;
       opt "--seuil" float t;
     ]
     ) in
+
+    let cmd_profileNJ = List.map tree_l ~f:(fun (tree_x, tree_str) -> cmd_profileNJ_x tree_x tree_str)
+     |> List.concat
+     in
 
     workflow ~descr:("profileNJ" ^ descr) ~version:4 ~np:1 ~mem:(1024) [
     mkdir_p tmp;
@@ -104,6 +116,6 @@ let profileNJ
     (* Preparing profileNJ configuration files*)
     cmd "sh" [ file_dump (script_pre ~tmp_smap ~link) ];
     docker env (
-      and_list cmd_profileNJ) ;
-    cmd "sh" [ file_dump (script_post ~tree ~tmp_treeout_prefix ~tmp_treeout_prefix2) ];
+      and_list (List.concat [reroot_cmd; cmd_profileNJ])) ;
+    cmd "sh" [ file_dump (script_post ~tree ~tmp_rerooted_tree ~tmp_treeout_prefix ) ];
   ]
