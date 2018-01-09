@@ -125,7 +125,7 @@ ENV PATH /opt/phylomerge:$PATH
 
 ## update apytram
 WORKDIR /opt/apytram
-RUN git pull && git checkout ab9e8eb
+RUN git pull && git checkout a3cb5da
 
 ##### install entrypoint
 ADD entrypoint.sh /usr/local/bin/entrypoint.sh
