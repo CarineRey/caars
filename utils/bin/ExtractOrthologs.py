@@ -220,6 +220,7 @@ def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
             i = OrthoMaxSize
             MaxOrthogGroups_tmp_max = []
             while (len(MaxOrthogGroups_tmp_max) <=i)  and (i >= OrthoMinSize):
+                MaxOrthogGroups_tmp = []
                 if i not in OrthoSizeRange:
                     i-=1
                     continue
@@ -237,8 +238,8 @@ def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
                         else:
                             MaxOrthogGroups_tmp = [Seq]
 
-                if len(MaxOrthogGroups_tmp_max) < len(MaxOrthogGroups_tmp):
-                    MaxOrthogGroups_tmp_max = MaxOrthogGroups_tmp
+                        if len(MaxOrthogGroups_tmp_max) < len(MaxOrthogGroups_tmp):
+                            MaxOrthogGroups_tmp_max = MaxOrthogGroups_tmp
 
                 i-=1
 
