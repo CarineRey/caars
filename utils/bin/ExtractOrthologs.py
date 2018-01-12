@@ -218,7 +218,8 @@ def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
 
         if MinOrthogGroups:
             i = OrthoMaxSize
-            while (not MaxOrthogGroups)  and (i >= OrthoMinSize):
+            MaxOrthogGroups_tmp_max = []
+            while (len(MaxOrthogGroups_tmp_max) <=i)  and (i >= OrthoMinSize):
                 if i not in OrthoSizeRange:
                     i-=1
                     continue
@@ -232,18 +233,20 @@ def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
                                         g = list(set(g).difference(set(g_p)))
 
                         if Seq in g:
-                            MaxOrthogGroups = g
-                            MaxOrthogGroups.sort()
-                            if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
-                                MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
-                                MaxOrthogGroups_i += 1
-
+                            MaxOrthogGroups_tmp = g
                         else:
-                            MaxOrthogGroups = [Seq]
-                            MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
-                            MaxOrthogGroups_i += 1
-                        break
+                            MaxOrthogGroups_tmp = [Seq]
+
+                if len(MaxOrthogGroups_tmp_max) < len(MaxOrthogGroups_tmp):
+                    MaxOrthogGroups_tmp_max = MaxOrthogGroups_tmp
+
                 i-=1
+
+            MaxOrthogGroups = MaxOrthogGroups_tmp_max
+            MaxOrthogGroups.sort()
+            if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
+                MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
+                MaxOrthogGroups_i += 1
         else: # Get Min paralog group
             i = ParaMinSize
             while (not MinParaGroups) and (i <= ParaMaxSize):
