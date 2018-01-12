@@ -214,15 +214,15 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
 
             if os.environ.has_key("DISPLAY"):
 
-                K_values_id = df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["F","F2"])].values
-                D_values_id = df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("F")].values
+                K_values_id = df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["K","K2"])].values
+                D_values_id = df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("D")].values
 
                 color_id = []
                 values_id = []
-                if K_values_id:
+                if len(K_values_id):
                     color_id.append("#008000")
                     values_id.append(K_values_id)
-                if D_values_id:
+                if len(D_values_id):
                     color_id.append("#C41C00")
                     values_id.append(D_values_id)
 
@@ -231,15 +231,15 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
 
                 color_ali = []
                 values_ali = []
-                if K_values_ali:
+                if len(K_values_ali):
                     color_ali.append("#008000")
                     values_ali.append(K_values_ali)
-                if D_values_ali:
+                if len(D_values_ali):
                     color_ali.append("#C41C00")
                     values_ali.append(D_values_ali)
 
 
-                if values_id:
+                if len(values_id):
                     plt.figure(1)
                     fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
 
