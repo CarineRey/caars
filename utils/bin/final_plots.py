@@ -186,7 +186,7 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
     for f in summary_files:
         if os.path.exists(f) and os.path.getsize(f) > 1:
             list_df.append(pd.read_table(f, names=["seq", "n_seq", "%_id", "%_ali", "t", "s"]))
-    
+
     if list_df:
         df_filter_summary = pd.concat(list_df)
 
@@ -213,26 +213,48 @@ if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
             #ggsave(plot = p, filename = OutDirName + "/" + t_sp+'.pdf')
 
             if os.environ.has_key("DISPLAY"):
-                plt.figure(1)
-                fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
 
-                ax1.hist([df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
-                     df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("D")].values],
-                     stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
+                K_values_id = df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].isin(["F","F2"])].values
+                D_values_id = df_filter_summary_sp["%_id"][df_filter_summary_sp["s"].eq("F")].values
 
-                handles, labels = ax1.get_legend_handles_labels()
-                ax1.legend(handles, labels)
-                ax1.set_xlabel("%_id")
-                ax1.set_title(t_sp)
+                color_id = []
+                values_id = []
+                if K_values_id:
+                    color_id.append("#008000")
+                    values_id.append(K_values_id)
+                if D_values_id:
+                    color_id.append("#C41C00")
+                    values_id.append(D_values_id)
 
-                ax2.hist([df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].isin(["K","K2"])].values,
-                     df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].eq("D")].values],
-                     stacked=True, color=["#008000", "#C41C00"], bins=50, label=["K", "D"], range=[0,100])
+                K_values_ali = df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].isin(["K","K2"])].values
+                D_values_ali = df_filter_summary_sp["%_ali"][df_filter_summary_sp["s"].eq("D")].values
 
-                ax2.set_xlabel("%_ali")
-                handles2, labels2 = ax2.get_legend_handles_labels()
-                ax2.legend(handles2, labels2)
-                plt.tight_layout()
-                plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.svg')
+                color_ali = []
+                values_ali = []
+                if K_values_ali:
+                    color_ali.append("#008000")
+                    values_ali.append(K_values_ali)
+                if D_values_ali:
+                    color_ali.append("#C41C00")
+                    values_ali.append(D_values_ali)
+
+
+                if values_id:
+                    plt.figure(1)
+                    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(4,4))
+
+                    ax1.hist(values_id, stacked=True, color=color_id, bins=50, label=["K", "D"], range=[0,100])
+                    handles, labels = ax1.get_legend_handles_labels()
+                    ax1.legend(handles, labels)
+                    ax1.set_xlabel("%_id")
+                    ax1.set_title(t_sp)
+
+                    ax2.hist(values_ali, stacked=True, color=color_ali, bins=50, label=["K", "D"], range=[0,100])
+                    ax2.set_xlabel("%_ali")
+                    handles2, labels2 = ax2.get_legend_handles_labels()
+                    ax2.legend(handles2, labels2)
+
+                    plt.tight_layout()
+                    plt.savefig(OutDirName + "/" + t_sp+'.filter_stats.svg')
 
 
