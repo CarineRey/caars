@@ -623,7 +623,7 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
                    Some(List.map configuration.all_ref_samples ~f:(fun s -> s.species)))
         | false -> (None, None)
     in
-    workflow ~descr:"ExtractOrthologs.py" ~version:5 [
+    workflow ~descr:"ExtractOrthologs.py" ~version:7 [
             mkdir_p dest;
             cmd "ExtractOrthologs.py" ~env [
             ident dest;
@@ -642,7 +642,7 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
       )
     in
 
-    workflow ~descr:"final_plots.py" ~version:6 [
+    workflow ~descr:"final_plots.py" ~version:14 [
         mkdir_p dest;
         cmd "final_plots.py" ~env [
             opt "-i_ortho" dep orthologs_per_seq;
