@@ -112,13 +112,14 @@ caars
 
 ### alignment-dir
 
-A directory containing  fasta formated multiple sequence alignments (MSA).
-Each filename must be composed of the name of the gene family and the extension ".fa"
+A directory containing fasta formated multiple sequence alignments (MSA).
+Each filename must be composed of the name of the gene family and the extension ".fa".
+**Warning:** Alignments must only contain "ATGC-" characters.
 
 ### seq2sp-dir
 
 A directory containing tabular link files between sequence and species.
-Each filename must be composed of the name of the gene family and the extension ".tsv"
+Each filename must be composed of the name of the gene family and the extension ".tsv".
 
 ### sample-sheet
 
