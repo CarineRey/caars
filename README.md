@@ -114,7 +114,7 @@ caars
 
 A directory containing fasta formated multiple sequence alignments (MSA).
 Each filename must be composed of the name of the gene family and the extension ".fa".
-**Warning:** Alignments must only contain "ATGC-" characters.
+**Warning:** Alignments must only contain "ATGCNUWSMKRYBDHV-" characters.
 
 ### seq2sp-dir
 
