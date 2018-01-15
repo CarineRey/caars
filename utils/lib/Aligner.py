@@ -98,6 +98,7 @@ class Mafft(object):
         self.AutoOption = False
         self.Maxiterate = 0
         self.QuietOption = False
+        self.InputType=""
 
     def launch(self, output=""):
         command = ["mafft"]
@@ -113,6 +114,10 @@ class Mafft(object):
                 command.extend(["--add", self.AddOption])
         if self.QuietOption:
             command.append("--quiet")
+        if self.InputType=="nuc":
+            command.append("--nuc")
+        elif self.InputType=="amino":
+            command.append("--amino")
 
         if output or self.OutputFile:
             if output:

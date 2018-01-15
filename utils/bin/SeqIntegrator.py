@@ -278,6 +278,7 @@ if args.realign_ali:
     ### Realign the input alignment
     InitialMafftProcess = Aligner.Mafft(StartingAlignment)
     InitialMafftProcess.Maxiterate = 2
+    InitialMafftProcess.InputType = "nuc"
     InitialMafftProcess.QuietOption = True
     InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName, "RealignAli")
 
@@ -308,6 +309,7 @@ if StartingFastaFiles and Sp2SeqFiles:
     MafftProcessAdd = Aligner.Mafft(StartingAlignment)
     MafftProcessAdd.AddOption = StartingFasta
     MafftProcessAdd.AdjustdirectionOption = False
+    MafftProcessAdd.InputType = "nuc"
     MafftProcessAdd.QuietOption = True
     MafftProcessAdd.OutputFile = "%s/StartMafft.fa" %TmpDirName
     if check_isfile_and_notempty([StartingAlignment,StartingFasta]):
@@ -317,6 +319,7 @@ if StartingFastaFiles and Sp2SeqFiles:
     logger.info("Realign the combined alignment")
     MafftProcess = Aligner.Mafft(MafftProcessAdd.OutputFile)
     MafftProcess.AdjustdirectionOption = False
+    MafftProcess.InputType = "nuc"
     #MafftProcess.Maxiterate = 2 # too long
     MafftProcess.AutoOption = True
     MafftProcess.QuietOption = True
@@ -390,6 +393,7 @@ if StartingFastaFiles and Sp2SeqFiles:
             logger.info("Realign the merged alignment (%s)", i)
             MafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
             MafftProcess.AdjustdirectionOption = False
+            MafftProcess.InputType = "nuc"
             #MafftProcess.Maxiterate = 2 # too long
             MafftProcess.AutoOption = True
             MafftProcess.QuietOption = True

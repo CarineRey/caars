@@ -352,7 +352,7 @@ for f in glob.glob("%s/*" %ali_dir):
     for n, s in AliDict_i.items():
         seq = "".join(s)
         length_seq.append(len(seq))
-        invalid_char_tmp = set(re.sub("[ATGCN-]","", seq))
+        invalid_char_tmp = set(re.sub("[ATGCNUWSMKRYBDHV-]","", seq))
         if invalid_char_tmp:
             invalid_char |= invalid_char_tmp
             invalid_char_seq.append(n)
