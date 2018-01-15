@@ -76,6 +76,9 @@ Options.add_argument('-sptorefine', type=str, default="",
                     help="A list of species names delimited by commas. These species will be concerned by merging. (default: All species will be concerned)")
 Options.add_argument('--no_merge', action='store_true', default=False,
                     help="not use phylo merge to merge sequences. (default: False)")
+Options.add_argument('--merge_criterion', type=str, choices = ["merge","length", "length.complete"],
+                    help="""choice.criterion=“length" or “length.complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them.""",
+                    default="merge")
 Options.add_argument('--realign_ali', action='store_true', default=False,
                     help="Realign the ali even if no sequences to add. (default: False)")
 Options.add_argument('--resolve_polytomy', action='store_true', default=False,
@@ -134,9 +137,7 @@ ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-
-logger.debug(sys.argv)
-
+logger.info(sys.argv)
 
 def count_lines (fname):
     Number = 0
@@ -248,20 +249,43 @@ def cp(In, Out):
 
     return (out, err)
 
+
+def check_isfile_and_notempty(f_l, msg_ps=True):
+    itsok = True
+
+    if not isinstance(f_l, list):
+        f_l = [f_l]
+
+    if msg_ps:
+        msg = " There was an issue with the previous step."
+    else:
+        msg = ""
+
+    for f in f_l:
+        if not os.path.isfile(f):
+            logger.error("%s is not a file.%s", f, msg)
+            itsok=False
+        if os.path.isfile(f) and os.path.getsize(f)==0:
+            logger.error("%s is empty.%s", f, msg)
+            itsok=False
+
+    if not itsok:
+        end(1)
+
+    return itsok
+
 if args.realign_ali:
     ### Realign the input alignment
     InitialMafftProcess = Aligner.Mafft(StartingAlignment)
     InitialMafftProcess.Maxiterate = 2
+    InitialMafftProcess.InputType = "nuc"
     InitialMafftProcess.QuietOption = True
     InitialMafftProcess.OutputFile = "%s/%s.fa" %(TmpDirName, "RealignAli")
 
-    if os.path.isfile(StartingAlignment):
+    if check_isfile_and_notempty(StartingAlignment, msg_ps=False):
         logger.info("Realign the input alignment")
         _ = InitialMafftProcess.launch()
         StartingAlignment = InitialMafftProcess.OutputFile
-    else:
-        logger.error("%s is not a file.", StartingAlignment)
-        end(1)
 
 ### Concate all  sp2seq files
 logger.info("Concate all Sp2Seq files")
@@ -285,27 +309,23 @@ if StartingFastaFiles and Sp2SeqFiles:
     MafftProcessAdd = Aligner.Mafft(StartingAlignment)
     MafftProcessAdd.AddOption = StartingFasta
     MafftProcessAdd.AdjustdirectionOption = False
+    MafftProcessAdd.InputType = "nuc"
     MafftProcessAdd.QuietOption = True
     MafftProcessAdd.OutputFile = "%s/StartMafft.fa" %TmpDirName
-    if os.path.isfile(StartingAlignment) and os.path.isfile(StartingFasta):
+    if check_isfile_and_notempty([StartingAlignment,StartingFasta]):
         (out, err) = MafftProcessAdd.launch()
-    else:
-        logger.error("%s or %s is not a file", StartingAlignment, StartingFasta)
-        end(1)
 
     ### Realign the combined alignment
     logger.info("Realign the combined alignment")
     MafftProcess = Aligner.Mafft(MafftProcessAdd.OutputFile)
     MafftProcess.AdjustdirectionOption = False
+    MafftProcess.InputType = "nuc"
     #MafftProcess.Maxiterate = 2 # too long
     MafftProcess.AutoOption = True
     MafftProcess.QuietOption = True
     MafftProcess.OutputFile = "%s/StartMafftRealign.0.fa" %TmpDirName
-    if os.path.isfile(MafftProcessAdd.OutputFile):
+    if check_isfile_and_notempty(MafftProcessAdd.OutputFile):
         (out, err) = MafftProcess.launch()
-    else:
-        logger.error("%s is not a file", MafftProcessAdd.OutputFile)
-        end(1)
 
     if args.no_merge:
         logger.info("no_merge=True, sequences will not be merged.")
@@ -313,8 +333,8 @@ if StartingFastaFiles and Sp2SeqFiles:
         FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
         (out, err) = mv(Sp2Seq, FinalSp2Seq)
         (out, err) = mv(MafftProcess.OutputFile, LastAli)
-    else:
 
+    else:
         ali = MafftProcess.OutputFile
         sp2seq = Sp2Seq
         NbSeq_previous_iter = 0
@@ -331,31 +351,28 @@ if StartingFastaFiles and Sp2SeqFiles:
             FasttreeProcess.Gtr = True
             FasttreeProcess.Gamma = True
             FasttreeProcess.OutputTree = "%s/StartTree.tree" %TmpDirName
-            if os.path.isfile(ali):
+            if check_isfile_and_notempty(ali):
                 FasttreeProcess.get_output()
-            else:
-                logger.error("%s is not a file. There was an issue with the previous step.", ali)
-                end(1)
 
             ### Resolve Polytomy
             StartTreeFilename = FasttreeProcess.OutputTree
-            if not os.path.isfile(StartTreeFilename):
-                logger.error("%s is not a file. There was an issue with the previous step.", StartTreeFilename)
-                end(1)
+            if check_isfile_and_notempty(StartTreeFilename):
+                pass
+
             if args.resolve_polytomy:
                 logger.info("Resolve polytomy")
                 t = Tree(StartTreeFilename)
                 t.resolve_polytomy(recursive=True)
                 t.write(format=0, outfile=StartTreeFilename)
-            if not os.path.isfile(StartTreeFilename):
-                logger.error("%s is not a file. There was an issue with the previous step.", StartTreeFilename)
-                end(1)
+                if check_isfile_and_notempty(StartTreeFilename):
+                    pass
 
             ### Use phylomerge to merge sequence from a same species
             logger.info("Use phylomerge to merge sequence from a same species")
             Int1Sp2Seq = "%s/Int1.sp2seq.txt" %TmpDirName
             PhylomergeProcess = PhyloPrograms.Phylomerge(ali, StartTreeFilename)
             PhylomergeProcess.TaxonToSequence = sp2seq
+            PhylomergeProcess.ChoiceCriterion = args.merge_criterion
             PhylomergeProcess.RearrangeTree = True
             PhylomergeProcess.BootstrapThreshold = 0.8
             PhylomergeProcess.OutputSequenceFile = "%s/Merged.fa" %TmpDirName
@@ -368,28 +385,21 @@ if StartingFastaFiles and Sp2SeqFiles:
                 SpToRefineFile.close()
                 PhylomergeProcess.TaxonsToRefine = SpToRefineFilename
 
-            if os.path.isfile(ali) and \
-               os.path.isfile(StartTreeFilename) and \
-               os.path.isfile(PhylomergeProcess.TaxonToSequence):
+            if check_isfile_and_notempty([ali, StartTreeFilename, \
+                                    PhylomergeProcess.TaxonToSequence]):
                 PhylomergeProcess.launch()
-            else:
-                logger.error("%s or %s or %s is not a file. There was an issue with the previous step.",
-                ali, StartTreeFilename, PhylomergeProcess.TaxonToSequence)
-                end(1)
 
             ### Realign the merged alignment
             logger.info("Realign the merged alignment (%s)", i)
             MafftProcess = Aligner.Mafft(PhylomergeProcess.OutputSequenceFile)
             MafftProcess.AdjustdirectionOption = False
+            MafftProcess.InputType = "nuc"
             #MafftProcess.Maxiterate = 2 # too long
             MafftProcess.AutoOption = True
             MafftProcess.QuietOption = True
             MafftProcess.OutputFile = "%s/StartMafftRealign.%s.fa" %(TmpDirName,i)
-            if os.path.isfile(PhylomergeProcess.OutputSequenceFile):
+            if check_isfile_and_notempty(PhylomergeProcess.OutputSequenceFile):
                 (out, err) = MafftProcess.launch()
-            else:
-                logger.error("%s is not a file", MafftProcessAdd.OutputFile)
-                end(1)
 
             ali = MafftProcess.OutputFile
             sp2seq = Int1Sp2Seq
@@ -398,18 +408,15 @@ if StartingFastaFiles and Sp2SeqFiles:
         logger.warning("%s merge process iterations", i)
         LastAli = "%s.fa" %OutPrefixName
         FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
-        (out, err) = mv(ali, LastAli)
-        (out, err) = mv(sp2seq, FinalSp2Seq)
-        
+        (out, err) = cp(ali, LastAli)
+        (out, err) = cp(sp2seq, FinalSp2Seq)
+
 else: #No sequences to add
     logger.warning("No sequences to add, the input file will be the output file")
     LastAli = "%s.fa" %OutPrefixName
     FinalSp2Seq = "%s.sp2seq.txt" %OutPrefixName
     (out, err) = cp(Sp2Seq, FinalSp2Seq)
-    if args.realign_ali:
-        (out, err) = mv(StartingAlignment, LastAli)
-    else:
-        (out, err) = cp(StartingAlignment, LastAli)
+    (out, err) = cp(StartingAlignment, LastAli)
 
 ### Built a tree with the final alignment
 logger.info("Built a tree with the final alignment")
@@ -420,34 +427,20 @@ FinalFasttreeProcess.Gtr = True
 FinalFasttreeProcess.Gamma = True
 FinalFasttreeProcess.OutputTree = FinalTreeFilename
 
-if os.path.isfile(LastAli):
+if check_isfile_and_notempty(LastAli):
     FinalFasttreeProcess.get_output()
-else:
-    logger.error("%s is not a file. There was an issue with the previous step.", LastAli)
-    end(1)
 
 ### Resolve Polytomy
-if not os.path.isfile(FinalTreeFilename):
-    logger.error("%s is not a file. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
-if not os.path.getsize(FinalTreeFilename):
-    logger.error("%s is empty. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
-
 if args.resolve_polytomy:
     logger.info("Resolve polytomy in %s", FinalTreeFilename)
     t = Tree(FinalTreeFilename)
     t.resolve_polytomy(recursive=True)
     t.write(format=0, outfile=FinalTreeFilename)
+    if check_isfile_and_notempty(FinalTreeFilename):
+        pass
 
-if not os.path.isfile(FinalTreeFilename):
-    FinalFasttreeProcess.get_output()
-    logger.error("%s is not a file. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
+if check_isfile_and_notempty([FinalTreeFilename, LastAli, FinalSp2Seq]):
+    pass
 
-if not os.path.getsize(FinalTreeFilename):
-    logger.error("%s is empty. There was an issue with the previous step.", FinalTreeFilename)
-    end(1)
-
-logger.debug("--- %s seconds ---", str(time.time() - start_time))
+logger.info("--- %s seconds ---", str(time.time() - start_time))
 end(0)

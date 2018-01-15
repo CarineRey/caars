@@ -25,12 +25,12 @@ let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~fa
       in
   workflow ~np:1 ~descr:"Parse input" ~version:13 ~mem:(memory * 1024) [
     mkdir_p dest;
-    cmd "ParseInput.py"  [ dep sample_sheet ;
-                           dep species_tree_file;
-                           dep alignments_dir;
-                           dep seq2sp_dir;
-                           ident dest ;
-                         ];
+    cmd "ParseInput.py"  ~env [ dep sample_sheet ;
+                                dep species_tree_file;
+                                dep alignments_dir;
+                                dep seq2sp_dir;
+                                ident dest ;
+                              ];
     cmd "cp" [ file_dump script; families_out];
   ]
 
@@ -79,10 +79,10 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
         None
     )
 
-let normalize_fasta fasta_reads memory threads =
+let normalize_fasta fasta_reads memory max_memory threads =
   List.map fasta_reads ~f:(fun (s,fasta_sample) ->
       let max_cov = 20 in
-      let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory fasta_sample in
+      let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory ~max_memory fasta_sample in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (w, o ) -> Fasta_Single_end ( normalization_dir / selector ["single.norm.fa"] , o )
         | Fasta_Paired_end (lw, rw , o) -> Fasta_Paired_end ( normalization_dir / selector ["left.norm.fa"] , normalization_dir / selector ["right.norm.fa"], o )
@@ -134,21 +134,34 @@ let concat ?(descr="") = function
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
 
+(*
+Fasta file and its index must be in the same directory due to biopython
+wich retains the relative path between these 2 files.
+A different location is incompatible with the bistro docker usage
+workflow by worflow.
+To avoid to cp the complete fasta file we use a symbolic link.
+*)
 let build_biopythonindex ?(descr="") (fasta:fasta workflow)  : index workflow =
   workflow ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
-    cmd "build_biopythonindex_fasta.py" [ ident dest; dep fasta ]
+    mkdir_p dest ;
+    docker env (
+      and_list [
+        cmd "ln" [ string "-s" ; dep fasta ; dest // "seq.fa" ] ;
+        cmd "build_biopythonindex_fasta.py" ~env [ dest // "index" ; dest // "seq.fa" ]
+      ]
+    )
   ]
 
 let reformat_cdhit_cluster ?(descr="") cluster : fasta workflow =
   workflow ~version:1 ~descr:("reformat_cdhit_cluster2fasta.py" ^ descr) [
-    cmd "reformat_cdhit_cluster2fasta.py" [ dep cluster  ; ident dest]
+    cmd "reformat_cdhit_cluster2fasta.py" ~env [ dep cluster  ; ident dest]
   ]
 
 let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta workflow) : cdhit directory workflow =
   let out = dest // "cluster_rep.fa" in
   workflow ~version:1 ~descr:("cdhitlap" ^ descr) [
     mkdir_p dest;
-    cmd "cd-hit-lap" [
+    cmd "cd-hit-lap" ~env [
         opt "-i" dep fasta;
         opt "-o" ident out ;
         option ( opt "-p" float ) p;
@@ -197,7 +210,7 @@ let seq_dispatcher
     ~seq2fam : fasta workflow =
   workflow ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
     mkdir_p tmp;
-    cmd "SeqDispatcher.py"  [
+    cmd "SeqDispatcher.py" ~env [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
       opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
       opt "-tmp" ident tmp ;
@@ -294,12 +307,12 @@ let checkfamily
   ~seq2fam
   ~evalue
   : fasta workflow =
-  let tmp_checkfamily = dest // "tmp" in
+  let tmp_checkfamily = tmp // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
   workflow ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
-    cmd "CheckFamily.py"  [
+    cmd "CheckFamily.py" ~env [
       opt "-tmp" ident tmp_checkfamily ;
       opt "-i" dep input ;
       opt "-t" dep ref_transcriptome ;
@@ -333,7 +346,7 @@ let parse_apytram_results apytram_annotated_ref_fams =
     )
   in
   workflow ~version:4 ~descr:"Parse_apytram_results.py" ~np:1  [
-    cmd "Parse_apytram_results.py" [ file_dump config ; dest ]
+    cmd "Parse_apytram_results.py" ~env [ file_dump config ; dest ]
   ]
 
 let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
@@ -343,6 +356,7 @@ let seq_integrator
     ?resolve_polytomy
     ?species_to_refine_list
     ?no_merge
+    ?merge_criterion
     ~family
     ~trinity_fam_results_dirs
     ~apytram_results_dir
@@ -350,6 +364,12 @@ let seq_integrator
     alignment
   : _ directory workflow =
 
+  let merge_criterion_string  = match merge_criterion with
+    | Some Merge ->  None
+    | Some Length -> Some "length"
+    | Some Length_complete -> Some "length.complete"
+    | None -> None
+    in
   let get_trinity_file_list extension dirs =
     List.map  dirs ~f:(fun (s,dir) ->
         [ dep dir ; string ("/Trinity." ^ s.id ^ "." ^ s.species ^ "." ^ family ^ "." ^ extension) ; string ","]
@@ -370,16 +390,17 @@ let seq_integrator
   let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
   let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
 
-  let tmp_merge = dest // "tmp" in
+  let tmp_merge = tmp // "tmp" in
 
   workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family) [
     mkdir_p tmp_merge ;
-    cmd "SeqIntegrator.py"  [
+    cmd "SeqIntegrator.py" ~env [
       opt "-tmp" ident tmp_merge;
       opt "-log" seq [ tmp_merge ; string ("/SeqIntegrator." ^ family ^ ".log" )] ;
-      opt "-ali" string alignment ;
+      opt "-ali" dep alignment ;
       opt "-fa" (seq ~sep:"") fasta;
       option (flag string "--realign_ali") realign_ali;
+      option (opt "--merge_criterion" string) merge_criterion_string;
       option (flag string "--no_merge") no_merge;
       option (flag string "--resolve_polytomy") resolve_polytomy;
       opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
@@ -400,11 +421,11 @@ let seq_filter
     ~sp2seq
     : _ directory workflow  =
 
-  let tmp_merge = dest // "tmp" in
+  let tmp_merge = tmp // "tmp" in
 
   workflow ~version:8 ~descr:("SeqFilter.py:" ^ family) [
     mkdir_p tmp_merge ;
-    cmd "SeqFilter.py"  [
+    cmd "SeqFilter.py" ~env [
       opt "-tmp" ident tmp_merge;
       opt "-log" seq [ tmp_merge ; string ("/SeqFilter." ^ family ^ ".log" )] ;
       opt "-ali" dep alignment ;
@@ -418,7 +439,6 @@ let seq_filter
     ]
   ]
 
-
 let merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir =
   List.map configuration.families ~f:(fun family ->
       let trinity_fam_results_dirs=
@@ -426,14 +446,14 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
             (s , List.Assoc.find_exn ~equal:( = ) trinity_annotated_fams s)
           )
       in
-
-      let alignment = configuration.alignments_dir ^ "/" ^ family ^ ".fa"  in
+      let merge_criterion = configuration.merge_criterion in
+      let alignment = input (configuration.alignments_dir ^ "/" ^ family ^ ".fa")  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
       let w = if (List.length species_to_refine_list) = 0 then
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     else
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq  alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     in
       let tree = w / selector [family ^ ".tree"] in
       let alignment = w / selector [family ^ ".fa"] in
@@ -458,12 +478,12 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let ali = merged_family / selector [ fam ^ ".fa" ] in
     let tree = merged_family / selector [ fam ^ ".tree" ] in
     let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
-    let sptreefile = configuration.species_tree_file in
-    let profileNJ_tree = (ProfileNJ.profileNJ ~descr:(":" ^ fam) ~sptreefile ~link ~tree ~threshold:1.0 ) / selector [ fam ^ ".tree" ] in
-    let threads = Pervasives.min 2 configuration.threads in
+    let sptreefile = input configuration.species_tree_file in
+    let profileNJ_tree = (ProfileNJ.profileNJ ~descr:(":" ^ fam) ~sptreefile ~link ~tree) / selector [ fam ^ ".tree" ] in
+    let threads = 1 in
     let memory = Pervasives.min 1 (Pervasives.(configuration.memory / configuration.threads)) in
     let topogene = configuration.refinetree in
-    (fam, Phyldog.phyldog_by_fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    (fam, Phyldog.phyldog_by_fam ~family:fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =
@@ -522,14 +542,14 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
               List.map extension_list_merged ~f:(fun (ext,dir) ->
                 let input = merged_w / selector [ f ^ ext ] in
                 let output = dest // dir // (f ^ ext)  in
-                seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                seq ~sep:" " [ string "cp"; dep input ; ident output ]
               )
               ;
               if (configuration.ali_sister_threshold > 0.) &&  ((List.length configuration.all_ref_samples) > 0) then
                 List.map extension_list_filtered ~f:(fun (ext,dir) ->
                     let input = merged_w / selector [ f ^ ext ] in
                     let output = dest // dir // (f ^ ext)  in
-                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    seq ~sep:" " [ string "cp"; dep input ; ident output ]
                 )
               else
                 []
@@ -539,7 +559,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                   List.map extension_list_reconciled ~f:(fun (ext,dirin,dirout) ->
                     let input = reconciled_w / selector [ dirin ^ f ^ ext ] in
                     let output = dest // dirout // (f ^ ext)  in
-                    seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                    seq ~sep:" " [ string "cp"; dep input ; ident output ]
                     )
                   ;
                   (*if configuration.refineali then
@@ -554,7 +574,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                     List.map extension_list_realigned ~f:(fun (ext,dir) ->
                         let input = w in
                         let output = dest // dir // (f ^ e ^ ext)  in
-                        seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
+                        seq ~sep:" " [ string "cp"; dep input ; ident output ]
                     )
                     )
                   else
@@ -580,7 +600,7 @@ let get_reconstructed_sequences merged_and_reconciled_families_dirs configuratio
     let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
     Some (workflow ~descr:"GetReconstructedSequences.py" ~version:6 [
             mkdir_p dest;
-            cmd "GetReconstructedSequences.py"  [
+            cmd "GetReconstructedSequences.py" ~env [
             dep merged_and_reconciled_families_dirs // "out/MSA_out";
             dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
             seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
@@ -603,9 +623,9 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
                    Some(List.map configuration.all_ref_samples ~f:(fun s -> s.species)))
         | false -> (None, None)
     in
-    workflow ~descr:"ExtractOrthologs.py" ~version:1 [
+    workflow ~descr:"ExtractOrthologs.py" ~version:7 [
             mkdir_p dest;
-            cmd "ExtractOrthologs.py"  [
+            cmd "ExtractOrthologs.py" ~env [
             ident dest;
             dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
             option (opt "" dep) ortho_dir ;
@@ -613,15 +633,24 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
             ]
     ]
 
-let phyldog_of_merged_families_dirs configuration merged_families_dirs =
-  let seqdir = merged_families_dirs / selector [ "Merged_fasta" ] in
-  let treedir = merged_families_dirs / selector [ "Merged_tree" ] in
-  let linkdir = merged_families_dirs / selector [ "Sp2Seq_link" ] in
-  let sptreefile = configuration.species_tree_file in
-  let threads_max = (List.length configuration.families) + 1 in
-  let threads = Pervasives.min threads_max configuration.threads in
-  let memory = configuration.memory in
-  Phyldog.phyldog ~threads ~memory ~topogene:true ~timelimit:9999999 ~sptreefile ~linkdir ~treedir seqdir
+
+let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration =
+    let formated_target_species = match configuration.all_ref_samples with
+        | [] -> None
+        | _ -> Some (List.map configuration.all_ref_samples ~f:(fun s ->
+        seq ~sep:":" [string s.species ; string s.id])
+      )
+    in
+
+    workflow ~descr:"final_plots.py" ~version:14 [
+        mkdir_p dest;
+        cmd "final_plots.py" ~env [
+            opt "-i_ortho" dep orthologs_per_seq;
+            opt "-i_filter" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/"]);
+            opt "-o" ident dest;
+            option (opt "-t_sp" (seq ~sep:",")) formated_target_species;
+        ]
+    ]
 
 
 
@@ -656,7 +685,7 @@ let output_of_phyldog phyldog merged_families families =
   ]
 
 let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families  ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir =
-  let any x = Bistro.Workflow x in
+  let any x = Bistro.Any_workflow x in
   let unwrap_fasta_sample = function
     | (_, Fasta_Single_end (w, _ )) -> [ any w ]
     | (_, Fasta_Paired_end (lw, rw , _)) -> [ any lw ; any rw ]
@@ -689,7 +718,7 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     [ any apytram_results_dir];
   ]
 
-let build_app configuration =
+let build_term configuration =
 
   (*let allocation_apytram = 80 in
   let allocation_trinity = 100 - allocation_apytram in
@@ -724,7 +753,7 @@ let build_app configuration =
 
   let fasta_reads = fastq_to_fasta_conversion configuration configuration_dir in
 
-  let norm_fasta = normalize_fasta fasta_reads divided_sample_memory divided_sample_threads in
+  let norm_fasta = normalize_fasta fasta_reads divided_sample_memory configuration.memory divided_sample_threads in
 
   let trinity_assemblies = trinity_assemblies_of_norm_fasta norm_fasta configuration divided_sample_memory divided_sample_threads in
 
@@ -776,7 +805,10 @@ let build_app configuration =
     )
   in
 
-  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_thread_memory in
+  (*remove transdecoder after apytram
+  let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_thread_memory in *)
+
+  let apytram_orfs_ref_fams = apytram_annotated_ref_fams_by_fam in
 
   let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
@@ -794,13 +826,10 @@ let build_app configuration =
 
   let orthologs_per_seq = write_orthologs_relationships merged_reconciled_and_realigned_families_dirs configuration in
 
-  (*let phyldog = phyldog_of_merged_families_dirs configuration merged_families_dirs in
-
-  let output = output_of_phyldog phyldog merged_families configuration.families in
-*)
+  let final_plots = build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families_dirs configuration in
 
 
-  let open Bistro_repo in
+  let open Repo in
 
   let target_to_sample_fasta s d = function
     | Fasta_Single_end (w, _ ) -> [[ d ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
@@ -830,6 +859,7 @@ let build_app configuration =
       ;
       [["all_fam.seq2sp.tsv"] %> (orthologs_per_seq / selector ["all_fam.seq2sp.tsv"])]
       ;
+      [["plots"] %> final_plots];
       if configuration.run_reconciliation then
         [["all_fam.orthologs.tsv"] %> (orthologs_per_seq/ selector["all_fam.orthologs.tsv"])]
       else
@@ -900,18 +930,25 @@ let build_app configuration =
   in
 
   if configuration.just_parse_input then
-    let precious = [Bistro.Workflow configuration_dir] in
-    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
+    let precious = [Bistro.Any_workflow configuration_dir] in
+    let repo_app = Repo.to_term repo ~precious ~outdir:configuration.outdir in
     repo_app
   else
+    let open Term in
     let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
-    let repo_app = Bistro_repo.to_app repo ~precious ~outdir:configuration.outdir in
-    repo_app
-    (*let open Bistro_app in
-    let stats_app =
-        List.map trinity_assemblies_stats ~f:(fun (s, trinity_assembly_stats) -> (s, pureW trinity_assembly_stats))
+    let repo_term = Repo.to_term repo ~precious ~outdir:configuration.outdir in
+    let report_term =
+      let assoc_arg xs =
+        List.map xs ~f:(fun (s, w) -> (s, pureW w))
         |> assoc
+      in
+      pure
+        (fun trinity_assemblies_stats final_plots () ->
+           Report.generate
+             ~trinity_assemblies_stats
+             ~final_plots
+             (Filename.concat configuration.outdir "report_end.html"))
+      $ assoc_arg trinity_assemblies_stats
+      $ pureW final_plots
     in
-    let f_app = pure (fun () trinity_assemblies_stats -> Report.generate ~trinity_assemblies_stats (Filename.concat configuration.outdir "report_end.html")) in
-    f_app $ repo_app $ stats_app
-    *)
+    report_term $ repo_term

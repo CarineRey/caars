@@ -6,4 +6,4 @@ open Commons
 val alignement_fasta : string -> (output, fasta) selector
 val gene_tree : string -> (output, [`newick]) selector
 val sp2seq_link : string -> (output, sp2seq_link) selector
-val build_app : Configuration.t -> unit Bistro_app.t
+val build_term : Configuration.t -> unit Term.t

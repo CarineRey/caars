@@ -3,6 +3,8 @@ caars:
 	cp _build/default/app/caars_app.exe caars
 test:
 	cd example && bash Launch_CAARS.sh
+test_docker:
+	cd example && bash Launch_CAARS.sh docker
 
 test2:
 	cd example && bash Launch_CAARS2.sh
@@ -17,4 +19,17 @@ clean:
 	ocamlbuild -clean
 	rm -f utils/lib/*.pyc
 
-.PHONY: caars test clean_test clean
+build_caars_env_docker:
+	cd etc && ./build_caars_env.sh
+build_caars_docker:
+	cd etc && ./build_caars.sh
+build_caars_dev_docker:
+	cd etc && ./build_caars_dev.sh
+push_caars_env_docker:
+	cd etc && ./build_caars_env.sh push_yes
+push_caars_docker:
+	cd etc && ./build_caars.sh push_yes
+push_caars_dev_docker:
+	cd etc && ./build_caars_dev.sh push_yes
+
+.PHONY: caars test clean_test clean test2 clean_test2 build_caars_env_docker build_caars_docker build_caars_dev_docker

@@ -5,6 +5,19 @@ open Commons
 
 let k = pcdata
 
+let optint = function
+  | None -> k"NA"
+  | Some i -> k (Int.to_string i)
+
+let optfloat = function
+  | None -> k"NA"
+  | Some i -> k (Float.to_string i)
+
+let svg_from_file fn =
+  let contents = In_channel.read_all fn in
+  let src = sprintf "data:image/%s;base64,%s" "svg+xml" contents in
+  img ~src ~alt:"" ()
+
 let head t =
   head (title (pcdata t)) [
     link ~rel:[`Stylesheet] ~href:"http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" () ;
@@ -14,25 +27,17 @@ let head t =
   ]
 
 let trinity_section trinity_assemblies_stats =
-  let optint = function
-    | None -> k"NA"
-    | Some i -> k (Int.to_string i)
-  in
-  let optfloat = function
-    | None -> k"NA"
-    | Some i -> k (Float.to_string i)
-  in
-  let table_headers =
-  [tr [
+  let table_headers = [
+    tr [
       th [ k "Species" ] ;
       th [ k "nb_genes" ] ;
       th [ k "nb_transcripts" ] ;
       th [ k "gc"] ;
       th [ k "n50" ] ;
     ]
-    ]
+  ]
   in
-  let foreach_sample (sample, Bistro_app.Path assembly_stats) =
+  let foreach_sample (sample, Term.Path assembly_stats) =
     let { Trinity_stats.n50 ; nb_genes; gc; nb_transcripts } = Trinity_stats.parse assembly_stats in
     tr [
       td [ k sample.Commons.species ] ;
@@ -48,22 +53,21 @@ let trinity_section trinity_assemblies_stats =
   ]
 
 (* http://ocsigen.org/tyxml/4.0.1/manual/intro*)
-let render ~trinity_assemblies_stats =
+let render ~trinity_assemblies_stats ~final_plots =
   let mytitle = "Caars report" in
-  let contents =
-    List.concat [
+  let contents = List.concat [
       [
         h1 [pcdata "A fabulous title"] ;
         pcdata "This is a fabulous content." ;
       ] ;
       trinity_section trinity_assemblies_stats ;
+      
     ]
-    |> div ~a:[a_class ["container"]]
 
     in
   html
     (head mytitle)
-    (body [ contents ])
+    (body [ div ~a:[a_class ["container"]] contents ])
 
 
 
@@ -76,6 +80,6 @@ let save path doc =
       Out_channel.output_string oc contents
     )
 
-let generate ~trinity_assemblies_stats dest =
-  let doc = render ~trinity_assemblies_stats in
+let generate ~trinity_assemblies_stats ~final_plots dest =
+  let doc = render ~trinity_assemblies_stats ~final_plots in
   save dest doc

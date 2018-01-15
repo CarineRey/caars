@@ -42,32 +42,42 @@ type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
 
-let phyldog_script ~config_dir ~results_species ~tree ~results_genes =
+let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
   let vars = [
     "LIST_SPECIES", config_dir // "listSpecies.txt" ;
     "TREE", dep tree ;
     "RESULTS_SPECIES", results_species ;
-    "NP", np ;
+    "NP", string "2" ;
     "GENERAL_OPTIONS", config_dir // "GeneralOptions.txt" ;
-    "RESULT_GENES", results_genes ;
+    "GENERAL_OPTIONS_CAT", config_dir // "GeneralOptions_cat.txt" ;
+    "CONFIG_DIR", config_dir ;
+    "RESULTS_GENES", results_genes ;
+    "FAMILY", string family ;
   ]
   in
   bash_script vars {|
     nb_species=`wc -l < $LIST_SPECIES`
+    echo $nb_species
     filename=`basename $TREE`
-    family=${filename%.*}
+    family=${FAMILY}
     touch ${RESULTS_SPECIES}${family}.orthologs.txt
     touch ${RESULTS_SPECIES}${family}.events.txt
+    cat $GENERAL_OPTIONS $CONFIG_DIR/*opt > $GENERAL_OPTIONS_CAT
+    wc -l $TREE
     if [ $nb_species -gt 2 ]
     then
-     mpirun -np $NP -mca btl sm,self phyldog param=$GENERAL_OPTIONS
-     cut -f 2 ${RESULTS_SPECIES}orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
-     cut -f 1,3- -d "," ${RESULTS_SPECIES}events.txt > ${RESULTS_SPECIES}${family}.events.txt
+     #echo mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
+     #mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
+     #echo phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
+     phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT output.file=${family}
+     ls
+     cut -f 2 ${family}_orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
+     cut -f 1,3- -d "," ${family}_events.txt > ${RESULTS_SPECIES}${family}.events.txt
+     cp ${family}_reconciled.tree  ${RESULTS_GENES}${family}.ReconciledTree
     else
-     nw2nhx.py $TREE ${RESULTS_SPECIES}${family}.ReconciledTree
+     nw2nhx.py $TREE ${RESULTS_GENES}${family}.ReconciledTree
     fi
 |}
-
 
 
 let phyldog_by_fam
@@ -82,6 +92,7 @@ let phyldog_by_fam
     ?topogene
     ?timelimit
     ?(memory = 1)
+    ~family
     ~threads
     ~link
     ~tree
@@ -96,26 +107,31 @@ let phyldog_by_fam
     mkdir_p results_species;
     mkdir_p results_genes;
     mkdir_p (dest // "tmp_phyldog");
-    cd (dest // "tmp_phyldog");
     (* Preparing phyldog configuration files*)
-    cmd "PhyldogPrepDataByFam.py" [
-              option (opt "-datatype" string) datatype ;
-              option (opt "-dataformat" string) dataformat ;
-              option (opt "-species_tree_file" string) sptreefile ;
-              option (flag string "-topospecies") topospecies ;
-              option (opt "-dlopt" string) dlopt ;
-              option (opt "-max_gap" float) max_gap ;
-              option (opt "-timelimit" int) timelimit ;
-              option (flag string "-equgenomes") equgenomes ;
-              option (flag string "-topogene") topogene ;
-              opt "-link" dep link;
-              opt "-seq" dep ali;
-              opt "-starting_tree" dep tree;
-              opt "-species_tree_resdir" ident results_species;
-              opt "-gene_trees_resdir" ident results_genes;
-              opt "-optdir" seq [ ident config_dir ] ;
-              ];
-    cmd "sh" [ file_dump (phyldog_script ~config_dir ~tree ~results_species ~results_genes) ];
+    docker env (
+      and_list [
+        cd (dest // "tmp_phyldog");
+        cmd "PhyldogPrepDataByFam.py" [
+          option (opt "-datatype" string) datatype ;
+          option (opt "-dataformat" string) dataformat ;
+          option (opt "-species_tree_file" dep) sptreefile ;
+          option (flag string "-topospecies") topospecies ;
+          option (opt "-dlopt" string) dlopt ;
+          option (opt "-max_gap" float) max_gap ;
+          option (opt "-timelimit" int) timelimit ;
+          option (flag string "-equgenomes") equgenomes ;
+          option (flag string "-topogene") topogene ;
+          opt "-link" dep link;
+          opt "-family" string family ;
+          opt "-seq" dep ali;
+          opt "-starting_tree" dep tree;
+          opt "-species_tree_resdir" ident results_species;
+          opt "-gene_trees_resdir" ident results_genes;
+          opt "-optdir" ident config_dir ;
+        ];
+        cmd "sh" [ file_dump (phyldog_script ~family ~config_dir ~tree ~results_species ~results_genes) ];
+      ]
+    )
     (*
     (* Run phyldog *)
     cmd "mpirun" [
@@ -124,54 +140,4 @@ let phyldog_by_fam
             seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
             ];
     *)
-    ]
-
-let phyldog
-    ?datatype
-    ?dataformat
-    ?sptreefile
-    ?topospecies
-    ?dlopt
-    ?equgenomes
-    ?topogene
-    ?timelimit
-    ?(memory = 1)
-    ~threads
-    ~linkdir
-    ~treedir
-    (seqdir :fasta directory workflow)
-    : phylotree directory workflow =
-
-    let config_dir = dest // "Configuration" in
-    let results_species = dest // "Species_tree/" in
-    let results_genes = dest // "Gene_trees/" in
-    workflow ~version:5 ~np:threads ~mem:(1024 * memory) [
-    mkdir_p config_dir;
-    mkdir_p results_species;
-    mkdir_p results_genes;
-    mkdir_p (dest // "tmp_phyldog");
-    cd (dest // "tmp_phyldog");
-    (* Preparing phyldog configuration files*)
-    cmd "PhyldogPrepData.py" [
-              option (opt "-datatype" string) datatype ;
-              option (opt "-dataformat" string) dataformat ;
-              option (opt "-species_tree_file" string) sptreefile ;
-              option (flag string "-topospecies") topospecies ;
-              option (opt "-dlopt" string) dlopt ;
-              option (opt "-timelimit" int) timelimit ;
-              option (flag string "-equgenomes") equgenomes ;
-              option (flag string "-topogene") topogene ;
-              opt "-linkdir" dep linkdir;
-              opt "-seqdir" dep seqdir;
-              opt "-starting_tree_dir" dep treedir;
-              opt "-species_tree_resdir" ident results_species;
-              opt "-gene_trees_resdir" ident results_genes;
-              opt "-optdir" seq [ ident config_dir ] ;
-              ];
-    (* Run phyldog *)
-    cmd "mpirun" [
-            opt "-np" ident np ;
-            string "phyldog";
-            seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
-            ];
     ]

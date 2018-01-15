@@ -65,13 +65,14 @@ if len(sys.argv) != 3:
 index_file = sys.argv[1]
 fasta_file = sys.argv[2]
 
+
 logger.debug("Index file: %s", index_file)
 logger.debug("Fasta file: %s", fasta_file)
 
 if os.path.isfile(fasta_file):
     IndexDB = SeqIO.index_db(index_file, fasta_file, "fasta")
 else:
-    logger.error("Fasta file is not a file", fasta_file)
+    logger.error("Fasta file (%s) is not a file", fasta_file)
     sys.exit(1)
 
 

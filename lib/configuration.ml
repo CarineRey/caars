@@ -22,6 +22,7 @@ type t = {
   debug : bool;
   just_parse_input : bool;
   ali_sister_threshold : float;
+  merge_criterion : merge_criterion;
 }
 
 let parse_fastq_path = function
@@ -37,6 +38,12 @@ let parse_fastX_path f = match ( f, Filename.split_extension f) with
   | (x, ( _, Some y  )) -> failwith ({|Syntax error: sample file extension must be in  ["fa", ".fasta","fq","fastq"] (detected extension: |} ^ y  ^ ",  " ^ x ^" )." )
   |  _  -> failwith ({|Syntax error: sample file extension must be in  ["fa", "fasta","fq","fastq"] |})
 
+let parse_merge_criterion  = function
+  | "merge" -> Merge
+  | "length" -> Length
+  | "length_complete" -> Length_complete
+  | _ -> failwith ({| --merge_criterion must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them.|})
+
 let parse_orientation id = function
   | "F"  -> Some (Left F)
   | "R"  -> Some (Left R)
@@ -46,6 +53,14 @@ let parse_orientation id = function
   | "UP" -> Some (Right UP)
   | "-"  -> None
   | _    -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|: orientation must be in ["F","R","RF","FR","US","UP"] |})
+
+
+let str_list_sample_line l =
+  let rec str_elements i = function
+    | [] -> ""
+    | h::t -> "col #" ^ (string_of_int  i) ^ ": " ^ h ^ ";" ^ (str_elements (i+1) t)
+  in
+  "[" ^ (str_elements 1 l) ^ "]"
 
 let parse_line_fields_of_rna_conf_file = function
   | [ id ; species ; ref_species ; path_fastx_single ; path_fastx_left ; path_fastx_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
@@ -86,7 +101,7 @@ let parse_line_fields_of_rna_conf_file = function
        | ( _       , _      , _     , None          , _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): No given orientation.|})
        | _ -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choices. path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|})(*(path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)*)
      in
-     { id ;
+     Some { id ;
        species ;
        ref_species ;
        sample_file ;
@@ -96,14 +111,16 @@ let parse_line_fields_of_rna_conf_file = function
        given_assembly ;
        run_apytram
      }
-  | _ -> failwith "Syntax error in the sample sheet file. There aren't 10 tab delimited columns."
+  | [""] -> (printf "Warning: empty line in the sample sheet file\n"; None)
+  | l -> failwith ("Syntax error in the sample sheet file. There aren't 10 tab delimited columns: " ^ (str_list_sample_line l))
+
+
 
 let parse_rna_conf_file path =
   In_channel.read_lines path
-  |> List.tl_exn
+  |> List.tl_exn (* remove the forst line*)
   |> List.map ~f:(String.split ~on:'\t')
-  |> List.map ~f:parse_line_fields_of_rna_conf_file
-
+  |> List.filter_map ~f:parse_line_fields_of_rna_conf_file
 
 let families_of_alignments_dir alignments_dir =
   Sys.readdir alignments_dir
@@ -117,7 +134,7 @@ let families_of_alignments_dir alignments_dir =
   |> Array.to_list
 
 
-let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~debug ~just_parse_input ~outdir =
+let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~merge_criterion ~debug ~just_parse_input ~outdir =
   let threads = match (np, run_reconciliation) with
     | (x, true) when x > 1 -> np
     | (x, false) when x > 0 -> np
@@ -156,6 +173,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   in
   let families = families_of_alignments_dir alignments_dir in
   let _ = (printf "%i families.\n" (List.length families); ())  in
+  let merge_criterion = parse_merge_criterion merge_criterion in
 
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
@@ -185,4 +203,5 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       just_parse_input ;
       outdir ;
       ali_sister_threshold ;
+      merge_criterion ;
     }

@@ -96,7 +96,7 @@ let apytram_multi_species
     in
     let formated_fastaidx =
       List.map compressed_reads_dbs ~f:(fun db ->
-    seq [dep db.index_concat_fasta ; string ":"; string db.s.id]
+    seq [dep db.index_concat_fasta // "index" ; string ":"; string db.s.id]
       )
     in
     let formated_cluster =
@@ -106,13 +106,13 @@ let apytram_multi_species
     in
     let formated_clusteridx =
       List.map compressed_reads_dbs ~f:(fun db ->
-    seq [dep db.index_cluster ; string ":"; string db.s.id]
+    seq [dep db.index_cluster // "index" ; string ":"; string db.s.id]
       )
     in
 
 
     workflow  ~version:5 ~descr:("apytram.py" ^ descr) ~np:threads ~mem:(memory * 1024) [
-    cmd "apytram.py" [
+    cmd "apytram.py" ~env [
         opt "-q" seq [dep query ; string ":"; string fam] ;
         option (opt "-i" int ) i ;
         option (opt "-e" float ) evalue;
@@ -141,6 +141,7 @@ let apytram_multi_species
         opt "-out" seq [ident dest ; string "/apytram"] ;
         opt "-log" seq [ident dest ; string "/apytram.log"] ;
         opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;
+        flag string "--cds" true;
         (*flag string "--keep_tmp" true;
         opt "-tmp" ident  ( dest // "apytram_tmp" ) ;*)
         ]

@@ -345,6 +345,30 @@ for f in glob.glob("%s/*" %ali_dir):
         continue
         #sys.exit(1)
 
+    # Check only ACTG- character in ali and same length
+    invalid_char = set()
+    invalid_char_seq = []
+    length_seq = []
+    for n, s in AliDict_i.items():
+        seq = "".join(s)
+        length_seq.append(len(seq))
+        invalid_char_tmp = set(re.sub("[ATGCNUWSMKRYBDHV-]","", seq))
+        if invalid_char_tmp:
+            invalid_char |= invalid_char_tmp
+            invalid_char_seq.append(n)
+
+    if invalid_char:
+        Reason = "Invalid character [%s] present in [%s]." %(",".join(list(invalid_char)), ",".join(invalid_char_seq))
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+
+    length_seq = list(set(length_seq))
+    if len(length_seq) !=1:
+        Reason = "Sequences must be aligned. Different sequence lengths [%s]." %(",".join(map(str,length_seq)))
+        logger.error("[%s] -->\t%s",Family,Reason)
+        FamToDiscard_list.append((Family, Reason))
+
+
     # Check all sp in All_species and write each temporary files
     Ref_dic_trinity = {}
     Ref_dic_apytram = dict([(key, []) for key in RefSpApytram])

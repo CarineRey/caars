@@ -121,7 +121,7 @@ SeqSpLink_File = "%s/all_fam.seq2sp.tsv" %(out_dir)
 if not ortho_dir:
     with open(SeqSpLink_File, "w") as f_rewrite:
         for (seq,(sp, fam)) in Seq2Sp_dict.items():
-            f_rewrite.write("\n".join("%s%s%s" %(seq, sep, sp)) + "\n")
+            f_rewrite.write("%s%s%s\n" %(seq, sep, sp))
 
     sys.exit(0)
 
@@ -218,19 +218,36 @@ def define_orthologs_groups(OrthoDict, ParaDict, ListSeqs, Seq2Sp_dict = {}):
 
         if MinOrthogGroups:
             i = OrthoMaxSize
-            while (not MaxOrthogGroups)  and (i >= OrthoMinSize):
+            MaxOrthogGroups_tmp_max = []
+            while (len(MaxOrthogGroups_tmp_max) <=i)  and (i >= OrthoMinSize):
+                MaxOrthogGroups_tmp = []
                 if i not in OrthoSizeRange:
                     i-=1
                     continue
                 for g in OrthoDict[i]:
                     if Seq in g:
-                        MaxOrthogGroups = g
-                        MaxOrthogGroups.sort()
-                        if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
-                            MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
-                            MaxOrthogGroups_i += 1
-                        break
+                        # Remove paralogs because we want 1:1 orthologs
+                        for i_p in sorted(ParaSizeRange,reverse=True):
+                            for g_p in ParaDict[i_p]:
+                                if i_p <= len(g):
+                                    if set(g_p).issubset(set(g)):
+                                        g = list(set(g).difference(set(g_p)))
+
+                        if Seq in g:
+                            MaxOrthogGroups_tmp = g
+                        else:
+                            MaxOrthogGroups_tmp = [Seq]
+
+                        if len(MaxOrthogGroups_tmp_max) < len(MaxOrthogGroups_tmp):
+                            MaxOrthogGroups_tmp_max = MaxOrthogGroups_tmp
+
                 i-=1
+
+            MaxOrthogGroups = MaxOrthogGroups_tmp_max
+            MaxOrthogGroups.sort()
+            if not ",".join(MaxOrthogGroups) in MaxOrthogGroups_dict.keys():
+                MaxOrthogGroups_dict[",".join(MaxOrthogGroups)] = MaxOrthogGroups_i
+                MaxOrthogGroups_i += 1
         else: # Get Min paralog group
             i = ParaMinSize
             while (not MinParaGroups) and (i <= ParaMaxSize):

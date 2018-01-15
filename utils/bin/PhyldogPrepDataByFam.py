@@ -71,6 +71,9 @@ requiredOptions.add_argument('-starting_tree', type=str,
 requiredOptions.add_argument('-link', type=str,
                              help="Absolute PATH to the link file", required=True)
 
+requiredOptions.add_argument('-family', type=str,
+                             help="Name of the family", required=True)
+
 requiredOptions.add_argument('-optdir', type=str,
                              help="Absolute PATH to the folder that will contain all the option files", required=True)
 
@@ -114,6 +117,7 @@ SEQ = args.seq
 DATATYPE = args.datatype
 DATAFORMAT = args.dataformat
 LINK = args.link
+FAMILY = args.family
 OPTDIR = args.optdir
 SP_RESDIR = args.species_tree_resdir
 GENES_RESDIR = args.gene_trees_resdir
@@ -258,25 +262,22 @@ if __name__ == '__main__':
     dictLinks = dict()
     dictTrees = dict()
     print "Now we create one option file per gene family, but we do so only if we find an alignment file and a link file that correspond to each other.\n"
-    print "Correspondance is based on the radical of the file names (file name without .extension).\n"
     listAlns.sort()
     listLinks.sort()
     listTrees.sort()
-    radical = ""
     for link in listLinks:
-        dictLinks[os.path.basename(link).split('.')[0]] = link
+        dictLinks[FAMILY] = link
     if STARTINGTREE:
         for tree in listTrees:
-            dictTrees[os.path.basename(tree).split('.')[0]] = tree
+            dictTrees[FAMILY] = tree
 
     for aln in listAlns:
-        radical = os.path.basename(aln).split('.')[0]
-        if dictLinks.__contains__(radical):
+        if dictLinks.__contains__(FAMILY):
             #First, open the link file in order to build a list of species
             try:
-                fin = open(dictLinks[radical], 'r')
+                fin = open(dictLinks[FAMILY], 'r')
             except IOError, e:
-                print "Unknown file: ", dictLinks[radical]
+                print "Unknown file: ", dictLinks[FAMILY]
                 sys.exit()
             for l in fin:
                 num = 1
@@ -287,9 +288,9 @@ if __name__ == '__main__':
                     listSpecies.append(sp)
             fin.close()
             try:
-                fopt = open(os.path.join(OPTDIR, radical)+'.opt', 'w')
+                fopt = open(os.path.join(OPTDIR, FAMILY)+'.opt', 'w')
             except IOError, e:
-                print "Unknown file: ", os.path.join(OPTDIR, radical) + '.opt'
+                print "Unknown file: ", os.path.join(OPTDIR, FAMILY) + '.opt'
                 sys.exit()
             fopt.write("\n######## First, data files ########\n")
             #fopt.write("PATH="+os.path.join(SEQDIR, "")+"\n")
@@ -297,8 +298,8 @@ if __name__ == '__main__':
                 fopt.write("RESULT="+os.path.join(GENES_RESDIR, "")+"\n")
             else:
                 fopt.write("RESULT=\n")
-            fopt.write("DATA="+radical+"\n")
-            fopt.write("taxaseq.file="+dictLinks[radical]+"\n")
+            fopt.write("DATA="+FAMILY+"\n")
+            fopt.write("taxaseq.file="+dictLinks[FAMILY]+"\n")
             fopt.write("input.sequence.file="+aln+"\n")
             if "FASTA".startswith(DATAFORMAT):
                 fopt.write("input.sequence.format=Fasta\n")
@@ -313,8 +314,8 @@ if __name__ == '__main__':
             elif "NEXUS".startswith(DATAFORMAT):
                 fopt.write("input.sequence.format=Nexus\n")
             listSizes.append(str(os.stat(aln)[6]))
-            if dictTrees.__contains__(radical):
-                fopt.write("gene.tree.file=" + dictTrees[radical]+ "\n")
+            if dictTrees.__contains__(FAMILY):
+                fopt.write("gene.tree.file=" + dictTrees[FAMILY]+ "\n")
                 fopt.write("init.gene.tree=user\n")
             else:
                 fopt.write("gene.tree.file=$(RESULT)$(DATA).GeneTree\n")
@@ -368,7 +369,7 @@ if __name__ == '__main__':
             #fopt.write("optimization.profiler=none\n")
             #fopt.write("optimization.reparametrization=no\n")
             fopt.close()
-            listOptionFiles.append(os.path.join(OPTDIR, radical) + '.opt')
+            listOptionFiles.append(os.path.join(OPTDIR, FAMILY) + '.opt')
         else:
             print "Alignment " + aln + " does not have a corresponding link file. Skipping it.\n"
 
