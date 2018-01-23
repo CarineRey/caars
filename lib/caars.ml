@@ -16,15 +16,33 @@ let gene_tree fam : (output, [`newick]) selector =
 let sp2seq_link fam : (output, sp2seq_link) selector =
   selector [ "Sp2Seq_link" ; fam ^ ".sp2seq.txt" ]
 
-let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~families ~memory : configuration_dir directory workflow =
-  let families_out = dest // "families.txt" in
+let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~all_families ~memory ~configuration : configuration_dir directory workflow =
+  let families_out = dest // "DetectedFamilies.txt" in
   let script = Bistro.Template.(
-      List.map ("Detected families:" :: families) ~f:(fun f -> string f)
+      List.map ("Detected families:" :: all_families) ~f:(fun f -> string f)
       |> seq ~sep:"\n"
       )
       in
-  workflow ~np:1 ~descr:"Parse input" ~version:13 ~mem:(memory * 1024) [
-    mkdir_p dest;
+  let ali_cmd_list = List.map all_families ~f:(fun fam ->
+  let ali = input ~may_change:true (configuration.alignments_dir ^ "/" ^ fam ^ ".fa") in
+  cmd "echo" [dep ali]
+  )
+  in
+  let sp2seq_files = Sys.readdir configuration.seq2sp_dir
+  |> Array.filter ~f:(fun f ->
+    if Filename.check_suffix f ".tsv" then
+      true
+    else
+      false)
+  |> Array.to_list
+  in
+  let sp2seq_cmd_list = List.map sp2seq_files ~f:(fun sp2seq_file ->
+  let sp2seq = input ~may_change:true (configuration.seq2sp_dir ^ "/" ^ sp2seq_file) in
+  cmd "echo" [dep sp2seq]
+  )
+  in
+  workflow ~np:1 ~descr:"Parse input" ~version:17 ~mem:(memory * 1024) (List.concat [
+    [mkdir_p dest;
     cmd "ParseInput.py"  ~env [ dep sample_sheet ;
                                 dep species_tree_file;
                                 dep alignments_dir;
@@ -32,7 +50,10 @@ let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~fa
                                 ident dest ;
                               ];
     cmd "cp" [ file_dump script; families_out];
-  ]
+    ];
+    ali_cmd_list;
+    sp2seq_cmd_list;
+  ])
 
 let ref_transcriptomes species : (configuration_dir, fasta) selector =
   selector ["R_Sp_transcriptomes" ;  species ^ "_transcriptome.fa" ]
@@ -133,6 +154,15 @@ let concat ?(descr="") = function
     workflow ~descr:("concat" ^ descr) [
       cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
     ]
+
+
+let is_in ?(descr="") ~string_to_test ~file =
+    workflow ~descr:(string_to_test ^".is_in" ^ descr) [
+      cmd "grep" ~stdout:dest [ string "-x";
+                                string string_to_test;
+                                dep file];
+    ]
+
 
 (*
 Fasta file and its index must be in the same directory due to biopython
@@ -392,7 +422,7 @@ let seq_integrator
 
   let tmp_merge = tmp // "tmp" in
 
-  workflow ~version:11 ~descr:("SeqIntegrator.py:" ^ family) [
+  workflow ~version:12 ~descr:("SeqIntegrator.py:" ^ family) [
     mkdir_p tmp_merge ;
     cmd "SeqIntegrator.py" ~env [
       opt "-tmp" ident tmp_merge;
@@ -439,13 +469,14 @@ let seq_filter
     ]
   ]
 
-let merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir =
-  List.map configuration.families ~f:(fun family ->
+let merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_annotated_fams =
+  List.map configuration.used_families ~f:(fun family ->
       let trinity_fam_results_dirs=
         List.map configuration.trinity_samples ~f:(fun s ->
             (s , List.Assoc.find_exn ~equal:( = ) trinity_annotated_fams s)
           )
       in
+      let apytram_results_dir =  List.Assoc.find_exn ~equal:( = ) apytram_annotated_fams family in
       let merge_criterion = configuration.merge_criterion in
       let alignment = input (configuration.alignments_dir ^ "/" ^ family ^ ".fa")  in
       let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
@@ -746,8 +777,11 @@ let build_term configuration =
                                                 ~species_tree_file:(input configuration.species_tree_file)
                                                 ~alignments_dir:(input configuration.alignments_dir)
                                                 ~seq2sp_dir:(input configuration.seq2sp_dir)
-                                                ~families:configuration.families
-                                                ~memory:divided_sample_memory in
+                                                ~all_families:configuration.all_families
+                                                ~memory:divided_sample_memory
+                                                ~configuration in
+
+  let checked_used_families = concat ~descr:".checked_families"(List.map configuration.used_families ~f:(fun fam -> is_in ~descr:".usable_families" ~string_to_test:fam ~file:(configuration_dir / selector [ "UsableFamilies.txt"]))) in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
@@ -836,11 +870,16 @@ let build_term configuration =
     | Fasta_Paired_end (lw, rw , _) -> [[ d ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ d ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> rw]
   in
   let repo = if configuration.just_parse_input then
-      [[ "families.txt" ] %>  (configuration_dir / selector [ "families.txt" ])]
+    List.concat [
+      List.map ["FamilyMetadata.txt"; "SpeciesMetadata.txt"; "UsableFamilies.txt"; "DetectedFamilies.txt"] ~f:(fun f ->
+      [ f ] %>  (configuration_dir / selector [ f ]));
+      [["UsedFamilies.txt"] %> checked_used_families] ;
+    ]
       else
     List.concat [
-      [[ "families.txt" ] %>  (configuration_dir / selector [ "families.txt" ])]
-        ;
+      List.map ["FamilyMetadata.txt"; "SpeciesMetadata.txt"; "UsableFamilies.txt"; "DetectedFamilies.txt"] ~f:(fun f ->
+      [ f ] %>  (configuration_dir / selector [ f ]));
+      [["UsedFamilies.txt"] %> checked_used_families] ;
       List.concat_map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
         if s.given_assembly then
           []

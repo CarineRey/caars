@@ -8,7 +8,9 @@ type t = {
   all_ref_samples : rna_sample list ;
   all_ref_species : string list ;
   all_apytram_ref_species : string list list;
-  families : string list;
+  apytram_group_list : string list ;
+  all_families : string list;
+  used_families : string list;
   sample_sheet : string ;
   species_tree_file : string ;
   alignments_dir : string ;
@@ -134,8 +136,8 @@ let families_of_alignments_dir alignments_dir =
   |> Array.to_list
 
 
-let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~merge_criterion ~debug ~just_parse_input ~outdir =
-  let threads = match (np, run_reconciliation) with
+let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~merge_criterion ~debug ~just_parse_input ~outdir ~family_to_use =
+    let threads = match (np, run_reconciliation) with
     | (x, true) when x > 1 -> np
     | (x, false) when x > 0 -> np
     | (x, true) -> failwith "The number of CPUs must be at least 2 if you want to use reconciliation"
@@ -156,30 +158,45 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
     )
     |> List.concat
   in
-  let filter_apytram_ref_species =
-    let all_sorted = List.sort compare (List.filter_map config_rna_seq ~f:(fun s ->
-        if s.run_apytram then
-          Some s.ref_species
-        else
-          None
-      )) in
+  let filter_apytram_ref_species, apytram_group_list =
     let rec uniq l = match l with
       | x :: y :: z when x = y -> uniq (x :: z)
       | x :: y :: z -> x :: uniq (y ::z)
       | [x] -> [x]
       | [] -> []
     in
-    uniq all_sorted
+    let all_sorted = List.sort compare (List.filter_map config_rna_seq ~f:(fun s ->
+        if s.run_apytram then
+          Some s.ref_species
+        else
+          None
+      )) in
+    let all_group = List.sort compare (List.filter_map config_rna_seq ~f:(fun s ->
+        if s.run_apytram then
+          Some s.apytram_group
+        else
+          None
+      )) in
+
+    uniq all_sorted, uniq all_group
   in
-  let families = families_of_alignments_dir alignments_dir in
-  let _ = (printf "%i families.\n" (List.length families); ())  in
+  let all_families = families_of_alignments_dir alignments_dir in
+  
+  let used_families = match family_to_use with
+    | None -> all_families
+    | Some path -> parse_family_to_use_file all_families path
+    
+  in
+
+  let _ = (printf "%i families in %s.\n" (List.length all_families) alignments_dir; ())  in
+  let _ = (printf "%i families will be used.\n" (List.length used_families); ())  in
   let merge_criterion = parse_merge_criterion merge_criterion in
 
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
   else if Filename.is_relative species_tree_file then
     failwith {|caars needs the absolute path of the species tree.|}
-  else if families = [] then
+  else if all_families = [] then
     failwith ({|No files with .fa extention in |} ^ alignments_dir)
   else
     {
@@ -189,7 +206,9 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       all_ref_samples = filter_samples (fun s -> s.run_apytram || s.run_trinity);
       all_ref_species = filter_ref_species;
       all_apytram_ref_species = filter_apytram_ref_species;
-      families;
+      apytram_group_list ;
+      all_families;
+      used_families;
       sample_sheet ;
       species_tree_file ;
       alignments_dir ;

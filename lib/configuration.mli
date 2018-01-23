@@ -7,7 +7,9 @@ type t = {
   all_ref_samples : rna_sample list ;
   all_ref_species : string list ;
   all_apytram_ref_species : string list list;
-  families : string list;
+  apytram_group_list : string list ;
+  all_families : string list;
+  used_families : string list;
   sample_sheet : string ;
   species_tree_file : string ;
   alignments_dir : string ;
@@ -39,4 +41,5 @@ val load :
   debug:bool ->
   just_parse_input:bool ->
   outdir:string ->
+  family_to_use:string option->
   t

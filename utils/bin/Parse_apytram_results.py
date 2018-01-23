@@ -94,7 +94,7 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
                             ):
     """Read a list of fasta and write a new fasta file
     with unique sequence names
-    Build also a Sp2Seq lin file"""
+    Build also a Sp2Seq link file"""
     String_list = []
     SeqName_list = []
     Sp2Seq_list = []

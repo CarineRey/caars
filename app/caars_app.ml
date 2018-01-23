@@ -40,7 +40,7 @@ open Bistro_utils
 open Caars_lib
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug just_parse_input html_report dag_dot quiet use_docker () =
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug just_parse_input html_report dag_dot quiet use_docker family_to_use () =
   let logger quiet html_report dag_dot =
     Logger.tee [
       if quiet then Logger.null else Console_logger.create () ;
@@ -65,7 +65,8 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let merge_criterion = Option.value ~default:"merge" merge_criterion in
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
-  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~merge_criterion ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir in
+  (*let family_to_use = Option.value ~default:"" family_to_use in*)
+  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~merge_criterion ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir ~family_to_use in
   let caars_term = Caars.build_term configuration in
   Term.(
     run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(`GB configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" ~use_docker caars_term
@@ -92,6 +93,7 @@ let spec =
   +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in an dot file (Can take a lot of time)"
   +> flag "--quiet"           no_arg            ~doc:" Do not report progress.  Default: off"
   +> flag "--use-docker"      no_arg            ~doc:" Use docker in caars.  Default: off"
+  +> flag "--family-subset"  (optional file)    ~doc:"PATH A file containing a subset of families to use.  Default: off"
 
 let command =
   Command.basic
