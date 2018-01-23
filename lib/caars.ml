@@ -298,10 +298,10 @@ let concat_without_error ?(descr="") l : fasta workflow =
        cmd "sh" [ file_dump script];
     ]
 
-let build_target_query ref_species family configuration trinity_annotated_fams =
+let build_target_query ref_species family configuration trinity_annotated_fams apytram_group =
     let seq_dispatcher_results_dirs =
         List.filter_map configuration.apytram_samples ~f:(fun s ->
-            if (s.ref_species = ref_species) && (s.run_trinity) then
+            if (s.apytram_group = apytram_group) && (s.ref_species = ref_species) && (s.run_trinity) then
                 Some (s , List.Assoc.find_exn ~equal:( = ) trinity_annotated_fams s)
             else
                 None
@@ -357,7 +357,8 @@ let checkfamily
   / selector [ "sequences.fa" ]
 
 let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs =
-  List.map apytram_orfs_ref_fams ~f:(fun (s, f, apytram_orfs_fasta) ->
+ List.map apytram_orfs_ref_fams ~f:(fun (fam, fws) ->
+  let checked_fws = List.map fws ~f:(fun (s, f, apytram_orfs_fasta) ->
     let input = apytram_orfs_fasta in
     let descr_ref = ":" ^(String.concat ~sep:"_" s.ref_species) in
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
@@ -365,19 +366,23 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ~equal:( = ) ref_blast_dbs r) in
     let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-40 in
     (s, f, checked_families_fasta)
-    )
+    ) in
+  (fam, checked_fws)
+  )
 
 let parse_apytram_results apytram_annotated_ref_fams =
-  let config = Bistro.Template.(
-      List.map apytram_annotated_ref_fams ~f:(fun (s, f, w) ->
-          seq ~sep:"\t" [ string s.species ; string s.id ; string f ; dep w ]
+  List.map apytram_annotated_ref_fams ~f:(fun (fam, fws) ->
+    let config = Bistro.Template.(
+        List.map fws ~f:(fun (s, f, w) ->
+            seq ~sep:"\t" [ string s.species ; string s.id ; string f ; dep w ]
+            )
+        |> seq ~sep:"\n"
         )
-      |> seq ~sep:"\n"
-    )
-  in
-  workflow ~version:4 ~descr:"Parse_apytram_results.py" ~np:1  [
-    cmd "Parse_apytram_results.py" ~env [ file_dump config ; dest ]
-  ]
+    in
+    let fw = workflow ~version:4 ~descr:("Parse_apytram_results.py."^fam) ~np:1  [
+        cmd "Parse_apytram_results.py" ~env [ file_dump config ; dest ]] in
+  (fam, fw)
+  )
 
 let transform_species_list l = (seq ~sep:",") (List.map l ~f:(fun sp -> string sp))
 
@@ -735,6 +740,9 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
   let get_merged_reconciled_and_realigned_families = function
     |(_ , w1, w2 (*w3, w4, w5, w6, w7, w8*)) -> [any w1; any w2; (*any w3; any w4; any w5; any w6; any w7; any w8*)]
     in
+  let get_checked_families = function
+    | (_, fws) -> List.map fws ~f:(get_last_on_three % any)
+    in
   List.concat [
     [any configuration_dir];
     List.concat_map norm_fasta ~f:unwrap_fasta_sample ;
@@ -742,11 +750,11 @@ let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trini
     List.map trinity_orfs ~f:(snd % any);
     List.concat_map reads_blast_dbs ~f:(snd % get_reads_blast_dbs_w);
     List.map trinity_annotated_fams ~f:(snd % any);
-    List.map apytram_checked_families ~f:(get_last_on_three % any);
     List.concat_map merged_families ~f:get_merged_families;
     List.map merged_and_reconciled_families ~f:(get_second_on_three % any);
     List.concat_map merged_reconciled_and_realigned_families ~f:get_merged_reconciled_and_realigned_families;
-    [ any apytram_results_dir];
+    List.concat_map apytram_checked_families ~f:get_checked_families;
+    List.map apytram_annotated_fams ~f:(snd % any);
   ]
 
 let build_term configuration =
@@ -816,39 +824,45 @@ let build_term configuration =
 *)
 
 
-  let apytram_annotated_ref_fams_by_fam =
-
-    let pairs = List.cartesian_product configuration.all_apytram_ref_species configuration.families in
-    List.concat
-    (List.map pairs ~f:(fun (ref_species, fam) ->
-    let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) in
-    let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
-    let target_query = build_target_query ref_species fam configuration trinity_annotated_fams in
-    let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
-    let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
-    let time_max = 18000 * List.length compressed_reads_dbs in
-    let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam ~query compressed_reads_dbs in
-    List.filter_map configuration.apytram_samples ~f:(fun s ->
-      if s.ref_species = ref_species then
-          let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
-          Some (s, fam, w / selector [ apytram_filename ] )
-      else
-          None
-       )
-    )
+  let apytram_annotated_ref_fams_by_fam_by_groups =
+      List.map configuration.used_families ~f:(fun fam ->
+          let fws = List.concat (
+                    List.map configuration.apytram_group_list ~f:(fun apytram_group ->
+                    let pairs = List.cartesian_product configuration.all_apytram_ref_species [fam] in
+                    List.concat (
+                      List.map pairs ~f:(fun (ref_species, fam) ->
+                        let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) ^ "." ^ (String.strip apytram_group) in
+                        let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
+                        let target_query = build_target_query ref_species fam configuration trinity_annotated_fams apytram_group in
+                        let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
+                        let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
+                        let time_max = 18000 * List.length compressed_reads_dbs in
+                        let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam ~query compressed_reads_dbs in
+                        List.filter_map configuration.apytram_samples ~f:(fun s ->
+                          if (s.ref_species = ref_species) && (s.apytram_group = apytram_group) then
+                              let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
+                              Some (s, fam, w / selector [ apytram_filename ] )
+                          else
+                              None
+                           )
+                        )
+                      )
+                  )
+                  ) in
+        (fam, fws)
     )
   in
 
   (*remove transdecoder after apytram
   let apytram_orfs_ref_fams = apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams_by_fam divided_thread_memory in *)
 
-  let apytram_orfs_ref_fams = apytram_annotated_ref_fams_by_fam in
+  let apytram_orfs_ref_fams = apytram_annotated_ref_fams_by_fam_by_groups in
 
-  let apytram_checked_families =  apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
+  let apytram_checked_families = apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs in
 
-  let apytram_results_dir = parse_apytram_results apytram_checked_families in
+  let apytram_annotated_fams = parse_apytram_results apytram_checked_families in
 
-  let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_results_dir in
+  let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_annotated_fams in
 
   let merged_and_reconciled_families = phyldog_by_fam_of_merged_families merged_families configuration in
 
@@ -940,19 +954,27 @@ let build_term configuration =
           )
         ;
         *)
-        List.map apytram_annotated_ref_fams_by_fam ~f:(fun (s, fam, apytram_result) ->
+        List.map apytram_annotated_ref_fams_by_fam_by_groups ~f:(fun (fam, fws) ->
+            List.map fws ~f:(fun (s, fam, apytram_result) ->
             [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams_by_fam" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
-          )
+            )
+          ) |> List.concat
         ;
-        List.map apytram_orfs_ref_fams ~f:(fun (s, fam, apytram_result) ->
+        List.map apytram_orfs_ref_fams ~f:(fun (fam, fws) ->
+            List.map fws ~f:(fun (s, fam, apytram_result) ->
             [ "tmp" ; "apytram_assembly" ; "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
-          )
+            )
+          ) |> List.concat
         ;
-        List.map apytram_checked_families ~f:(fun (s, fam, apytram_result) ->
+        List.map apytram_checked_families ~f:(fun (fam, fws) ->
+            List.map fws ~f:(fun (s, fam, apytram_result) ->
             [ "tmp" ; "apytram_assembly" ; "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
-          )
+            )
+          ) |> List.concat
         ;
-        [["tmp" ; "apytram_assembly" ;"apytram_results" ] %> apytram_results_dir]
+        List.map apytram_annotated_fams ~f:(fun (fam, fw) ->
+        [["tmp" ; "apytram_assembly" ;"apytram_results"; fam ] %> fw]
+        ) |> List.concat
         ;
         List.concat (List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
             match (merged_family, merged_and_filtered_family) with
@@ -974,7 +996,7 @@ let build_term configuration =
     repo_app
   else
     let open Term in
-    let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir in
+    let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_annotated_fams in
     let repo_term = Repo.to_term repo ~precious ~outdir:configuration.outdir in
     let report_term =
       let assoc_arg xs =

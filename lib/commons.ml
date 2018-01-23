@@ -112,6 +112,7 @@ let sample_file_orientation = function
 type rna_sample = {
   id : string ;
   species : string ;
+  apytram_group : string ;
   ref_species : string list;
   sample_file : ( string sample_fastq, string sample_fasta ) sample_file ;
   run_trinity : bool ;

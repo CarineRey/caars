@@ -65,9 +65,8 @@ let str_list_sample_line l =
   "[" ^ (str_elements 1 l) ^ "]"
 
 let parse_line_fields_of_rna_conf_file = function
-  | [ id ; species ; ref_species ; path_fastx_single ; path_fastx_left ; path_fastx_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
+  | [ id ; species ; apytram_group ; ref_species ; path_fastx_single ; path_fastx_left ; path_fastx_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
      let run_transdecoder = true in
-
      let ref_species = List.sort compare (String.split ~on:',' ref_species) in
      let run_trinity = match run_trinity with
        | "yes" | "Yes" | "y" | "Y" -> true
@@ -105,6 +104,7 @@ let parse_line_fields_of_rna_conf_file = function
      in
      Some { id ;
        species ;
+       apytram_group ;
        ref_species ;
        sample_file ;
        run_trinity ;
@@ -114,13 +114,44 @@ let parse_line_fields_of_rna_conf_file = function
        run_apytram
      }
   | [""] -> (printf "Warning: empty line in the sample sheet file\n"; None)
-  | l -> failwith ("Syntax error in the sample sheet file. There aren't 10 tab delimited columns: " ^ (str_list_sample_line l))
+  | l -> failwith ("Syntax error in the sample sheet file. There aren't 11 tab delimited columns: " ^ (str_list_sample_line l))
 
+module SS = Set.Make(String)
+
+let not_include l1 l2 =
+    let rec include_rec l1 l2 att it = match (l1, l2, att) with
+        | h1 :: t1, h2 :: t2, att when h1 = h2 -> include_rec t1 t2 att it
+        | [],  _ , att-> it
+        | h1 :: t1, h2 :: t2, att -> include_rec (h1 :: t1)  t2 (h2 :: att) it
+        | h1 :: t1, [] , att -> include_rec t1  att [] (h1 :: it)
+    in
+    include_rec l1 l2 [] []
+
+let print_list l =
+  let rec str_elements = function
+    | [] -> ""
+    | h::t -> h ^ "; " ^ (str_elements t)
+  in
+  (str_elements l)
+
+let parse_family_to_use_file all_families path =
+   let fs = In_channel.read_lines path
+    |> List.map ~f:(String.strip)
+    |> List.filter_map ~f:(function
+        | "" -> None
+        | x -> Some x)
+    in
+    let sorted_fs = List.sort compare fs in
+    let sorted_all_families = List.sort compare all_families in
+    let diff = not_include sorted_fs sorted_all_families in
+    match diff with
+        | [] -> sorted_fs
+        | l-> failwith ("Families [" ^ (print_list l) ^ "] don't exist. See in " ^ path)
 
 
 let parse_rna_conf_file path =
   In_channel.read_lines path
-  |> List.tl_exn (* remove the forst line*)
+  |> List.tl_exn (* remove the first line*)
   |> List.map ~f:(String.split ~on:'\t')
   |> List.filter_map ~f:parse_line_fields_of_rna_conf_file
 
@@ -181,11 +212,11 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
     uniq all_sorted, uniq all_group
   in
   let all_families = families_of_alignments_dir alignments_dir in
-  
+
   let used_families = match family_to_use with
     | None -> all_families
     | Some path -> parse_family_to_use_file all_families path
-    
+
   in
 
   let _ = (printf "%i families in %s.\n" (List.length all_families) alignments_dir; ())  in

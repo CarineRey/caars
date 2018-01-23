@@ -127,8 +127,8 @@ with open(config_file, "r") as f:
     HeaderConf = f.readline()
     for line in f:
         line_list = line.split("\t")
-        if len(line_list) == 10:
-            (rna_id, sp, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
+        if len(line_list) == 11:
+            (rna_id, sp, apytram_group, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
             if path_assembly != "-":
                 if not os.path.isfile(path_assembly):
                     error_nb += 1
