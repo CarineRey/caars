@@ -317,7 +317,7 @@ let build_target_query ref_species family configuration trinity_annotated_fams a
     concat_without_error ~descr get_trinity_annotated_fam_list
 
 
-let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams memory =
+(*let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fams memory =
   List.map apytram_annotated_ref_fams ~f:(fun (s, f, apytram_result_fasta) ->
       if s.run_transdecoder then
         let pep_min_length = 20 in
@@ -327,6 +327,7 @@ let apytram_orfs_ref_fams_of_apytram_annotated_ref_fams apytram_annotated_ref_fa
       else
         (s, f, apytram_result_fasta)
     )
+*)
 
 let checkfamily
   ?(descr="")
@@ -688,7 +689,7 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
         ]
     ]
 
-
+(*
 
 let output_of_phyldog phyldog merged_families families =
   workflow ~descr:"output_of_phyldog" ~version:1 [
@@ -720,7 +721,9 @@ let output_of_phyldog phyldog merged_families families =
     cmd "bash" [ file_dump script ];
   ]
 
-let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families  ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_results_dir =
+  *)
+
+let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families  ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_annotated_fams =
   let any x = Bistro.Any_workflow x in
   let unwrap_fasta_sample = function
     | (_, Fasta_Single_end (w, _ )) -> [ any w ]
