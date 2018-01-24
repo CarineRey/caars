@@ -63,13 +63,12 @@ let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
     touch ${RESULTS_SPECIES}${family}.orthologs.txt
     touch ${RESULTS_SPECIES}${family}.events.txt
     cat $GENERAL_OPTIONS $CONFIG_DIR/*opt > $GENERAL_OPTIONS_CAT
+    echo output.file=${family} >> $GENERAL_OPTIONS_CAT
     wc -l $TREE
+    cp $TREE $CONFIG_DIR
     if [ $nb_species -gt 2 ]
     then
-     #echo mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
-     #mpirun -np $NP --allow-run-as-root -mca btl sm,self phyldog likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS
-     #echo phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
-     phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT output.file=${family}
+     phyldog_light likelihood.evaluator=LIBPLL2 param=$GENERAL_OPTIONS_CAT
      ls
      cut -f 2 ${family}_orthologs.txt > ${RESULTS_SPECIES}${family}.orthologs.txt
      cut -f 1,3- -d "," ${family}_events.txt > ${RESULTS_SPECIES}${family}.events.txt
