@@ -16,15 +16,17 @@ let gene_tree fam : (output, [`newick]) selector =
 let sp2seq_link fam : (output, sp2seq_link) selector =
   selector [ "Sp2Seq_link" ; fam ^ ".sp2seq.txt" ]
 
-let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~all_families ~memory ~configuration : configuration_dir directory workflow =
+let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~(all_families: family list) ~memory ~configuration : configuration_dir directory workflow =
   let families_out = dest // "DetectedFamilies.txt" in
   let script = Bistro.Template.(
-      List.map ("Detected families:" :: all_families) ~f:(fun f -> string f)
+      [[seq ~sep:"\t" [string "Detected_families"; string "Fam_ID"]];
+      List.map all_families ~f:(fun fam -> seq ~sep:"\t" [string fam.name; int fam.f_id ])]
+      |> List.concat
       |> seq ~sep:"\n"
       )
       in
   let ali_cmd_list = List.map all_families ~f:(fun fam ->
-  let ali = input ~may_change:true (configuration.alignments_dir ^ "/" ^ fam ^ ".fa") in
+  let ali = input ~may_change:true (configuration.alignments_dir ^ "/" ^ fam.name ^ ".fa") in
   cmd "echo" [dep ali]
   )
   in
@@ -101,7 +103,7 @@ let fastq_to_fasta_conversion {all_ref_samples} dep_input =
     )
 
 let normalize_fasta fasta_reads memory max_memory threads =
-  List.map fasta_reads ~f:(fun (s,fasta_sample) ->
+  List.map fasta_reads ~f:(fun (s, fasta_sample) ->
       let max_cov = 20 in
       let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory ~max_memory fasta_sample in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
@@ -365,7 +367,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ~equal:( = ) ref_blast_dbs r) in
-    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f) ~input ~family:f ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-40 in
+    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-40 in
     (s, f, checked_families_fasta)
     ) in
   (fam, checked_fws)
@@ -375,12 +377,12 @@ let parse_apytram_results apytram_annotated_ref_fams =
   List.map apytram_annotated_ref_fams ~f:(fun (fam, fws) ->
     let config = Bistro.Template.(
         List.map fws ~f:(fun (s, f, w) ->
-            seq ~sep:"\t" [ string s.species ; string s.id ; string f ; dep w ]
+            seq ~sep:"\t" [ string s.species ; string s.id ; string f.name ; int f.f_id ; dep w ]
             )
         |> seq ~sep:"\n"
         )
     in
-    let fw = workflow ~version:4 ~descr:("Parse_apytram_results.py."^fam) ~np:1  [
+    let fw = workflow ~version:4 ~descr:("Parse_apytram_results.py."^fam.name) ~np:1  [
         cmd "Parse_apytram_results.py" ~env [ file_dump config ; dest ]] in
   (fam, fw)
   )
@@ -484,22 +486,22 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       in
       let apytram_results_dir =  List.Assoc.find_exn ~equal:( = ) apytram_annotated_fams family in
       let merge_criterion = configuration.merge_criterion in
-      let alignment = input (configuration.alignments_dir ^ "/" ^ family ^ ".fa")  in
-      let alignment_sp2seq = configuration_dir / ali_species2seq_links family in
+      let alignment = input (configuration.alignments_dir ^ "/" ^ family.name ^ ".fa")  in
+      let alignment_sp2seq = configuration_dir / ali_species2seq_links family.name in
       let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
       let w = if (List.length species_to_refine_list) = 0 then
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family:family.name ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     else
-                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
+                        seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family:family.name ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
                     in
-      let tree = w / selector [family ^ ".tree"] in
-      let alignment = w / selector [family ^ ".fa"] in
-      let sp2seq = w / selector [family ^ ".sp2seq.txt"] in
+      let tree = w / selector [family.name ^ ".tree"] in
+      let alignment = w / selector [family.name ^ ".fa"] in
+      let sp2seq = w / selector [family.name ^ ".sp2seq.txt"] in
 
       let filter_threshold = configuration.ali_sister_threshold in
       let wf = match (filter_threshold, (List.length species_to_refine_list)) with
         | (f, l) when ((f > 0.) && (l > 0)) ->
-                 Some (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family ~tree ~alignment ~sp2seq)
+                 Some (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family:family.name ~tree ~alignment ~sp2seq)
         | (_, _) ->  None
         in
       (family, w, wf )
@@ -512,15 +514,15 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
         | None -> merged_without_filter_family
     in
 
-    let ali = merged_family / selector [ fam ^ ".fa" ] in
-    let tree = merged_family / selector [ fam ^ ".tree" ] in
-    let link = merged_family / selector [ fam ^ ".sp2seq.txt" ] in
+    let ali = merged_family / selector [ fam.name ^ ".fa" ] in
+    let tree = merged_family / selector [ fam.name ^ ".tree" ] in
+    let link = merged_family / selector [ fam.name ^ ".sp2seq.txt" ] in
     let sptreefile = input configuration.species_tree_file in
-    let profileNJ_tree = (ProfileNJ.profileNJ ~descr:(":" ^ fam) ~sptreefile ~link ~tree) / selector [ fam ^ ".tree" ] in
+    let profileNJ_tree = (ProfileNJ.profileNJ ~descr:(":" ^ fam.name) ~sptreefile ~link ~tree) / selector [ fam.name ^ ".tree" ] in
     let threads = 1 in
     let memory = Pervasives.min 1 (Pervasives.(configuration.memory / configuration.threads)) in
     let topogene = configuration.refinetree in
-    (fam, Phyldog.phyldog_by_fam ~family:fam ~descr:(":" ^ fam) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    (fam, Phyldog.phyldog_by_fam ~family:fam.name ~descr:(":" ^ fam.name) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families configuration =
@@ -577,15 +579,15 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
       List.map merged_reconciled_and_realigned_families ~f:(fun (f, (*maffttreein_realigned_w,*) reconciled_w, merged_w (*mafftnogaptreein_realigned_w, muscle_realigned_w, muscletreein_realigned_w, musclenogap_realigned_w, musclenogaptreein_realigned_w*)) ->
           List.concat[
               List.map extension_list_merged ~f:(fun (ext,dir) ->
-                let input = merged_w / selector [ f ^ ext ] in
-                let output = dest // dir // (f ^ ext)  in
+                let input = merged_w / selector [ f.name ^ ext ] in
+                let output = dest // dir // (f.name ^ ext)  in
                 seq ~sep:" " [ string "cp"; dep input ; ident output ]
               )
               ;
               if (configuration.ali_sister_threshold > 0.) &&  ((List.length configuration.all_ref_samples) > 0) then
                 List.map extension_list_filtered ~f:(fun (ext,dir) ->
-                    let input = merged_w / selector [ f ^ ext ] in
-                    let output = dest // dir // (f ^ ext)  in
+                    let input = merged_w / selector [ f.name  ^ ext ] in
+                    let output = dest // dir // (f.name  ^ ext)  in
                     seq ~sep:" " [ string "cp"; dep input ; ident output ]
                 )
               else
@@ -594,8 +596,8 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
               if configuration.run_reconciliation then
                 List.concat [
                   List.map extension_list_reconciled ~f:(fun (ext,dirin,dirout) ->
-                    let input = reconciled_w / selector [ dirin ^ f ^ ext ] in
-                    let output = dest // dirout // (f ^ ext)  in
+                    let input = reconciled_w / selector [ dirin ^ f.name  ^ ext ] in
+                    let output = dest // dirout // (f.name  ^ ext)  in
                     seq ~sep:" " [ string "cp"; dep input ; ident output ]
                     )
                   ;
@@ -678,15 +680,20 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
         seq ~sep:":" [string s.species ; string s.id])
       )
     in
-
-    workflow ~descr:"final_plots.py" ~version:14 [
+    let dloutprefix = dest // "DL_count" in
+    workflow ~descr:"final_plots.py" ~version:19 [
         mkdir_p dest;
         cmd "final_plots.py" ~env [
             opt "-i_ortho" dep orthologs_per_seq;
             opt "-i_filter" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/"]);
             opt "-o" ident dest;
             option (opt "-t_sp" (seq ~sep:",")) formated_target_species;
-        ]
+        ];
+        cmd "CountDL.py" ~env [
+            opt "-o" ident dloutprefix;
+            opt "-sp_tree" dep (input (configuration.species_tree_file));
+            opt "-rec_trees_dir" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/GeneTreeReconciled_out"])
+            ];
     ]
 
 (*
@@ -792,7 +799,7 @@ let build_term configuration =
                                                 ~memory:divided_sample_memory
                                                 ~configuration in
 
-  let checked_used_families = concat ~descr:".checked_families"(List.map configuration.used_families ~f:(fun fam -> is_in ~descr:".usable_families" ~string_to_test:fam ~file:(configuration_dir / selector [ "UsableFamilies.txt"]))) in
+  let checked_used_families = concat ~descr:".checked_families"(List.map configuration.used_families ~f:(fun fam -> is_in ~descr:".usable_families" ~string_to_test:fam.name ~file:(configuration_dir / selector [ "UsableFamilies.txt"]))) in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
@@ -834,16 +841,16 @@ let build_term configuration =
                     let pairs = List.cartesian_product configuration.all_apytram_ref_species [fam] in
                     List.concat (
                       List.map pairs ~f:(fun (ref_species, fam) ->
-                        let descr = ":" ^ fam ^ "." ^ (String.concat ~sep:"_" ref_species) ^ "." ^ (String.strip apytram_group) in
-                        let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam)) in
-                        let target_query = build_target_query ref_species fam configuration trinity_annotated_fams apytram_group in
+                        let descr = ":" ^ fam.name ^ "." ^ (String.concat ~sep:"_" ref_species) ^ "." ^ (String.strip apytram_group) in
+                        let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam.name)) in
+                        let target_query = build_target_query ref_species fam.name configuration trinity_annotated_fams apytram_group in
                         let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
                         let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
                         let time_max = 18000 * List.length compressed_reads_dbs in
-                        let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam ~query compressed_reads_dbs in
+                        let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam:fam.name ~query compressed_reads_dbs in
                         List.filter_map configuration.apytram_samples ~f:(fun s ->
                           if (s.ref_species = ref_species) && (s.apytram_group = apytram_group) then
-                              let apytram_filename = "apytram." ^ fam ^ "." ^ s.id ^ ".fasta" in
+                              let apytram_filename = "apytram." ^ fam.name ^ "." ^ s.id ^ ".fasta" in
                               Some (s, fam, w / selector [ apytram_filename ] )
                           else
                               None
@@ -959,30 +966,30 @@ let build_term configuration =
         *)
         List.map apytram_annotated_ref_fams_by_fam_by_groups ~f:(fun (fam, fws) ->
             List.map fws ~f:(fun (s, fam, apytram_result) ->
-            [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams_by_fam" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+            [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams_by_fam" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
             )
           ) |> List.concat
         ;
         List.map apytram_orfs_ref_fams ~f:(fun (fam, fws) ->
             List.map fws ~f:(fun (s, fam, apytram_result) ->
-            [ "tmp" ; "apytram_assembly" ; "apytram_transdecoder_orfs" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+            [ "tmp" ; "apytram_assembly" ; "apytram_transdecoder_orfs" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
             )
           ) |> List.concat
         ;
         List.map apytram_checked_families ~f:(fun (fam, fws) ->
             List.map fws ~f:(fun (s, fam, apytram_result) ->
-            [ "tmp" ; "apytram_assembly" ; "apytram_checked_families" ; fam ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
+            [ "tmp" ; "apytram_assembly" ; "apytram_checked_families" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
             )
           ) |> List.concat
         ;
         List.map apytram_annotated_fams ~f:(fun (fam, fw) ->
-        [["tmp" ; "apytram_assembly" ;"apytram_results"; fam ] %> fw]
+        [["tmp" ; "apytram_assembly" ;"apytram_results"; fam.name ] %> fw]
         ) |> List.concat
         ;
         List.concat (List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
             match (merged_family, merged_and_filtered_family) with
-                | (w1, Some w2) ->  [ [ "tmp" ; "merged_families" ; fam  ] %> w1; [ "tmp" ; "merged_filtered_families" ; fam  ] %> w2 ]
-                | (w1, None) -> [[ "tmp" ; "merged_families" ; fam  ] %> w1]
+                | (w1, Some w2) ->  [ [ "tmp" ; "merged_families" ; fam.name  ] %> w1; [ "tmp" ; "merged_filtered_families" ; fam.name  ] %> w2 ]
+                | (w1, None) -> [[ "tmp" ; "merged_families" ; fam.name  ] %> w1]
             )
           )
           ;

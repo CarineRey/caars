@@ -122,6 +122,12 @@ type rna_sample = {
   run_apytram : bool ;
 }
 
+
+type family = {
+  name : string ;
+  f_id : int;
+}
+
 type config_rna_seq = rna_sample list
 type output = [ `caars_output ]
 type configuration_dir = [ `configuration ]

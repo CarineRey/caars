@@ -9,8 +9,8 @@ type t = {
   all_ref_species : string list ;
   all_apytram_ref_species : string list list;
   apytram_group_list : string list ;
-  all_families : string list;
-  used_families : string list;
+  all_families : family list;
+  used_families : family list;
   sample_sheet : string ;
   species_tree_file : string ;
   alignments_dir : string ;
@@ -26,6 +26,7 @@ type t = {
   ali_sister_threshold : float;
   merge_criterion : merge_criterion;
 }
+
 
 let parse_fastq_path = function
   | "-" -> None
@@ -211,14 +212,37 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
 
     uniq all_sorted, uniq all_group
   in
-  let all_families = families_of_alignments_dir alignments_dir in
+  let all_families_noid = families_of_alignments_dir alignments_dir in
 
-  let used_families = match family_to_use with
-    | None -> all_families
-    | Some path -> parse_family_to_use_file all_families path
+  let used_families_noid = match family_to_use with
+    | None -> all_families_noid
+    | Some path -> parse_family_to_use_file all_families_noid path
 
   in
 
+  let atribute_id fam_l =
+    let rec att_id fam_l f_id res = match fam_l with
+      | name :: t -> att_id t (f_id+1) ({name; f_id} :: res)
+      | [name] -> {name; f_id} :: res
+      | [] -> res
+    in
+    att_id fam_l 1 []
+  in
+  let all_families = atribute_id all_families_noid in
+  
+  let used_families = List.map all_families_noid ~f:(fun u_f ->
+      let id = List.filter_map  all_families ~f:(fun fam ->
+        if fam.name = u_f then
+          Some fam.f_id
+        else
+          None)
+      |> List.hd
+      in
+      {name = u_f; f_id = (match id with 
+                          | Some x -> x
+                          | _ ->  0 );}
+  )
+  in
   let _ = (printf "%i families in %s.\n" (List.length all_families) alignments_dir; ())  in
   let _ = (printf "%i families will be used.\n" (List.length used_families); ())  in
   let merge_criterion = parse_merge_criterion merge_criterion in
