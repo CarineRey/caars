@@ -146,34 +146,36 @@ if os.path.isfile(all_fam_orthologs_fn):
 
     df_subfam = df_seq2sp.groupby(['fam_subfam']).size().reset_index(name='counts')
     df_subfam.to_csv("%s/total_sp_per_subfam.tsv" %(OutDirName), index = False)
+    nb_line = df_subfam.shape[0]
 
     if os.environ.has_key("DISPLAY"):
+        df_subfam_tmp = df_subfam[df_subfam["counts"]>1]
+        nb_1 = nb_line - df_subfam_tmp.shape[0]
         plt.figure();
-        fig2 = df_subfam.plot.hist(by='counts', bins=50, legend=False, color="b")
-        fig2.set_xlabel("# of sequences per subfamily")
+        fig2 = df_subfam_tmp.plot.hist(by='counts', bins=50, legend=False, color="b", range=[0,max(df_subfam["counts"])], title= "(%i subfamilies with 1 sp)" %nb_1 )
+        fig2.set_xlabel("# of sequences (=species) per subfamily")
         fig2_plot = fig2.get_figure()
-        fig2_plot.savefig("%s/total_sp_per_subfam.pdf" %(OutDirName))
-
-    df_subfam = df_seq2sp.groupby(['fam_subfam', "sp"]).size().reset_index(name='counts')
-    df_subfam.to_csv("%s/total_sp_per_subfam_sp.tsv" %(OutDirName), index = False)
-
-
+        fig2_plot.savefig("%s/total_sp_per_subfam.svg" %(OutDirName))
 
     #### Fig 3
-    df_subfam_per_sp = pd.crosstab(index=df_subfam['fam_subfam'], columns=[df_subfam['sp']])
+    df_subfam2 = df_seq2sp.groupby(['fam_subfam', "sp"]).size().reset_index(name='counts')
+    df_subfam2.to_csv("%s/total_sp_per_subfam_sp.tsv" %(OutDirName), index = False)
+    
+    df_subfam_per_sp = pd.crosstab(index=df_subfam2['fam_subfam'], columns=[df_subfam2['sp']])
     nb_sp = df_subfam_per_sp.shape[1]
     df_subfam_per_sp["sum"] = df_subfam_per_sp.sum(1)
     df_subfam_per_sp["%_sum"] = df_subfam_per_sp["sum"] * 100. / float(nb_sp)
     df_subfam_per_sp.to_csv("%s/nb_seq_per_sp_per_subfam.tsv" %(OutDirName))
+    nb_line = df_subfam_per_sp.shape[0]
 
     if os.environ.has_key("DISPLAY"):
+        df_subfam_per_sp = df_subfam_per_sp[df_subfam_per_sp["%_sum"]>100. / float(nb_sp)]
+        nb_1 = nb_line - df_subfam_per_sp.shape[0]
         plt.figure();
-        fig3 = df_subfam_per_sp["%_sum"].plot.hist(bins=50, legend=False, color="b", range=[0,100])
-        fig3.set_xlabel("% of the whole number of species per subfamily")
+        fig3 = df_subfam_per_sp["%_sum"].plot.hist(bins=50, legend=False, color="b", range=[0,100], title= "(%i subfamilies with 1 sp)" %nb_1 )
+        fig3.set_xlabel("% of the number of species per subfamily")
         fig3_plot = fig3.get_figure()
         fig3_plot.savefig("%s/presence_sp_per_subfam.svg" %(OutDirName))
-
-
 
 if os.path.isdir(os.path.join(InputDirName_filter, "FilterSummary_out/")):
 
