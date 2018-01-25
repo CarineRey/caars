@@ -223,14 +223,13 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   let atribute_id fam_l =
     let rec att_id fam_l f_id res = match fam_l with
       | name :: t -> att_id t (f_id+1) ({name; f_id} :: res)
-      | [name] -> {name; f_id} :: res
       | [] -> res
     in
     att_id fam_l 1 []
   in
   let all_families = atribute_id all_families_noid in
   
-  let used_families = List.map all_families_noid ~f:(fun u_f ->
+  let used_families = List.map used_families_noid ~f:(fun u_f ->
       let id = List.filter_map  all_families ~f:(fun fam ->
         if fam.name = u_f then
           Some fam.f_id
