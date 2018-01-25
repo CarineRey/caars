@@ -680,7 +680,7 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
         seq ~sep:":" [string s.species ; string s.id])
       )
     in
-    let dloutprefix = dest // "DL_count" in
+    let dloutprefix = dest // "D_count" in
     workflow ~descr:"final_plots.py" ~version:19 [
         mkdir_p dest;
         cmd "final_plots.py" ~env [
