@@ -8,9 +8,7 @@ DOCKERFILE_DIR=caars_dev
 REPO=carinerey/$IMAGE_NAME
 export BRANCH=`git branch | grep \* | cut -d ' ' -f2`
 TAG=$BRANCH
-docker build --no-cache --build-arg BRANCH_DEV=$BRANCH -t $REPO:$TAG $DOCKERFILE_DIR && \
-docker push $REPO:$TAG
-
+docker build --no-cache --build-arg BRANCH_DEV=$BRANCH -t $REPO:$TAG $DOCKERFILE_DIR
 push_flag=$1
 
 if [[ $push_flag == "push_yes" ]]
