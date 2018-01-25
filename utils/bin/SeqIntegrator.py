@@ -309,8 +309,9 @@ Sp2Seq = "%s/StartingSp2Seq.txt" %(TmpDirName)
 # Get the number of species:
 sp_list, err = get_sp(Sp2Seq)
 nb_sp = len(set(sp_list))
-if nb_sp <= 3:
+if nb_sp < 3:
     logger.error ("not enough species (must be >= 3)")
+    logger.error (set(sp_list))
     end(42)
 
 logger.info("%i species", nb_sp)
