@@ -681,20 +681,26 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
       )
     in
     let dloutprefix = dest // "D_count" in
-    workflow ~descr:"final_plots.py" ~version:19 [
-        mkdir_p dest;
+    workflow ~descr:"final_plots.py" ~version:19 (List.concat [
+        [mkdir_p dest;
         cmd "final_plots.py" ~env [
             opt "-i_ortho" dep orthologs_per_seq;
             opt "-i_filter" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/"]);
             opt "-o" ident dest;
             option (opt "-t_sp" (seq ~sep:",")) formated_target_species;
         ];
-        cmd "CountDL.py" ~env [
+        ];
+        if configuration.run_reconciliation then
+        [cmd "CountDL.py" ~env [
             opt "-o" ident dloutprefix;
             opt "-sp_tree" dep (input (configuration.species_tree_file));
             opt "-rec_trees_dir" dep (merged_reconciled_and_realigned_families_dirs / selector ["out/GeneTreeReconciled_out"])
             ];
-    ]
+        ]
+        else
+        []
+        
+    ])
 
 (*
 
