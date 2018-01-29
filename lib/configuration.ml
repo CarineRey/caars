@@ -147,7 +147,7 @@ let parse_family_to_use_file all_families path =
     let diff = not_include sorted_fs sorted_all_families in
     match diff with
         | [] -> sorted_fs
-        | l-> failwith ("Families [" ^ (print_list l) ^ "] don't exist. See in " ^ path)
+        | l-> failwith ("Families [" ^ (print_list l) ^ "] don't exist (or not unique). See in " ^ path)
 
 
 let parse_rna_conf_file path =

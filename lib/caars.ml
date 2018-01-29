@@ -165,6 +165,44 @@ let is_in ?(descr="") ~string_to_test ~file =
                                 dep file];
     ]
 
+let check_used_families ~used_fam_list ~usable_fam_file =
+  let sorted_usable_fam_file = tmp // "usablefam.sorted.txt" in
+  let sorted_all_used_fam_file = dest in
+  let common_fam_file = tmp // "common_fam.txt" in
+  let fam_subset_not_ok = tmp // "fam_subset_not_ok.txt" in
+  let all_used_fam = Bistro.Template.(
+      List.map used_fam_list ~f:(fun fam -> seq [string fam.name])
+      |> seq ~sep:"\n"
+      )
+      in
+
+  let script_post ~fam_subset_not_ok =
+  let args = [
+    "FILE_EMPTY", fam_subset_not_ok ;
+  ]
+  in
+  bash_script args {|
+    if [ -s $FILE_EMPTY ]
+    then
+      echo "These families are not in the \"Usable\" families:"
+      cat $FILE_EMPTY
+      echo "Use the option --just-parse-input and --family-subset with an empty file to get the file UsableFamilies.txt"
+      exit 3
+    else
+      exit 0
+    fi
+    |}
+  in
+  workflow  ~descr:("check_used_families") [
+    mkdir_p tmp;
+    cmd "sort" ~stdout:sorted_usable_fam_file [ dep usable_fam_file;];
+    cmd "sort" ~stdout:sorted_all_used_fam_file [ file_dump all_used_fam; ];
+    cmd "join" ~stdout: common_fam_file [ string "-1 1"; sorted_all_used_fam_file; sorted_usable_fam_file];
+    cmd "comm" ~stdout: fam_subset_not_ok [string "-3"; common_fam_file;sorted_all_used_fam_file];
+    cmd "bash" [ file_dump (script_post ~fam_subset_not_ok)]
+    ]
+
+
 
 (*
 Fasta file and its index must be in the same directory due to biopython
@@ -699,7 +737,7 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
         ]
         else
         []
-        
+
     ])
 
 (*
@@ -805,7 +843,7 @@ let build_term configuration =
                                                 ~memory:divided_sample_memory
                                                 ~configuration in
 
-  let checked_used_families = concat ~descr:".checked_families"(List.map configuration.used_families ~f:(fun fam -> is_in ~descr:".usable_families" ~string_to_test:fam.name ~file:(configuration_dir / selector [ "UsableFamilies.txt"]))) in
+  let checked_used_families_all_together = check_used_families ~used_fam_list:configuration.used_families  ~usable_fam_file:(configuration_dir / selector [ "UsableFamilies.txt"]) in
 
   let ref_blast_dbs = ref_blast_dbs_of_configuration_dir configuration configuration_dir in
 
@@ -899,17 +937,17 @@ let build_term configuration =
     | Fasta_Single_end (w, _ ) -> [[ d ; s.id ^ "_" ^ s.species ^ ".fa" ] %> w ]
     | Fasta_Paired_end (lw, rw , _) -> [[ d ; s.id ^ "_" ^ s.species ^ ".left.fa" ] %> lw ; [ d ; s.id ^ "_" ^ s.species ^ ".right.fa" ] %> rw]
   in
-  let repo = if configuration.just_parse_input then
+  let repo = if configuration.just_parse_input || (List.length configuration.used_families) = 0 then
     List.concat [
       List.map ["FamilyMetadata.txt"; "SpeciesMetadata.txt"; "UsableFamilies.txt"; "DetectedFamilies.txt"] ~f:(fun f ->
       [ f ] %>  (configuration_dir / selector [ f ]));
-      [["UsedFamilies.txt"] %> checked_used_families] ;
+      [["UsedFamilies.txt"] %> checked_used_families_all_together] ;
     ]
       else
     List.concat [
       List.map ["FamilyMetadata.txt"; "SpeciesMetadata.txt"; "UsableFamilies.txt"; "DetectedFamilies.txt"] ~f:(fun f ->
       [ f ] %>  (configuration_dir / selector [ f ]));
-      [["UsedFamilies.txt"] %> checked_used_families] ;
+      [["UsedFamilies.txt"] %> checked_used_families_all_together] ;
       List.concat_map trinity_assemblies ~f:(fun (s,trinity_assembly) ->
         if s.given_assembly then
           []

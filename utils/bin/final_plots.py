@@ -22,7 +22,7 @@
 #
 #
 
-import os
+import os, sys
 import glob
 import time
 import argparse
@@ -121,6 +121,9 @@ plt.rcParams['figure.titlesize'] = 12
 plt.rcParams['figure.autolayout'] = True
 
 
+if df_seq2sp.empty:
+    print "no data"
+    sys.exit(0)
 
 
 #### Fig 1
