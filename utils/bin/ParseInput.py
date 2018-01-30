@@ -45,6 +45,8 @@ import re
 
 import ete2
 
+sep = ":"
+
 ### Set up the logger
 # create logger with 'spam_application'
 logger = logging.getLogger('ParseInput')
@@ -106,6 +108,11 @@ else: # we create the directory
 t = ete2.Tree(species_tree_file)
 All_Species = [leaf.name for leaf in t.iter_leaves()]
 
+for sp in All_Species:
+    if sp.replace(sep, "") != sp :
+        logger.error("The species [%s] contained the separator [%s] used in CAARS. Please remove it." %(sp, sep))
+        sys.exit(1)
+
 logger.info("Sp:\n%s", ";".join(All_Species))
 
 ### Retrieve Reference species for Trinity or apytram:
@@ -120,8 +127,8 @@ with open(config_file, "r") as f:
     HeaderConf = f.readline()
     for line in f:
         line_list = line.split("\t")
-        if len(line_list) == 10:
-            (rna_id, sp, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
+        if len(line_list) == 11:
+            (rna_id, sp, apytram_group, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
             if path_assembly != "-":
                 if not os.path.isfile(path_assembly):
                     error_nb += 1
@@ -231,7 +238,6 @@ if not os.path.isdir(ApytramGeneFamDirPath):
 def write_validated_sp2seq(SeenSeq2SpDict_i, Family):
     SeqSpLink_File = "%s/alignments.%s.sp2seq.txt" %(SeqSpLinkDirPath, Family)
     String = []
-    sep = ":"
     for seq in SeenSeq2SpDict_i.keys():
         String.append("%s%s%s\n" %(SeenSeq2SpDict_i[seq], sep, seq))
 
@@ -245,24 +251,24 @@ def write_seq_ref_Trinity(Ref_dic_trinity, AliDict_i, Family):
         #Transcriptome:
         Transcriptome_File = "%s/%s_transcriptome.fa" %(TranscriptomeDirPath, sp)
         string = []
+
         for name in Ref_dic_trinity[sp]:
             seq = ''.join(AliDict_i[name]).replace("-", "")
             string.extend([">", name, "\n",
                            '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60)),"\n"])
 
-        f = open(Transcriptome_File, "a")
-        f.write("".join(string))
-        f.close()
+        with open(Transcriptome_File, "a") as f:
+            f.write("".join(string))
 
         #Tab Seq 2 Fam:
         FamSeqLink_File = "%s/%s_Fam_Seq.tsv" %(SeqFamLinkDirPath, sp)
         string = []
+
         for name in Ref_dic_trinity[sp]:
             string.extend([name, "\t", Family, "\n"])
 
-        f = open(FamSeqLink_File, "a")
-        f.write("".join(string))
-        f.close()
+        with open(FamSeqLink_File, "a") as f:
+            f.write("".join(string))
 
 def write_seq_ref_apytram(Ref_dic_trinity, AliDict_i, Family):
     for sp in Ref_dic_apytram.keys():
@@ -274,153 +280,187 @@ def write_seq_ref_apytram(Ref_dic_trinity, AliDict_i, Family):
             string.extend([">", name, "\n",
                            '\n'.join(seq[i:i+60] for i in range(0, len(seq), 60)),"\n"])
 
-        f = open(GeneFamily_File, "w")
-        f.write("".join(string))
-        f.close()
+        with open(GeneFamily_File, "w") as f:
+            f.write("".join(string))
 
 SeenSeq2SpDict = {}
+CountDict = {}
 CountDict2 = {}
+for sp in All_Species:
+    CountDict2.setdefault(sp, {"Nb_seq":0, "Nb_family":0, "Families":[]})
 Nb_Family = 0
 
-FamToDiscard_list = []
+UsableFam_list = []
+NotUsableFam_dict = {}
+ErrorFam_dict = {}
+Nb_NoError_inFam = 0
+
+
 logger.info("Parse each fasta file")
 for f in glob.glob("%s/*" %ali_dir):
     Family = os.path.basename(f).split('.')[0]
     Extention = os.path.basename(f).split('.')[1]
+    print Family
+    
+    CountDict[Family] = {"Nb_seq": 0, "Nb_sp": 0, "Status": "Usable"}
     Nb_Family += 1
+    UsableFam = True
+    NoError_inFam = True
+
+    SeenSeq2SpDict_i = {}
+    SpeciesList = []
+    
     AliDict_i, err = read_ali_file(f)
     Nb_seqs = len(AliDict_i.keys())
-    SpeciesList = []
-    Missing_Seq = False
-    for s in AliDict_i.keys():
-        if s in Seq2Sp_dict:
-            SpeciesList.append(Seq2Sp_dict[s])
-        else:
-            Reason = "No sequence called %s in %s/*.tsv" %(s, seq2sp_dir)
-            logger.error("[%s] -->\t%s",Family,Reason)
-            FamToDiscard_list.append((Family, Reason))
-            Missing_Seq = True
-            #sys.exit(1)
-    if Missing_Seq:
-        continue
-    Nb_sp = len(set(SpeciesList))
-    if  Extention != "fa":
-        Reason = "%s is not a fasta file with Family.fa as filename. (Detected extention %s)" %(f, Extention)
-        logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
-        continue
-        #sys.exit(1)
-    if not os.path.isfile("%s/%s.%s" %(ali_dir, Family, "fa")):
-        Reason = "%s is not a fasta file with Family.fa as filename.(Detected file: %s/%s.%s)" %(f, ali_dir, Family, "fa")
-        logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
-        continue
-        #sys.exit(1)
-    if err:
+    CountDict[Family]["Nb_seq"] = Nb_seqs
+
+    if NoError_inFam and err:
         Reason = "%s is not a fasta file" %(f)
         logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
-        continue
-        #sys.exit(1)
-    if Nb_seqs < 3:
+        ErrorFam_dict.setdefault(Family,[]).append(Reason)
+        NoError_inFam = False
+
+    if NoError_inFam:
+        for seq in AliDict_i.keys():
+            print seq
+            if NoError_inFam and seq.replace(sep, "") != seq :
+                Reason = "The sequence name [%s] contained the separator [%s] used in CAARS. Please remove it." %(seq, sep)
+                ErrorFam_dict.setdefault(Family,[]).append(Reason)
+                NoError_inFam = False
+            
+            #check if the seq is in the sp2seq dir
+            if NoError_inFam:
+                if seq in Seq2Sp_dict:
+                    sp = Seq2Sp_dict[seq]
+                    SpeciesList.append(sp)
+                else:
+                    Reason = "No sequence called %s in the seq2sp-dir" %(seq)
+                    ErrorFam_dict.setdefault(Family,[]).append(Reason)
+                    NoError_inFam = False
+            
+            # Check if the sequence is unique
+            if NoError_inFam and SeenSeq2SpDict.has_key(seq):
+                Reason = "Sequence names are not unique (ex:  %s)" %(seq)
+                ErrorFam_dict.setdefault(Family,[]).append(Reason)
+                NoError_inFam = False
+
+            SeenSeq2SpDict[seq] = sp
+            SeenSeq2SpDict_i[seq] = sp
+            
+            # Check if the sp is in the species tree
+            if NoError_inFam and not sp in All_Species:
+                Reason = "%s not in the species tree (%s)" %(sp, species_tree_file)
+                ErrorFam_dict.setdefault(Family,[]).append(Reason)
+                NoError_inFam = False
+
+    Nb_sp = len(set(SpeciesList))
+    CountDict[Family]["Nb_sp"] = Nb_sp
+
+    if  NoError_inFam and Extention != "fa":
+        Reason = "%s is not a fasta file with Family.fa as filename. (Detected extention %s)" %(f, Extention)
+        ErrorFam_dict.setdefault(Family,[]).append(Reason)
+        NoError_inFam = False
+
+    if NoError_inFam and not os.path.isfile("%s/%s.%s" %(ali_dir, Family, "fa")):
+        Reason = "%s is not a fasta file with Family.fa as filename.(Detected file: %s/%s.%s)" %(f, ali_dir, Family, "fa")
+        ErrorFam_dict.setdefault(Family,[]).append(Reason)
+        NoError_inFam = False
+
+    # Check all sequence name in Seq2SpDict
+    if NoError_inFam and not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
+        Reason = "All sequences present in %s are not in a file from %s" %(f, seq2sp_dir)
+        ErrorFam_dict.setdefault(Family,[]).append(Reason)
+        NoError_inFam = False
+    
+    if NoError_inFam:
+        # Check only ACTG- character in ali and same length
+        invalid_char = set()
+        invalid_char_seq = []
+        length_seq = []
+        for n, s in AliDict_i.items():
+            seq = "".join(s)
+            length_seq.append(len(seq))
+            invalid_char_tmp = set(re.sub("[ATGCNUWSMKRYBDHV-]","", seq))
+            if invalid_char_tmp:
+                invalid_char |= invalid_char_tmp
+                invalid_char_seq.append(n)
+
+        if invalid_char:
+            Reason = "Invalid character [%s] present in [%s]." %(",".join(list(invalid_char)), ",".join(invalid_char_seq))
+            ErrorFam_dict.setdefault(Family,[]).append(Reason)
+            NoError_inFam = False
+
+        length_seq = list(set(length_seq))
+        if NoError_inFam and len(length_seq) !=1:
+            Reason = "Sequences must be aligned. Different sequence lengths [%s]." %(",".join(map(str,length_seq)))
+            ErrorFam_dict.setdefault(Family,[]).append(Reason)
+            NoError_inFam = False
+
+    if NoError_inFam and Nb_seqs < 3:
         Reason = "%s has less than 3 sequences. (%s sequences detected in: %s)" %(Family, Nb_seqs, f)
         if Nb_sp < 3:
             Reason += "AND %s has less than 3 species. (%s species detected in: %s)" %(Family, Nb_sp, f)
-        logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
-        next
-        #sys.exit(1)
-    if Nb_sp < 3:
+        logger.warning("[%s] : %s",Family,Reason)
+        NotUsableFam_dict.setdefault(Family,[]).append(Reason)
+        UsableFam = False
+
+    if NoError_inFam and UsableFam and Nb_sp < 3:
         Reason = "%s has less than 3 species. (%s species detected in: %s)" %(Family, Nb_sp, f)
-        logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
-        continue
-        #sys.exit(1)
+        logger.warning("[%s] : %s",Family,Reason)
+        NotUsableFam_dict.setdefault(Family,[]).append(Reason)
+        UsableFam = False
 
-    # Check all sequence name in Seq2SpDict
-    if not len(AliDict_i.keys()) == len(set(AliDict_i.keys()).intersection(set(Seq2Sp_dict.keys()))):
-        Reason = "All sequences present in %s are not in a file from %s" %(f, seq2sp_dir)
-        logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
-        continue
-        #sys.exit(1)
+    if NoError_inFam:
+        # Write each intermediary files
+        Ref_dic_trinity = {}
+        Ref_dic_apytram = dict([(key, []) for key in RefSpApytram])
 
-    # Check only ACTG- character in ali and same length
-    invalid_char = set()
-    invalid_char_seq = []
-    length_seq = []
-    for n, s in AliDict_i.items():
-        seq = "".join(s)
-        length_seq.append(len(seq))
-        invalid_char_tmp = set(re.sub("[ATGCNUWSMKRYBDHV-]","", seq))
-        if invalid_char_tmp:
-            invalid_char |= invalid_char_tmp
-            invalid_char_seq.append(n)
+        for seq in AliDict_i.keys():
+            sp = Seq2Sp_dict[seq]
+            if sp in RefSpTrinity + RefSpApytram:
+                #if sp in RefSpTrinity:
+                Ref_dic_trinity.setdefault(sp, []).append(seq)
+                if sp in RefSpApytram:
+                    Ref_dic_apytram.setdefault(sp, []).append(seq)
+            # Some log
+            CountDict2[sp]["Nb_seq"] += 1
+            if not Family in CountDict2[sp]["Families"]:
+                CountDict2[sp]["Nb_family"] += 1
+                CountDict2[sp]["Families"].append(Family)
 
-    if invalid_char:
-        Reason = "Invalid character [%s] present in [%s]." %(",".join(list(invalid_char)), ",".join(invalid_char_seq))
-        logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
+    if NoError_inFam:
+        write_validated_sp2seq(SeenSeq2SpDict_i, Family)
+        write_seq_ref_Trinity(Ref_dic_trinity, AliDict_i, Family)
+        write_seq_ref_apytram(Ref_dic_apytram, AliDict_i, Family)
+    else:
+        Nb_NoError_inFam+=1
 
-    length_seq = list(set(length_seq))
-    if len(length_seq) !=1:
-        Reason = "Sequences must be aligned. Different sequence lengths [%s]." %(",".join(map(str,length_seq)))
-        logger.error("[%s] -->\t%s",Family,Reason)
-        FamToDiscard_list.append((Family, Reason))
+    if NoError_inFam and UsableFam:
+        UsableFam_list.append(Family)
+    else:
+        CountDict[Family]["Status"] = "NotUsable"
 
-
-    # Check all sp in All_species and write each temporary files
-    Ref_dic_trinity = {}
-    Ref_dic_apytram = dict([(key, []) for key in RefSpApytram])
-    SeenSeq2SpDict_i = {}
-
-    SupSpecies = False
-    for seq in AliDict_i.keys():
-        sp = Seq2Sp_dict[seq]
-        if SeenSeq2SpDict.has_key(seq):
-            SupSpecies = True
-            Reason = "Sequence name:%s is not unique" %(seq)
-            logger.error("[%s] -->\t%s",Family,Reason)
-            FamToDiscard_list.append((Family, Reason))
-            #sys.exit(1)
-        SeenSeq2SpDict[seq] = sp
-        SeenSeq2SpDict_i[seq] = sp
-        CountDict2.setdefault(sp, {"Nb_seq":0, "Nb_family":0, "Families":[]})
-        CountDict2[sp]["Nb_seq"] += 1
-        if not Family in CountDict2[sp]["Families"]:
-            CountDict2[sp]["Nb_family"] += 1
-            CountDict2[sp]["Families"].append(Family)
-        if sp in RefSpTrinity + RefSpApytram:
-            #if sp in RefSpTrinity:
-            Ref_dic_trinity.setdefault(sp, []).append(seq)
-            if sp in RefSpApytram:
-                Ref_dic_apytram.setdefault(sp, []).append(seq)
-        elif not sp in All_Species:
-            SupSpecies = True
-            Reason = "%s not in the species tree (%s)" %(Seq2Sp_dict[seq], species_tree_file)
-            logger.error("[%s] -->\t%s",Family,Reason)
-            FamToDiscard_list.append((Family, Reason))
-            #sys.exit(1)
-    
-    if SupSpecies:
-        continue
-    write_validated_sp2seq(SeenSeq2SpDict_i, Family)
-    write_seq_ref_Trinity(Ref_dic_trinity, AliDict_i, Family)
-    write_seq_ref_apytram(Ref_dic_apytram, AliDict_i, Family)
-
-if FamToDiscard_list:
-    logger.error("Correct or remove families with errors (See above)")
-    #sys.stderr.write("\n".join(["%s\t%s" %(f,r) for (f,r) in FamToDiscard_list]))
+if Nb_NoError_inFam != 0:
+    logger.error("%s families with errors:", Nb_NoError_inFam)
+    logger.error("Correct or remove them (See below):")
+    for (Family, Reasons) in ErrorFam_dict.items():
+        logger.error("[%s] : %s", Family, " ".join(Reasons)) 
     sys.exit(1)
 
-# Statistics:
-# Number of sequences by species:
-logger.info("Number of sequence by species:\n"+
-            "\n".join(["%s: %s" %(s, c["Nb_seq"]) for (s, c) in CountDict2.items()]))
+with open(out_dir+"/UsableFamilies.txt", "w") as f:
+    f.write("\n".join(sorted(UsableFam_list)) + "\n")
 
-logger.info("Number of family by species:\n"+
-            "\n".join(["%s: %s" %(s, c["Nb_family"]) for (s, c) in CountDict2.items()]))
-logger.info("Number of families: %s", Nb_Family)
+# Statistics:
+with open(out_dir+"/SpeciesMetadata.txt", "w") as f:
+    f.write("\t".join(["Species","Nb_seq", "Nb_family"])+"\n")
+    for sp in All_Species:
+        f.write("\t".join(map(str,[sp,CountDict2[sp]["Nb_seq"], CountDict2[sp]["Nb_family"]]))+"\n")
+
+# Statistics:
+with open(out_dir+"/FamilyMetadata.txt", "w") as f:
+    f.write("\t".join(["Family","Nb_seq", "Nb_sp", "Status"])+"\n")
+    for Family in sorted(CountDict.keys()):
+        f.write("\t".join(map(str,[Family,CountDict[Family]["Nb_seq"], CountDict[Family]["Nb_sp"], CountDict[Family]["Status"]]))+"\n")
 
 for sp in RefSpTrinity + RefSpApytram:
     if not CountDict2[sp]:

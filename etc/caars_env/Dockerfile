@@ -132,9 +132,10 @@ ADD entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ##### install local dependencies
 WORKDIR /opt/caars_py_lib
-COPY utils/bin/* /usr/bin/
-COPY utils/lib/*.py /opt/caars_py_lib/
 ENV PYTHONPATH  /opt/caars_py_lib:$PYTHONPATH
+COPY utils/lib/*.py /opt/caars_py_lib/
+COPY utils/bin/* /usr/bin/
+
 
 ##### build a working directory
 WORKDIR /data

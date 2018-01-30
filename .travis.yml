@@ -11,13 +11,12 @@ before_script:
   - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
   - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
   - if [[ $BRANCH == "master" ]]; then export DOCKER_caars="caars"; else export DOCKER_caars="caars_dev"; fi
-  - docker build --build-arg BRANCH_DEV=$BRANCH -t carinerey/$DOCKER_caars etc/$DOCKER_caars/ && echo """cd /opt/caars && make test && make test2""" > test.sh && docker run -v $PWD:$PWD -t carinerey/$DOCKER_caars bash $PWD/test.sh
+  - docker build --build-arg BRANCH_DEV=$BRANCH -t carinerey/$DOCKER_caars etc/$DOCKER_caars/
+  - docker run -v $PWD:$PWD -t carinerey/$DOCKER_caars bash -c "cd /opt/caars && make test2"
 script:
   - mkdir test_tuto && cd test_tuto
-  - wget https://raw.githubusercontent.com/wiki/CarineRey/caars/src/test_tuto.sh
-  - wget https://raw.githubusercontent.com/wiki/CarineRey/caars/src/Tutorial_quick.sh
-  - wget https://raw.githubusercontent.com/wiki/CarineRey/caars/src/Tutorial_byyourself.sh
-  - bash test_tuto.sh
+  - git clone https://github.com/CarineRey/caars.wiki.git .
+  - make tests
 
 after_success:
   - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD

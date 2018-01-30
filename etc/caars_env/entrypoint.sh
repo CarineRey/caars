@@ -9,18 +9,10 @@ USER_ID=${LOCAL_USER_ID:-9001}
 Xvfb :1 -screen 0 1024x768x16 &
 export DISPLAY=:1
 
-if [ -n "$CWD" ]
-then
-W_DIR=$CWD
-elif [ -n "$SHARED_DIR" ]
-then
-W_DIR=$SHARED_DIR
-fi
 
-W_DIR=${W_DIR:-/data}
 
-echo "Working directory : $W_DIR"
-cd $W_DIR
+echo "Working directory:" `pwd`
+echo "(You can use -w docker option to change it)"
 
 if [ -n "$LOCAL_USER_ID" ] 
 then
@@ -32,6 +24,6 @@ echo "user_docker ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 export HOME=/home/user_docker
 exec /usr/sbin/gosu user_docker "$@"
 else
-echo "Starting with UID : root"
+echo "Starting with UID : $USER_ID"
 exec "$@"
 fi

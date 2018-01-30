@@ -1,3 +1,3 @@
-id	species	ref_species	path_fastq_single	path_fastq_left	path_fastq_right	orientation	run_trinity	path_assembly	run_apytram
-CMM	Mus_musculus	Homo_sapiens	-	../data/rna_seq/fastq/Mus_musculus.datatest2.1.fq	../data/rna_seq/fastq/Mus_musculus.datatest2.2.fq	UP	yes	-	yes
-CMA	Mesocricetus_auratus	Homo_sapiens	-	../data/rna_seq/fasta/Mesocricetus_auratus.datatest2.1.fa	../data/rna_seq/fasta/Mesocricetus_auratus.datatest2.2.fa	UP	yes	-	yes
+id	species	group	ref_species	path_fastq_single	path_fastq_left	path_fastq_right	orientation	run_trinity	path_assembly	run_apytram
+CMM	Mus_musculus	g1	Homo_sapiens	-	../data/rna_seq/fastq/Mus_musculus.datatest2.1.fq	../data/rna_seq/fastq/Mus_musculus.datatest2.2.fq	UP	yes	-	yes
+CMA	Mesocricetus_auratus	g1	Homo_sapiens	-	../data/rna_seq/fasta/Mesocricetus_auratus.datatest2.1.fa	../data/rna_seq/fasta/Mesocricetus_auratus.datatest2.2.fa	UP	yes	-	yes

@@ -221,6 +221,20 @@ def cat(Files, OutputFile):
         Output = OutputFile
     return (out, err, Output)
 
+def get_sp(sp2seq_file):
+    (out, err) = ("", "")
+    command = ["cut", "-f", "1", "-d", ":", sp2seq_file]
+
+    logger.debug(" ".join(command))
+    p = subprocess.Popen(command,
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
+    (out, err) = p.communicate()
+    if err:
+        logger.error(err)
+
+    return ([sp for sp in out.split("\n") if sp], err)
+
 def mv(In, Out):
     (out, err) = ("", "")
     command = ["mv", In, Out]
@@ -291,6 +305,16 @@ if args.realign_ali:
 logger.info("Concate all Sp2Seq files")
 Sp2Seq = "%s/StartingSp2Seq.txt" %(TmpDirName)
 (out, err, Sp2Seq) = cat(StartingSp2SeqFiles, Sp2Seq)
+
+# Get the number of species:
+sp_list, err = get_sp(Sp2Seq)
+nb_sp = len(set(sp_list))
+if nb_sp < 3:
+    logger.error ("not enough species (must be >= 3)")
+    logger.error (set(sp_list))
+    end(42)
+
+logger.info("%i species", nb_sp)
 
 # Check if their are seqeunces to add
 if StartingFastaFiles and Sp2SeqFiles:

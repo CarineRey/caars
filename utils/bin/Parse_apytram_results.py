@@ -94,7 +94,7 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
                             ):
     """Read a list of fasta and write a new fasta file
     with unique sequence names
-    Build also a Sp2Seq lin file"""
+    Build also a Sp2Seq link file"""
     String_list = []
     SeqName_list = []
     Sp2Seq_list = []
@@ -138,13 +138,13 @@ def read_fasta_from_apytram(FastaPath2Sp_dic,
 ConfigFile = open(ConfigFileName, "r")
 SeqId_dic = {}
 FastaPath2SpPerFam_dic = {}
-NbFigures = 10
+NbFigures = 6
 for line in ConfigFile:
-    (Species, SpeciesId, Family, InFastaFileName) = line.strip().split("\t")
+    (Species, SpeciesId, Family, Family_id, InFastaFileName) = line.strip().split("\t")
     if os.path.isfile(InFastaFileName):
         FastaPath2SpPerFam_dic.setdefault(Family, {})
         FastaPath2SpPerFam_dic[Family][InFastaFileName] = SpeciesId
-        SeqId_dic.setdefault(SpeciesId, {"SeqPrefix" : "AP%s0" %(SpeciesId),
+        SeqId_dic.setdefault(SpeciesId, {"SeqPrefix" : "AP%s0%s" %(SpeciesId,string.zfill(int(Family_id), 6)),
                                          "Species" : Species,
                                          "SeqNb" : 1,
                                          "NbFigures" : NbFigures

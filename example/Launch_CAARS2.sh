@@ -28,10 +28,10 @@ echo "_merge"
 ../../caars  --outdir $OUTPUT_DIR"_merge" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 3 --memory 5 --mpast 50
 
 echo "_length"
-../../caars  --outdir $OUTPUT_DIR"_length" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 3 --memory 5 --mpast 50 --merge-criterion length
+../../caars  --outdir $OUTPUT_DIR"_length" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 3 --memory 5 --mpast 50 --merge-criterion length --no-reconcile
 
 echo "_length_complete"
-../../caars  --outdir $OUTPUT_DIR"_length_complete" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 3 --memory 5 --mpast 50 --merge-criterion length_complete
+../../caars  --outdir $OUTPUT_DIR"_length_complete" --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 3 --memory 5 --mpast 50 --merge-criterion length_complete --no-reconcile
 
 echo "_big"
 ../../caars  --outdir $OUTPUT_DIR"_big" --sample-sheet $DATA_DIR/sample_sheet2.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 3 --memory 5 --mpast 50
