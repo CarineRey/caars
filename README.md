@@ -89,7 +89,7 @@ See [INSTALL.md](INSTALL.md) or [INSTALL-HPC.md](INSTALL-HPC.md).
 # Usage
 
 
-## Example of a basic command line:
+## Basic command line:
 
 ```
 caars  --outdir OUTPUT_DIR --sample-sheet sample_sheet.tsv --species-tree /home/user/data/species_tree.nw --alignment-dir GENE_FAMILIES_MSA_DIR --seq2sp-dir GENE_FAMILIES_SEQ2SP_DIR --np 2 --memory 5
@@ -97,7 +97,7 @@ caars  --outdir OUTPUT_DIR --sample-sheet sample_sheet.tsv --species-tree /home/
 
 CAARS will work in a directory named ```_caars``` build in the current directory.
 This directory will contain all output files but under coded names.
-At the end, CAARS will build symbolic links between the OUTPUT_DIR and the ```_caars`` directory.
+At the end, CAARS will build symbolic links between the OUTPUT_DIR and the ```_caars``` directory.
 
 To be sure not to loose your output files, copy the OUTPUT_DIR to a new directory by taking into account links.
 For instance:
