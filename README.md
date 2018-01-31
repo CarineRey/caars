@@ -12,7 +12,7 @@ or the [Tutorial](https://github.com/CarineRey/caars/wiki/Tutorial).
 
 # Installation
 
-## No installation with Docker and docker container usage
+## No installation required with Docker and docker container usage
 
 CAARS is available in a docker image available on DockerHub.
 
@@ -55,28 +55,7 @@ function docker_caars_cmd { echo "docker run --rm -e LOCAL_USER_ID=`id -u $USER`
 And you're done!
 
 
-Alternatively, you can run CAARS from the inside of the docker container.
-
-```{sh}
-## 1/ On your machine, go to the working directory
-cd /shared/directory
-export SHARED_DIR=$PWD
-
-## 2/ Get the docker container terminal
-
-# Redefine the fucntion to call the container by adding -ti to get an interactive terminal
-function docker_caars_cmd { echo "docker run --rm -e LOCAL_USER_ID=`id -u $USER` -v $SHARED_DIR:$SHARED_DIR -w `pwd` -ti carinerey/caars "
-}
-
-`docker_caars_cmd` bash
-
-## 3/ Use caars from inside the docker container
-
-user_caars@1dbd8f2594cc:/shared/directory$ caars -help
-
-```
-
-All data used in the container must be placed in the $SHARED_DIRECTORY, indeed the container "sees" only directory tree from the shared directory. 
+All data used in the container must be placed in the $SHARED_DIRECTORY, indeed the container detects/recognizes only directory tree from the shared directory. 
 
 If you have any problem do not hesitate to contact me (carine.rey [at] ens-lyon.org).
 
@@ -164,22 +143,22 @@ Each filename must be composed of the name of the gene family and the extension 
 
 ### seq2sp-dir
 
-A directory containing tabular link files between sequence and species.
+A directory containing tabular files including links between sequences and species.
 Each filename must be composed of the name of the gene family and the extension ".tsv".
 
 ### sample-sheet
 
-CAARS needs in input a sample sheet file.
+CAARS needs a sample sheet file.
 
-This file is composed of 10 tabulated delimited columns with headers:
-  * Sample ID: an unique identifier (3 capital letters is recommended)
+This file is composed of 10 tabulation-delimited columns with headers:
+  * Sample ID: a unique identifier (3 capital letters is recommended)
   * Sample species name: the species of the sample
   * Group ID: the group of the sample
-  * Reference species name: A reference species to annotate the sample.
+  * Reference species name: Reference species used to annotate the sample.
   * Path for a single-end RNA-seq run : Single *fastq* or *fasta* file path (authorized extension: .fa, .fasta, .fq, .fastq)
-  * Path for a double-end RNA-seq run : Left *fastq* or *fasta* file path
-  * Path for a double-end RNA-seq run : Right *fastq* or *fasta* file path
-  * Strand and type of the RNA-seq run : F,R,RF,FR,US,UP
+  * Path for a paired-end RNA-seq run : Left *fastq* or *fasta* file path
+  * Path for a paired-end RNA-seq run : Right *fastq* or *fasta* file path
+  * Strand and type of the RNA-seq run : F,R,RF,FR,US or UP
   * Run the standard assembly on data : Yes or No
   * Path to a given assembly : *fasta* file path (must contain only cds)
   * Run the assisted assembly (apytram) on data : Yes or No
