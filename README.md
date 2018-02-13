@@ -87,6 +87,8 @@ cp -rL OUTPUT_DIR OK_OUTPUT_DIR
 ## All options:
 
 ```
+caars
+
   caars 
 
 === flags ===
@@ -95,12 +97,12 @@ cp -rL OUTPUT_DIR OK_OUTPUT_DIR
                            (Family_name.fa) in fasta format.
   --outdir PATH            Destination directory.
   --sample-sheet PATH      sample sheet file.
-  --seq2sp-dir PATH        Directory containing all link files
-                           (Family_name.tsv). A line for each sequence and its
-                           species spaced by a tabulation.
+  --seq2sp-dir PATH        Directory containing all linked files
+                           (Family_name.tsv). Each line contains a sequence name
+                           and its species spaced by a tabulation.
   --species-tree ABSOLUTE  PATH Species tree file in nw format containing all
                            species. Warning absolute path is required.
-  [--dag-graph PATH]       Write dag graph in an dot file (Can take a lot of
+  [--dag-graph PATH]       Write dag graph in a dot file (Can take a lot of
                            time)
   [--debug]                Get intermediary files (Default:false)
   [--family-subset PATH]   A file containing a subset of families to use.
@@ -109,7 +111,7 @@ cp -rL OUTPUT_DIR OK_OUTPUT_DIR
   [--just-parse-input]     Parse input and exit. Recommended to check all input
                            files. (Default:false)
   [--memory INT]           Number of GB of system memory to use.(Default:1)
-  [--merge-criterion STR]  Merge criterion during reduundancy removing. It must
+  [--merge-criterion STR]  Merge criterion during redundancy removing. It must
                            be “length“ or “length_complete” or
                            “merge”. “length” means the longest sequence
                            is selected. “length.complete” : means the
@@ -117,7 +119,7 @@ cp -rL OUTPUT_DIR OK_OUTPUT_DIR
                            “merge” means that the set of monophyletic
                            sequences is used to build one long “chimera”
                            sequence corresponding to the merging of them.
-  [--mpast FLOAT]          Minimal percentage of alignment of an Caars sequences
+  [--mpast FLOAT]          Minimal percentage of alignment of a caars sequence
                            on its (non Caars) closest sequence to be kept in the
                            final output
   [--no-reconcile]         Not run final Reconciliation step
@@ -129,9 +131,8 @@ cp -rL OUTPUT_DIR OK_OUTPUT_DIR
   [-build-info]            print info about this build and exit
   [-version]               print the version of this build and exit
   [-help]                  print this help text and exit
-                           (alias: -?)
-
 ```
+
 
 ## Required options
 

@@ -79,25 +79,25 @@ let spec =
   +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
   +> flag "--species-tree"    (required file)   ~doc:"ABSOLUTE PATH Species tree file in nw format containing all species. Warning absolute path is required."
   +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
-  +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all link files (Family_name.tsv). A line for each sequence and its species spaced by a tabulation."
+  +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all linked files (Family_name.tsv). Each line contains a sequence name and its species spaced by a tabulation."
   +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
   +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
   +> flag "--no-reconcile"    no_arg            ~doc:" Not run final Reconciliation step"
   +> flag "--refinetree"      no_arg            ~doc:" Refine topology during final Reconciliation step (Default:false)"
 (*  +> flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"*)
-  +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of an Caars sequences on its (non Caars) closest sequence to be kept in the final output"
-  +> flag "--merge-criterion" (optional string) ~doc:"STR Merge criterion during reduundancy removing. It must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them."
+  +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of a caars sequence on its (non Caars) closest sequence to be kept in the final output"
+  +> flag "--merge-criterion" (optional string) ~doc:"STR Merge criterion during redundancy removing. It must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them."
   +> flag "--debug"           no_arg            ~doc:" Get intermediary files (Default:false)"
   +> flag "--just-parse-input"no_arg            ~doc:" Parse input and exit. Recommended to check all input files. (Default:false)"
   +> flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"
-  +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in an dot file (Can take a lot of time)"
+  +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in a dot file (Can take a lot of time)"
   +> flag "--quiet"           no_arg            ~doc:" Do not report progress.  Default: off"
   +> flag "--use-docker"      no_arg            ~doc:" Use docker in caars.  Default: off"
   +> flag "--family-subset"  (optional file)    ~doc:"PATH A file containing a subset of families to use.  Default: off"
 
 let command =
   Command.basic
-    ~summary:"Caars"
+    ~summary:"caars"
     spec
     main
 
