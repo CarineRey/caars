@@ -22,6 +22,7 @@ type t = {
   refinetree : bool;
   refineali : bool;
   debug : bool;
+  get_reads : bool;
   just_parse_input : bool;
   ali_sister_threshold : float;
   merge_criterion : merge_criterion;
@@ -168,7 +169,7 @@ let families_of_alignments_dir alignments_dir =
   |> Array.to_list
 
 
-let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~merge_criterion ~debug ~just_parse_input ~outdir ~family_to_use =
+let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~refinetree ~refineali ~ali_sister_threshold ~merge_criterion ~debug ~get_reads ~just_parse_input ~outdir ~family_to_use =
     let threads = match (np, run_reconciliation) with
     | (x, true) when x > 1 -> np
     | (x, false) when x > 0 -> np
@@ -228,7 +229,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
     att_id fam_l 1 []
   in
   let all_families = atribute_id all_families_noid in
-  
+
   let used_families = List.map used_families_noid ~f:(fun u_f ->
       let id = List.filter_map  all_families ~f:(fun fam ->
         if fam.name = u_f then
@@ -237,7 +238,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
           None)
       |> List.hd
       in
-      {name = u_f; f_id = (match id with 
+      {name = u_f; f_id = (match id with
                           | Some x -> x
                           | _ ->  0 );}
   )
@@ -245,6 +246,9 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   let _ = (printf "%i families in %s.\n" (List.length all_families) alignments_dir; ())  in
   let _ = (printf "%i families will be used.\n" (List.length used_families); ())  in
   let merge_criterion = parse_merge_criterion merge_criterion in
+
+  let _ = if debug then (printf "debug: %b.\n" (debug))  else ()  in
+  let _ = if get_reads then (printf "get_reads: %b.\n" (get_reads))  else ()  in
 
   if List.contains_dup id_list then
     failwith {|There are duplicate id in the first colum of the config file.|}
@@ -273,6 +277,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
       refinetree ;
       refineali ;
       debug ;
+      get_reads ;
       just_parse_input ;
       outdir ;
       ali_sister_threshold ;

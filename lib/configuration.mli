@@ -21,6 +21,7 @@ type t = {
   refinetree : bool;
   refineali : bool;
   debug : bool;
+  get_reads : bool;
   just_parse_input : bool;
   ali_sister_threshold : float;
   merge_criterion : merge_criterion;
@@ -39,6 +40,7 @@ val load :
   ali_sister_threshold:float ->
   merge_criterion:string ->
   debug:bool ->
+  get_reads:bool ->
   just_parse_input:bool ->
   outdir:string ->
   family_to_use:string option->

@@ -967,73 +967,73 @@ let build_term configuration =
       [["all_fam.seq2sp.tsv"] %> (orthologs_per_seq / selector ["all_fam.seq2sp.tsv"])]
       ;
       [["plots"] %> final_plots];
+
+      List.concat [
+      match reconstructed_sequences with
+        (*| Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"]); ["assembly_results_by_fam";"Sp2Seq_out"; "all_fam.seq2sp.tsv"] %> (w / selector ["all_fam.seq2sp.tsv"])]*)
+        | Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"])]
+        | None -> []
+      ]
+      ;
+
       if configuration.run_reconciliation then
         [["all_fam.orthologs.tsv"] %> (orthologs_per_seq/ selector["all_fam.orthologs.tsv"])]
       else
         []
       ;
-      match reconstructed_sequences with
-        (*| Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"]); ["assembly_results_by_fam";"Sp2Seq_out"; "all_fam.seq2sp.tsv"] %> (w / selector ["all_fam.seq2sp.tsv"])]*)
-        | Some w -> [["assembly_results_only_seq"] %> (w / selector ["assemblies/"])]
-        | None -> ()
+
+      if configuration.get_reads then
+      List.concat [
+        List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "rna_seq/raw_fasta" sample_fasta))
+        ;
+        List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "rna_seq/norm_fasta" norm_fasta))
+        ;
+        ]
+      else
+        []
       ;
       if configuration.debug then
       List.concat [
-        List.concat (List.map fasta_reads ~f:(fun (s,sample_fasta) -> target_to_sample_fasta s "tmp/rna_seq/raw_fasta" sample_fasta))
-        ;
-        List.concat (List.map norm_fasta ~f:(fun (s,norm_fasta) -> target_to_sample_fasta s "tmp/rna_seq/norm_fasta" norm_fasta))
-        ;
         List.map trinity_assemblies_stats ~f:(fun (s,trinity_assembly_stats) ->
-            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
+            [ "debug" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Trinity_assemblies." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_assembly_stats
           )
         ;
         List.map trinity_orfs_stats ~f:(fun (s,trinity_orfs_stats) ->
-            [ "tmp" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
+            [ "debug" ; "trinity_assembly" ; "trinity_assemblies_stats" ; "Transdecoder_cds." ^ s.id ^ "_" ^ s.species ^ ".stats" ] %> trinity_orfs_stats
           )
         ;
         List.map trinity_annotated_fams ~f:(fun (s,trinity_annotated_fams) ->
-            [ "tmp" ; "trinity_blast_annotation" ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ (String.concat ~sep:"_" s.ref_species) ] %> trinity_annotated_fams
+            [ "debug" ; "trinity_blast_annotation" ; "trinity_annotated_fams" ; s.id ^ "_" ^ s.species ^ ".vs." ^ (String.concat ~sep:"_" s.ref_species) ] %> trinity_annotated_fams
           )
         ;
          List.map ref_blast_dbs ~f:(fun (ref_species, blast_db) ->
-            [ "tmp" ; "trinity_blast_annotation" ; "ref_blast_db" ; ref_species ] %> blast_db
+            [ "debug" ; "trinity_blast_annotation" ; "ref_blast_db" ; ref_species ] %> blast_db
           )
         ;
         List.map reads_blast_dbs ~f:(fun (s,blast_db) ->
-            [ "tmp" ; "rna_seq" ;"blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db.cluster_rep_blast_db
+            [ "debug" ; "rna_seq" ;"rep_cluster_blast_db" ; s.id ^ "_" ^ s.species ] %> blast_db.cluster_rep_blast_db
           )
         ;
-       (* List.map apytram_annotated_ref_fams ~f:(fun (s, fam, apytram_result) ->
-            [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams" ; fam ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
-          )
-        ;
-        *)
         List.map apytram_annotated_ref_fams_by_fam_by_groups ~f:(fun (fam, fws) ->
             List.map fws ~f:(fun (s, fam, apytram_result) ->
-            [ "tmp" ; "apytram_assembly" ; "apytram_annotated_fams_by_fam" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
-            )
-          ) |> List.concat
-        ;
-        List.map apytram_orfs_ref_fams ~f:(fun (fam, fws) ->
-            List.map fws ~f:(fun (s, fam, apytram_result) ->
-            [ "tmp" ; "apytram_assembly" ; "apytram_transdecoder_orfs" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
+            [ "debug" ; "apytram_assembly" ; "apytram_results_by_ref_by_group_by_fam" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa" ] %> apytram_result
             )
           ) |> List.concat
         ;
         List.map apytram_checked_families ~f:(fun (fam, fws) ->
             List.map fws ~f:(fun (s, fam, apytram_result) ->
-            [ "tmp" ; "apytram_assembly" ; "apytram_checked_families" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
+            [ "debug" ; "apytram_assembly" ; "apytram_checked_families" ; fam.name ; s.id ^ "_" ^ s.species ^ ".fa"] %> apytram_result
             )
           ) |> List.concat
         ;
         List.map apytram_annotated_fams ~f:(fun (fam, fw) ->
-        [["tmp" ; "apytram_assembly" ;"apytram_results"; fam.name ] %> fw]
+        [["debug" ; "apytram_assembly" ;"apytram_annotated_sequences"; fam.name ] %> fw]
         ) |> List.concat
         ;
         List.concat (List.map merged_families ~f:(fun (fam, merged_family, merged_and_filtered_family) ->
             match (merged_family, merged_and_filtered_family) with
-                | (w1, Some w2) ->  [ [ "tmp" ; "merged_families" ; fam.name  ] %> w1; [ "tmp" ; "merged_filtered_families" ; fam.name  ] %> w2 ]
-                | (w1, None) -> [[ "tmp" ; "merged_families" ; fam.name  ] %> w1]
+                | (w1, Some w2) ->  [ [ "debug" ; "merged_families" ; fam.name  ] %> w1; [ "debug" ; "merged_filtered_families" ; fam.name  ] %> w2 ]
+                | (w1, None) -> [[ "debug" ; "merged_families" ; fam.name  ] %> w1]
             )
           )
           ;

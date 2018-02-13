@@ -40,7 +40,7 @@ open Bistro_utils
 open Caars_lib
 open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug just_parse_input html_report dag_dot quiet use_docker family_to_use () =
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report dag_dot quiet use_docker family_to_use () =
   let logger quiet html_report dag_dot =
     Logger.tee [
       if quiet then Logger.null else Console_logger.create () ;
@@ -66,7 +66,7 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   let np = Option.value ~default:2 np in
   let memory = Option.value ~default:1 memory in
   (*let family_to_use = Option.value ~default:"" family_to_use in*)
-  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~merge_criterion ~debug ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir ~family_to_use in
+  let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~merge_criterion ~debug ~get_reads ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir ~family_to_use in
   let caars_term = Caars.build_term configuration in
   Term.(
     run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(`GB configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" ~use_docker caars_term
@@ -88,6 +88,7 @@ let spec =
   +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of a caars sequence on its (non Caars) closest sequence to be kept in the final output"
   +> flag "--merge-criterion" (optional string) ~doc:"STR Merge criterion during redundancy removing. It must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them."
   +> flag "--debug"           no_arg            ~doc:" Get intermediary files (Default:false)"
+  +> flag "--get-reads"       no_arg            ~doc:" Get normalized reads (Default:false)"
   +> flag "--just-parse-input"no_arg            ~doc:" Parse input and exit. Recommended to check all input files. (Default:false)"
   +> flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"
   +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in a dot file (Can take a lot of time)"
