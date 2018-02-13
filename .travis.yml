@@ -10,8 +10,8 @@ install:
   - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
   - docker pull carinerey/caars_env:$BRANCH
 before_script:
-  - export REPO_caars=$DOCKER_USER/$DOCKER_caars:$BRANCH
   - if [[ $BRANCH == "master" ]]; then export DOCKER_caars="caars"; else export DOCKER_caars="caars_dev"; fi
+  - export REPO_caars=$DOCKER_USER/$DOCKER_caars:$BRANCH
   - docker build --build-arg BRANCH_DEV=$BRANCH -t $REPO_caars etc/$DOCKER_caars/
   - docker run -v $PWD:$PWD -t $REPO_caars bash -c "cd /opt/caars && make test2"
 script:
