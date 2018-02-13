@@ -889,7 +889,7 @@ let build_term configuration =
                         let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> configuration_dir / ref_fams sp fam.name)) in
                         let target_query = build_target_query ref_species fam.name configuration trinity_annotated_fams apytram_group in
                         let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
-                        let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if s.ref_species = ref_species then Some db else None) in
+                        let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if (s.ref_species = ref_species && s.apytram_group = apytram_group)then Some db else None) in
                         let time_max = 18000 * List.length compressed_reads_dbs in
                         let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~plot:false ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam:fam.name ~query compressed_reads_dbs in
                         List.filter_map configuration.apytram_samples ~f:(fun s ->
