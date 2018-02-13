@@ -278,7 +278,7 @@ let seq_dispatcher
     ~ref_transcriptome
     ~threads
     ~seq2fam : fasta workflow =
-  workflow ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
+  workflow ~np:threads ~version:10 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
     mkdir_p tmp;
     cmd "SeqDispatcher.py" ~env [
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
