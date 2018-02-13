@@ -1,4 +1,4 @@
-FROM carinerey/caars_env:0.2.0-bistrodev
+FROM carinerey/caars_env:${BRANCH_DEV}
 MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 ### install caars master
