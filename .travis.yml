@@ -17,7 +17,7 @@ before_script:
 script:
   - mkdir test_tuto && cd test_tuto
   - git clone https://github.com/CarineRey/caars.wiki.git .
-  - export REPO_caars=$DOCKER_USER/$DOCKER_caars:$BRANCH && make tests
+  - export REPO_caars=$DOCKER_caars:$BRANCH && make tests
 
 after_success:
   - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
