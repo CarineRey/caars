@@ -405,7 +405,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_transcriptomes r))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (configuration_dir / ref_seq_fam_links r))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ~equal:( = ) ref_blast_dbs r) in
-    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-15 in
+    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-10 in
     (s, f, checked_families_fasta)
     ) in
   (fam, checked_fws)
