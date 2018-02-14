@@ -388,7 +388,7 @@ for Query in QueryNames:
 
         flag_dup_fam = True
         threshold_list=[0.5, 0.6, 0.7, 0.8, 0.9, 1]
-        t_1=0
+        t_i=0
 
         while flag_dup_fam and t_i < len(threshold_list):
 
