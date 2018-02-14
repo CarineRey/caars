@@ -387,7 +387,7 @@ for Query in QueryNames:
         TmpBestScore = max(TmpTable.score)
 
         flag_dup_fam = True
-        threshold_list=[0.5, 0.6, 0.7, 0.8, 0.9, 1]
+        threshold_list=[1]
         t_i=0
 
         while flag_dup_fam and t_i < len(threshold_list):
@@ -404,7 +404,7 @@ for Query in QueryNames:
             TmpFamily = BestTargetTable["Family"].unique()
 
             if len(TmpFamily) > 1:
-                logger.info("More than one family can be attributed with the threshold [%s * maxscore] to %s. Try with another threshold.", threshold_list[t_i], Query)
+                logger.debug("More than one family can be attributed with the threshold [%s * maxscore] to %s. Try with another threshold.", threshold_list[t_i], Query)
             else:
                 flag_dup_fam = False
 
@@ -429,7 +429,7 @@ for Query in QueryNames:
 
 # Second: For each family, for each target with an hit we kept hits with a score >=0.9 of the best hit
 logger.info("Second Step")
-Threshold = 0.9
+Threshold = 0.5
 ConfirmedHitDic = {}
 for Family in HitDic.keys():
     ConfirmedHitDic.setdefault(Family, {"Retained":[], "To_be_reverse":[]})
