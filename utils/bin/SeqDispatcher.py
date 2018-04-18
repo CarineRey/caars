@@ -429,7 +429,7 @@ for Query in QueryNames:
 
 # Second: For each family, for each target with an hit we kept hits with a score >=0.9 of the best hit
 logger.info("Second Step")
-Threshold = 0.8
+Threshold = 0.9
 ConfirmedHitDic = {}
 for Family in HitDic.keys():
     ConfirmedHitDic.setdefault(Family, {"Retained":[], "To_be_reverse":[]})
