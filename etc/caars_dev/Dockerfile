@@ -1,5 +1,4 @@
-ARG BRANCH_DEV
-FROM carinerey/caars_env:$BRANCH_DEV
+FROM carinerey/caars_env:pb_filter_cds_apytram
 MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 ### install caars master
@@ -9,9 +8,11 @@ ENV PATH /opt/caars/utils/bin:/opt/caars:$PATH
 ENV PYTHONPATH /opt/caars/utils/lib
 
 ##### update caars on the dev branch
+ARG BRANCH_DEV
+ENV BRANCH_DEV=${BRANCH_DEV}
 RUN echo BRANCH_DEV $BRANCH_DEV && git fetch origin && git checkout $BRANCH_DEV
 RUN make && (make test || make test) && make clean_test
-
+#RUN make
 ##### build a working directory
 WORKDIR $HOME
 
