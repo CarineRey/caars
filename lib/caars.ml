@@ -499,7 +499,7 @@ let seq_filter
 
   let tmp_merge = tmp // "tmp" in
 
-  workflow ~version:8 ~descr:("SeqFilter.py:" ^ family) [
+  workflow ~version:9 ~descr:("SeqFilter.py:" ^ family) [
     mkdir_p tmp_merge ;
     cmd "SeqFilter.py" ~env [
       opt "-tmp" ident tmp_merge;
