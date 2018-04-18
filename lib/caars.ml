@@ -537,10 +537,10 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let sp2seq = w / selector [family.name ^ ".sp2seq.txt"] in
 
       let filter_threshold = configuration.ali_sister_threshold in
-      let wf = match (filter_threshold, (List.length species_to_refine_list)) with
-        | (f, l) when ((f > 0.) && (l > 0)) ->
+      let wf = match (List.length species_to_refine_list) with
+        | l when (l > 0) ->
                  Some (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family:family.name ~tree ~alignment ~sp2seq)
-        | (_, _) ->  None
+        | _ ->  None
         in
       (family, w, wf )
     )
@@ -594,7 +594,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     mkdir_p (dest // "no_out" // "Sp2Seq_link");
     ]
     ;
-    if configuration.ali_sister_threshold > 0. && (List.length configuration.all_ref_samples) > 0 then
+    if (List.length configuration.all_ref_samples) > 0 then
         [mkdir_p (dest // "out" // "FilterSummary_out")]
     else
         []
@@ -622,7 +622,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 seq ~sep:" " [ string "cp"; dep input ; ident output ]
               )
               ;
-              if (configuration.ali_sister_threshold > 0.) &&  ((List.length configuration.all_ref_samples) > 0) then
+              if (List.length configuration.all_ref_samples) > 0 then
                 List.map extension_list_filtered ~f:(fun (ext,dir) ->
                     let input = merged_w / selector [ f.name  ^ ext ] in
                     let output = dest // dir // (f.name  ^ ext)  in
