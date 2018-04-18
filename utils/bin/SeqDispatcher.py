@@ -344,7 +344,7 @@ start_blast_time = time.time()
 BlastOutputFile = "%s/Queries_Targets.blast" % (TmpDirName)
 BlastnProcess = BlastPlus.Blast("blastn", QueryFile, db_list=Databases)
 BlastnProcess.Evalue = Evalue
-BlastnProcess.Task = "dc-megablast"
+BlastnProcess.Task = "blastn"
 BlastnProcess.max_target_seqs = 500
 BlastnProcess.max_hsps_per_subject = 1
 BlastnProcess.Threads = Threads
