@@ -1,4 +1,4 @@
-FROM carinerey/caars_env:pb_filter_cds_apytram
+FROM carinerey/caars_env:use_treerecs
 MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 ### install caars master

@@ -137,6 +137,14 @@ COPY utils/lib/*.py /opt/caars_py_lib/
 COPY utils/bin/* /usr/bin/
 
 
+#### install treerecs
+WORKDIR /opt/treerecs
+RUN git clone https://gitlab.inria.fr/Phylophile/Treerecs.git .
+RUN cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
+RUN make Treerecs
+ENV PATH /opt/treerecs/bin/:$PATH
+
+
 ##### build a working directory
 WORKDIR /data
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]
