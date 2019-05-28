@@ -52,7 +52,7 @@ let single_stranded_or_unstranded = function
 
 let paired_stranded_or_unstranded = function
   | RF -> string "--SS_lib_type RF"
-  | FR -> string "--SS_lib_type RR"
+  | FR -> string "--SS_lib_type FR"
   | UP -> string ""
 
 let config_trinity_fasta_paired_or_single = function
