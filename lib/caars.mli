@@ -1,9 +1,7 @@
-open Bistro.Std
-open Bistro_bioinfo.Std
-open Bistro_utils
+open Bistro
 open Commons
 
-val alignement_fasta : string -> (output, fasta) selector
-val gene_tree : string -> (output, [`newick]) selector
-val sp2seq_link : string -> (output, sp2seq_link) selector
-val build_term : Configuration.t -> unit Term.t
+val alignement_fasta : string -> output dworkflow -> fasta pworkflow
+val gene_tree : string -> output dworkflow -> [`newick] pworkflow
+val sp2seq_link : string -> output dworkflow -> sp2seq_link pworkflow
+val build_term : Configuration.t -> unit workflow

@@ -33,12 +33,11 @@
 *)
 
 open Core
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
+open Bistro
+open Bistro.Shell_dsl
 open Commons
 
-type phyldog_configuration = [`phyldog_configuration] directory
+type phyldog_configuration = [`phyldog_configuration] dworkflow
 
 type phylotree
 
@@ -95,19 +94,19 @@ let phyldog_by_fam
     ~threads
     ~link
     ~tree
-    (ali :fasta workflow)
-    : phylotree directory workflow =
+    (ali :fasta pworkflow)
+    : phylotree dworkflow =
 
     let config_dir = dest // "Configuration" in
     let results_species = dest // "Species_tree/" in
     let results_genes = dest // "Gene_trees/" in
-    workflow ~descr:("phyldog_by_fam" ^ descr) ~version:4 ~np:threads ~mem:(1024 * memory) [
+    Workflow.shell ~descr:("phyldog_by_fam" ^ descr) ~version:4 ~np:threads ~mem:(Workflow.int (1024 * memory)) [
     mkdir_p config_dir;
     mkdir_p results_species;
     mkdir_p results_genes;
     mkdir_p (dest // "tmp_phyldog");
     (* Preparing phyldog configuration files*)
-    docker env (
+    within_container img (
       and_list [
         cd (dest // "tmp_phyldog");
         cmd "PhyldogPrepDataByFam.py" [

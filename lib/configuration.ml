@@ -29,9 +29,9 @@ type t = {
 }
 
 
-let parse_fastq_path = function
-  | "-" -> None
-  | x -> Some x
+(* let parse_fastq_path = function
+ *   | "-" -> None
+ *   | x -> Some x *)
 
 let parse_fastX_path f = match ( f, Filename.split_extension f) with
   | ("-", _ ) -> None
@@ -69,16 +69,16 @@ let str_list_sample_line l =
 let parse_line_fields_of_rna_conf_file = function
   | [ id ; species ; apytram_group ; ref_species ; path_fastx_single ; path_fastx_left ; path_fastx_right ; orientation ; run_trinity ; path_assembly ; run_apytram] ->
      let run_transdecoder = true in
-     let ref_species = List.sort compare (String.split ~on:',' ref_species) in
+     let ref_species = List.sort ~compare:String.compare (String.split ~on:',' ref_species) in
      let run_trinity = match run_trinity with
        | "yes" | "Yes" | "y" | "Y" -> true
        | "no" | "No" | "n" | "N" -> false
        | _ -> failwith ({| Syntax error inthe sample sheet file (sample -> |} ^ id ^ {|): run_trinity must be "yes" or "no" |})
      in
      let (path_assembly,given_assembly) = match (path_assembly,run_trinity) with
-       | ("-" ,_) -> ("-",false)
-       | (path,true) -> (path,true)
-       | (path,false) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|: you gave a trinity assembly path but run_trinity is false. It is incompatible.|})
+       | ("-", _) -> ("-",false)
+       | (path, true) -> (path,true)
+       | (_, false) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|: you gave a trinity assembly path but run_trinity is false. It is incompatible.|})
      in
      let run_apytram = match run_apytram with
        | "yes" | "Yes" | "y" | "Y" -> true
@@ -99,8 +99,8 @@ let parse_line_fields_of_rna_conf_file = function
        | ( None    , Some  (Fasta _ ), Some (Fastq _ ), _ , _  , _   ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): You give  a fasta and a fastq file |})
        | ( None    , Some  (Fastq _ ), Some (Fasta _ ), _ , _  , _   ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): You give  a fasta and a fastq file |})
        | ( None    , None   , None  , _             , true , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): You didn't give any RNA-seq data, but you ask to run apytram : it is impossible, apytram needs raw RNA-seq data.|})
-       | ( Some  _ , None   , None  , Some (Right o), _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choice. Path for a single-end data but an orientation for a paired-end data.|})
-       | ( None    , Some  _, Some _, Some (Left o) , _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choice. Paths for paired-end data but an orientation for a single-end data.|})
+       | ( Some  _ , None   , None  , Some (Right _), _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choice. Path for a single-end data but an orientation for a paired-end data.|})
+       | ( None    , Some  _, Some _, Some (Left _) , _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choice. Paths for paired-end data but an orientation for a single-end data.|})
        | ( _       , _      , _     , None          , _    , _    ) -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): No given orientation.|})
        | _ -> failwith ({|Syntax error in the sample sheet file (sample -> |} ^ id ^ {|): Incompatible choices. path_fastq_single must be "-" if data are "paired-end" and path_fastq_left and path_fastq_right must be "-" if data are "single-end".|})(*(path_fastq_single ^ path_fastq_left ^ path_fastq_right ^ orientation)*)
      in
@@ -122,8 +122,8 @@ module SS = Set.Make(String)
 
 let not_include l1 l2 =
     let rec include_rec l1 l2 att it = match (l1, l2, att) with
-        | h1 :: t1, h2 :: t2, att when h1 = h2 -> include_rec t1 t2 att it
-        | [],  _ , att-> it
+        | h1 :: t1, h2 :: t2, att when Poly.(h1 = h2) -> include_rec t1 t2 att it
+        | [],  _ , _-> it
         | h1 :: t1, h2 :: t2, att -> include_rec (h1 :: t1)  t2 (h2 :: att) it
         | h1 :: t1, [] , att -> include_rec t1  att [] (h1 :: it)
     in
@@ -143,8 +143,8 @@ let parse_family_to_use_file all_families path =
         | "" -> None
         | x -> Some x)
     in
-    let sorted_fs = List.sort compare fs in
-    let sorted_all_families = List.sort compare all_families in
+    let sorted_fs = List.sort ~compare:String.compare fs in
+    let sorted_all_families = List.sort ~compare:String.compare all_families in
     let diff = not_include sorted_fs sorted_all_families in
     match diff with
         | [] -> sorted_fs
@@ -173,8 +173,8 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
     let threads = match (np, run_reconciliation) with
     | (x, true) when x > 1 -> np
     | (x, false) when x > 0 -> np
-    | (x, true) -> failwith "The number of CPUs must be at least 2 if you want to use reconciliation"
-    | (x, false) -> failwith "The number of CPUs must be at least 1"
+    | (_, true) -> failwith "The number of CPUs must be at least 2 if you want to use reconciliation"
+    | (_, false) -> failwith "The number of CPUs must be at least 1"
   in
   let memory = match np with
     | x when x > 0 -> memory
@@ -193,23 +193,27 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   in
   let filter_apytram_ref_species, apytram_group_list =
     let rec uniq l = match l with
-      | x :: y :: z when x = y -> uniq (x :: z)
+      | x :: y :: z when Poly.(x = y) -> uniq (x :: z)
       | x :: y :: z -> x :: uniq (y ::z)
       | [x] -> [x]
       | [] -> []
     in
-    let all_sorted = List.sort compare (List.filter_map config_rna_seq ~f:(fun s ->
-        if s.run_apytram then
-          Some s.ref_species
-        else
-          None
-      )) in
-    let all_group = List.sort compare (List.filter_map config_rna_seq ~f:(fun s ->
-        if s.run_apytram then
-          Some s.apytram_group
-        else
-          None
-      )) in
+    let all_sorted =
+      List.filter_map config_rna_seq ~f:(fun s ->
+          if s.run_apytram then
+            Some s.ref_species
+          else
+            None
+        )
+      |> List.sort ~compare:Poly.compare in
+    let all_group =
+      List.filter_map config_rna_seq ~f:(fun s ->
+          if s.run_apytram then
+            Some s.apytram_group
+          else
+            None
+        )
+      |> List.sort ~compare:Poly.compare in
 
     uniq all_sorted, uniq all_group
   in
@@ -232,7 +236,7 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
 
   let used_families = List.map used_families_noid ~f:(fun u_f ->
       let id = List.filter_map  all_families ~f:(fun fam ->
-        if fam.name = u_f then
+        if String.(fam.name = u_f) then
           Some fam.f_id
         else
           None)
@@ -250,11 +254,11 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
   let _ = if debug then (printf "debug: %b.\n" (debug))  else ()  in
   let _ = if get_reads then (printf "get_reads: %b.\n" (get_reads))  else ()  in
 
-  if List.contains_dup id_list then
+  if List.contains_dup id_list ~compare:String.compare then
     failwith {|There are duplicate id in the first colum of the config file.|}
   else if Filename.is_relative species_tree_file then
     failwith {|caars needs the absolute path of the species tree.|}
-  else if all_families = [] then
+  else if Poly.(all_families = []) then
     failwith ({|No files with .fa extention in |} ^ alignments_dir)
   else
     {

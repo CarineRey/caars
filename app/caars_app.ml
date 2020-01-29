@@ -33,24 +33,16 @@
 *)
 
 open Core
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
 open Bistro_utils
 open Caars_lib
-open Commons
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report dag_dot quiet use_docker family_to_use () =
-  let logger quiet html_report dag_dot =
-    Logger.tee [
-      if quiet then Logger.null else Console_logger.create () ;
-      (match dag_dot with
-       | Some path -> Dot_output.create path
-       | None -> Logger.null) ;
-      (match html_report with
-       | Some path -> Html_logger.create path
-       | None -> Logger.null) ;
-    ]
+let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report quiet use_docker family_to_use () =
+  let loggers quiet html_report = [
+    if quiet then Bistro_engine.Logger.null else Console_logger.create () ;
+    (match html_report with
+     | Some path -> Html_logger.create path
+     | None -> Bistro_engine.Logger.null) ;
+  ]
   in
   let run_reconciliation = match no_reconcile with
     | true -> false
@@ -68,38 +60,42 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
   (*let family_to_use = Option.value ~default:"" family_to_use in*)
   let configuration = Configuration.load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memory ~run_reconciliation ~merge_criterion ~debug ~get_reads ~just_parse_input ~refinetree ~refineali ~ali_sister_threshold ~outdir ~family_to_use in
   let caars_term = Caars.build_term configuration in
-  Term.(
-    run ~logger:(logger quiet html_report dag_dot) ~np:configuration.Configuration.threads ~mem:(`GB configuration.Configuration.memory) ~keep_all:false ~bistro_dir:"_caars" ~use_docker caars_term
-  )
-
-let spec =
-  let open Command.Spec in
-  empty
-  +> flag "--sample-sheet"    (required file)   ~doc:"PATH sample sheet file."
-  +> flag "--outdir"          (required string) ~doc:"PATH Destination directory."
-  +> flag "--species-tree"    (required file)   ~doc:"ABSOLUTE PATH Species tree file in nw format containing all species. Warning absolute path is required."
-  +> flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
-  +> flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all linked files (Family_name.tsv). Each line contains a sequence name and its species spaced by a tabulation."
-  +> flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
-  +> flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
-  +> flag "--no-reconcile"    no_arg            ~doc:" Not run final Reconciliation step"
-  +> flag "--refinetree"      no_arg            ~doc:" Refine topology during final Reconciliation step (Default:false)"
-(*  +> flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"*)
-  +> flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of a caars sequence on its (non Caars) closest sequence to be kept in the final output"
-  +> flag "--merge-criterion" (optional string) ~doc:"STR Merge criterion during redundancy removing. It must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them."
-  +> flag "--debug"           no_arg            ~doc:" Get intermediary files (Default:false)"
-  +> flag "--get-reads"       no_arg            ~doc:" Get normalized reads (Default:false)"
-  +> flag "--just-parse-input"no_arg            ~doc:" Parse input and exit. Recommended to check all input files. (Default:false)"
-  +> flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"
-  +> flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in a dot file (Can take a lot of time)"
-  +> flag "--quiet"           no_arg            ~doc:" Do not report progress.  Default: off"
-  +> flag "--use-docker"      no_arg            ~doc:" Use docker in caars.  Default: off"
-  +> flag "--family-subset"  (optional file)    ~doc:"PATH A file containing a subset of families to use.  Default: off"
+  Bistro_engine.Scheduler.simple_eval_exn
+    ~loggers:(loggers quiet html_report)
+    ~np:configuration.Configuration.threads
+    ~mem:(`GB configuration.Configuration.memory)
+    ~collect:true
+    ~db_path:"_caars"
+    ~allowed_containers:(if use_docker then [`Docker] else [])
+    caars_term
 
 let command =
+  let open Command.Let_syntax in
   Command.basic
     ~summary:"caars"
-    spec
-    main
+    [%map_open
+      let sample_sheet = flag "--sample-sheet"    (required Filename.arg_type)   ~doc:"PATH sample sheet file."
+      and outdir = flag "--outdir"          (required string) ~doc:"PATH Destination directory."
+      and species_tree_file = flag "--species-tree"    (required Filename.arg_type)   ~doc:"ABSOLUTE PATH Species tree file in nw format containing all species. Warning absolute path is required."
+      and alignments_dir = flag "--alignment-dir"   (required string) ~doc:"PATH Directory containing all gene family alignments (Family_name.fa) in fasta format."
+      and seq2sp_dir = flag "--seq2sp-dir"      (required string) ~doc:"PATH Directory containing all linked files (Family_name.tsv). Each line contains a sequence name and its species spaced by a tabulation."
+      and np = flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
+      and memory = flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
+      and no_reconcile = flag "--no-reconcile"    no_arg            ~doc:" Not run final Reconciliation step"
+      and refinetree = flag "--refinetree"      no_arg            ~doc:" Refine topology during final Reconciliation step (Default:false)"
+      (*  and = flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"*)
+      and ali_sister_threshold = flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of a caars sequence on its (non Caars) closest sequence to be kept in the final output"
+      and merge_criterion = flag "--merge-criterion" (optional string) ~doc:"STR Merge criterion during redundancy removing. It must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them."
+      and debug = flag "--debug"           no_arg            ~doc:" Get intermediary files (Default:false)"
+      and get_reads = flag "--get-reads"       no_arg            ~doc:" Get normalized reads (Default:false)"
+      and just_parse_input = flag "--just-parse-input"no_arg            ~doc:" Parse input and exit. Recommended to check all input files. (Default:false)"
+      and html_report = flag "--html-report"    (optional string)  ~doc:"PATH Logs build events in an HTML report"
+      (* and = flag "--dag-graph"      (optional string)  ~doc:"PATH Write dag graph in a dot file (Can take a lot of time)" *)
+      and quiet = flag "--quiet"           no_arg            ~doc:" Do not report progress.  Default: off"
+      and use_docker = flag "--use-docker"      no_arg            ~doc:" Use docker in caars.  Default: off"
+      and family_to_use = flag "--family-subset"  (optional Filename.arg_type)    ~doc:"PATH A file containing a subset of families to use.  Default: off"
+      in
+      main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug get_reads just_parse_input html_report quiet use_docker family_to_use
+    ]
 
 let () = Command.run ~version:"1.0.1" command

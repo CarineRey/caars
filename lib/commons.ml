@@ -32,9 +32,8 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
+open Bistro
+open Bistro.Shell_dsl
 open Core
 
 type ('a,'b) either =
@@ -81,8 +80,8 @@ let sample_fasta_is_paired = function
   | Fasta_Paired_end _ -> true
 
 let sample_fastq_orientation = function
-  | Fastq_Single_end ( x , o ) ->  Left o
-  | Fastq_Paired_end ( lx, rx, o ) -> Right o
+  | Fastq_Single_end ( _ , o ) ->  Left o
+  | Fastq_Paired_end ( _, _, o ) -> Right o
 
 let sample_fasta_map f = function
   | Fasta_Single_end ( x , o ) ->  Fasta_Single_end ( f x , o )
@@ -97,8 +96,8 @@ let sample_fastq_is_paired = function
   | Fastq_Paired_end _ -> true
 
 let sample_fasta_orientation = function
-  | Fasta_Single_end ( x , o ) ->  Left o
-  | Fasta_Paired_end ( lx, rx, o ) -> Right o
+  | Fasta_Single_end ( _ , o ) ->  Left o
+  | Fasta_Paired_end ( _, _, o ) -> Right o
 
 
 
@@ -136,17 +135,17 @@ type sp2seq_link
 type tabular
 type index
 type cdhit
-type blast_db = [`blast_db] directory
+type blast_db
 
 
 type compressed_read_db = {
   s : rna_sample;
-  concat_fasta : fasta workflow;
-  index_concat_fasta : index workflow;
-  rep_cluster_fasta : fasta workflow;
-  reformated_cluster : fasta workflow;
-  index_cluster : index workflow;
-  cluster_rep_blast_db : blast_db workflow;
+  concat_fasta : fasta pworkflow;
+  index_concat_fasta : index pworkflow;
+  rep_cluster_fasta : fasta pworkflow;
+  reformated_cluster : fasta pworkflow;
+  index_cluster : index pworkflow;
+  cluster_rep_blast_db : blast_db pworkflow;
 }
 
 let bash_script args code =
@@ -159,4 +158,4 @@ let bash_script args code =
   in
   seq ~sep:"\n" [ prelude ; string code ]
 
-let env = docker_image ~account:"carinerey" ~name:"caars_env" ~tag:"0.2.0-bistrodev" ()
+let img = [ docker_image ~account:"carinerey" ~name:"caars_env" ~tag:"0.2.0-bistrodev" () ]

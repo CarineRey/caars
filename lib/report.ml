@@ -1,9 +1,7 @@
 open Core
-open Bistro_utils
 open Tyxml_html
-open Commons
 
-let k = pcdata
+let k = txt
 
 let optint = function
   | None -> k"NA"
@@ -13,17 +11,17 @@ let optfloat = function
   | None -> k"NA"
   | Some i -> k (Float.to_string i)
 
-let svg_from_file fn =
-  let contents = In_channel.read_all fn in
-  let src = sprintf "data:image/%s;base64,%s" "svg+xml" contents in
-  img ~src ~alt:"" ()
+(* let svg_from_file fn =
+ *   let contents = In_channel.read_all fn in
+ *   let src = sprintf "data:image/%s;base64,%s" "svg+xml" contents in
+ *   Tyxml_html.img ~src ~alt:"" () *)
 
 let head t =
-  head (title (pcdata t)) [
+  head (title (txt t)) [
     link ~rel:[`Stylesheet] ~href:"http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" () ;
     link ~rel:[`Stylesheet] ~href:"http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap-theme.min.css" () ;
-    script ~a:[a_src "https://code.jquery.com/jquery.js"] (pcdata "") ;
-    script ~a:[a_src "http://netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"] (pcdata "") ;
+    script ~a:[a_src "https://code.jquery.com/jquery.js"] (txt "") ;
+    script ~a:[a_src "http://netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"] (txt "") ;
   ]
 
 let trinity_section trinity_assemblies_stats =
@@ -37,7 +35,7 @@ let trinity_section trinity_assemblies_stats =
     ]
   ]
   in
-  let foreach_sample (sample, Term.Path assembly_stats) =
+  let foreach_sample (sample, assembly_stats) =
     let { Trinity_stats.n50 ; nb_genes; gc; nb_transcripts } = Trinity_stats.parse assembly_stats in
     tr [
       td [ k sample.Commons.species ] ;
@@ -53,12 +51,12 @@ let trinity_section trinity_assemblies_stats =
   ]
 
 (* http://ocsigen.org/tyxml/4.0.1/manual/intro*)
-let render ~trinity_assemblies_stats ~final_plots =
+let render ~trinity_assemblies_stats =
   let mytitle = "Caars report" in
   let contents = List.concat [
       [
-        h1 [pcdata "A fabulous title"] ;
-        pcdata "This is a fabulous content." ;
+        h1 [txt "A fabulous title"] ;
+        txt "This is a fabulous content." ;
       ] ;
       trinity_section trinity_assemblies_stats ;
       
@@ -80,6 +78,6 @@ let save path doc =
       Out_channel.output_string oc contents
     )
 
-let generate ~trinity_assemblies_stats ~final_plots dest =
-  let doc = render ~trinity_assemblies_stats ~final_plots in
+let generate ~trinity_assemblies_stats dest =
+  let doc = render ~trinity_assemblies_stats in
   save dest doc

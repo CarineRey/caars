@@ -32,10 +32,9 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core_kernel.Std
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
+open Core_kernel
+open Bistro
+open Bistro.Shell_dsl
 open Commons
 
 
@@ -60,25 +59,25 @@ let transdecoder
   ?retain_long_orfs
   ~threads
   ?(memory = 1)
-  (fasta:fasta workflow) : fasta workflow =
-  let descr = if descr = "" then
+  (fasta:fasta pworkflow) : fasta pworkflow =
+  let descr = if String.is_empty descr then
                   descr
                 else
                   ":" ^ descr
   in
   let tmp_fasta = string "tmp" in
-  workflow ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(1024 * memory) [
+  Workflow.shell ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(Workflow.int (1024 * memory)) [
     mkdir_p dest;
-    docker env (
+    within_container img (
       and_list [
         cd dest;
         cmd "bash" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
-        cmd "TransDecoder.LongOrfs" ~env [
+        cmd "TransDecoder.LongOrfs" ~img [
           opt "-t" ident tmp_fasta ;
           option (opt "-m" int ) pep_min_length ;
           option (flag string "-S") only_top_strand ;
         ] ;
-        cmd "TransDecoder.Predict" ~env [
+        cmd "TransDecoder.Predict" ~img [
           opt "-t" ident tmp_fasta ;
           opt "--cpu" ident np ;
           option (flag string "--single_best_orf") only_best_orf ;
@@ -88,4 +87,4 @@ let transdecoder
       ] ;
     )
   ]
-  / selector [ "orfs.cds" ]
+  |> Fn.flip Workflow.select [ "orfs.cds" ]

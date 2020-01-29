@@ -32,20 +32,19 @@
 # knowledge of the CeCILL license and that you accept its terms.
 *)
 
-open Core_kernel.Std
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
+open Core_kernel
+open Bistro
+open Bistro.Shell_dsl
 open Commons
 
-let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta workflow) : blast_db workflow =
-    workflow ~descr:("makeblastdb:" ^ dbname) ~np:1 [
+let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta pworkflow) : blast_db pworkflow =
+    Workflow.shell ~descr:("makeblastdb:" ^ dbname) ~np:1 [
         mkdir_p dest;
-        cmd "makeblastdb" ~env [
+        cmd "makeblastdb" ~img [
                     option (flag string "-parse_seqids") parse_seqids ;
                     option (flag string "-hash_index") hash_index ;
                     opt "-in" dep fasta;
                     opt "-dbtype" string dbtype ;
                     string "-out" ; seq ~sep:"/" [ dest; string dbname; string "db" ] ] ;
          ]
-   / selector [ dbname ]
+  |> Fn.flip Workflow.select [ dbname ]

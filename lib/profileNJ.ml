@@ -33,12 +33,11 @@
 *)
 
 open Core
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
+open Bistro
+open Bistro.Shell_dsl
 open Commons
 
-type phyldog_configuration = [`phyldog_configuration] directory
+type phyldog_configuration = [`phyldog_configuration] dworkflow
 
 type phylotree
 
@@ -81,12 +80,12 @@ let profileNJ
     ~sptreefile
     ~link
     ~tree
-    : phylotree directory workflow =
+    : phylotree dworkflow =
 
     let tmp_smap = tmp // "smap.txt" in
     let tmp_rerooted_tree = tmp // "rerooted_tree.txt" in
     
-    let reroot_cmd = [cmd "reroot_midpoint.py" ~env [dep tree; ident tmp_rerooted_tree]] in
+    let reroot_cmd = [cmd "reroot_midpoint.py" ~img [dep tree; ident tmp_rerooted_tree]] in
 
     let threshold_l = [1.0; 0.98; 0.96; 0.94; 0.92; 0.9; 0.85] in
     let tree_l = [ (dep tree, ""); (ident tmp_rerooted_tree, ".rerooted") ] in
@@ -96,7 +95,7 @@ let profileNJ
     let cmd_profileNJ_x tree_x tree_str = List.map threshold_l ~f:(fun t ->
     let str_number = Printf.sprintf "%.2f" t in
     let tmp_treeout = tmp // ("tree_out_pNJ." ^ str_number ^ tree_str ^ ".tree") in
-    cmd "profileNJ" ~env [
+    cmd "profileNJ" ~img [
       opt "-s" dep sptreefile ;
       opt "-S" ident tmp_smap ;
       opt "-g" ident tree_x;
@@ -109,13 +108,13 @@ let profileNJ
      |> List.concat
      in
 
-    workflow ~descr:("profileNJ" ^ descr) ~version:4 ~np:1 ~mem:(1024) [
+    Workflow.shell ~descr:("profileNJ" ^ descr) ~version:4 ~np:1 ~mem:(Workflow.int 1024) [
     mkdir_p tmp;
     mkdir_p dest;
     cd tmp;
     (* Preparing profileNJ configuration files*)
     cmd "sh" [ file_dump (script_pre ~tmp_smap ~link) ];
-    docker env (
+    within_container img (
       and_list (List.concat [reroot_cmd; cmd_profileNJ])) ;
     cmd "sh" [ file_dump (script_post ~tree ~tmp_rerooted_tree ~tmp_treeout_prefix ) ];
   ]

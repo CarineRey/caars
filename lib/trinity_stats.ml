@@ -28,7 +28,7 @@ let extract_item lines (key, marker, value_type) =
       match String.lsplit2 l ~on:':' with
       | None -> None
       | Some (left, right) ->
-        if String.strip left = marker
+        if String.(String.strip left = marker)
         then Some (key, parse_value value_type right)
         else None
     )
@@ -38,13 +38,13 @@ let parse_aux items lines =
   List.filter_map items ~f:(extract_item lines)
 
 let find_int dict key =
-  match List.Assoc.find ~equal:( = ) dict key with
+  match List.Assoc.find ~equal:Poly.( = ) dict key with
   | None -> None
   | Some (`float _) -> None
   | Some (`int i) -> Some i
 
 let find_float dict key =
-  match List.Assoc.find ~equal:( = ) dict key with
+  match List.Assoc.find ~equal:Poly.( = ) dict key with
   | None -> None
   | Some (`float f) -> Some f
   | Some (`int _) -> None

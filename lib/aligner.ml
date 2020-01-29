@@ -1,8 +1,3 @@
-open Core
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
-
 (*
 This module is commented because
 - it's not used for now

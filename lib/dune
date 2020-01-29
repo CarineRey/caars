@@ -1,4 +1,5 @@
 (library
  (name caars_lib)
  (public_name caars)
- (libraries bistro.bioinfo bistro.utils))
+ (libraries bistro.bioinfo bistro.utils)
+ (preprocess (pps bistro.ppx)))

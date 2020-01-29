@@ -33,11 +33,9 @@
 *)
 
 open Core
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
+open Bistro
+open Bistro.Shell_dsl
 open Commons
-open Configuration
 
 let string_of_db_type = function
   | Left F -> "F"
@@ -65,14 +63,12 @@ let apytram_multi_species
     ?flen
     ?required_coverage
     ?stats
-    ?plot
-    ?plot_ali
     ?(threads = 1)
     ?(memory = 1)
     ?time_max
     ~query
     ~fam
-    (compressed_reads_dbs : compressed_read_db list) : apytram_output directory workflow =
+    (compressed_reads_dbs : compressed_read_db list) : apytram_output dworkflow =
 
     let memory = match memory with
       | 0 -> 1
@@ -85,7 +81,7 @@ let apytram_multi_species
       )
     in
     let db_types =
-      List.map compressed_reads_dbs ~f:(fun {s}->
+      List.map compressed_reads_dbs ~f:(fun {s ; _}->
     seq ~sep:":" [string (string_of_db_type (sample_file_orientation s.sample_file)); string s.id]
       )
     in
@@ -111,8 +107,8 @@ let apytram_multi_species
     in
 
 
-    workflow  ~version:5 ~descr:("apytram.py" ^ descr) ~np:threads ~mem:(memory * 1024) [
-    cmd "apytram.py" ~env [
+    Workflow.shell  ~version:5 ~descr:("apytram.py" ^ descr) ~np:threads ~mem:(Workflow.int (memory * 1024)) [
+    cmd "apytram.py" ~img [
         opt "-q" seq [dep query ; string ":"; string fam] ;
         option (opt "-i" int ) i ;
         option (opt "-e" float ) evalue;

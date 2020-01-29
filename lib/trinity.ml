@@ -33,9 +33,8 @@
 *)
 
 open Core
-open Bistro.Std
-open Bistro.EDSL
-open Bistro_bioinfo.Std
+open Bistro
+open Bistro.Shell_dsl
 open Commons
 
 
@@ -67,16 +66,16 @@ let trinity_fasta
     ?no_normalization
     ~threads
     ?(memory = 1)
-    (sample_fasta : fasta workflow sample_fasta)
-    : fasta workflow =
-    let descr = if descr = "" then
+    (sample_fasta : fasta pworkflow sample_fasta)
+    : fasta pworkflow =
+    let descr = if String.is_empty descr then
                   descr
                 else
                   ":" ^ descr
     in
-    workflow ~descr:("Trinity" ^ descr) ~np:threads ~mem:(1024 * memory) [
+    Workflow.shell ~descr:("Trinity" ^ descr) ~np:threads ~mem:(Workflow.int (1024 * memory)) [
         mkdir_p dest;
-        cmd "Trinity" ~env [
+        cmd "Trinity" ~img [
             string "--no_version_check";
             opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
             opt "--CPU" ident np ;
@@ -93,7 +92,7 @@ let trinity_fasta
                      seq [ident dest; string "/trinity.Trinity.fasta";];
         ];
     ]
-    / selector [ "trinity.Trinity.fasta" ]
+    |> Fn.flip Workflow.select [ "trinity.Trinity.fasta" ]
 
 let config_fastq_paired_or_single = function
   | Fastq_Single_end (w, _ ) ->
@@ -102,11 +101,11 @@ let config_fastq_paired_or_single = function
        seq ~sep: " " [ string " --pairs_together" ;  string "--left" ; dep lw; string "--right" ; dep rw; string "--pairs_together --PARALLEL_STATS" ]
 
 let config_output_fastq_paired_or_single = function
-  | Fastq_Single_end (w, _ ) ->
+  | Fastq_Single_end _ ->
        seq ~sep: "\n" [  string "singlelink=`readlink single.norm.fq`";
                          seq ~sep: " " [string "mv $singlelink";  dest // "single.norm.fq" ];
                       ]
-  | Fastq_Paired_end (lw, rw , _) ->
+  | Fastq_Paired_end _ ->
        seq ~sep: "\n" [  string "leftlink=`readlink left.norm.fq`";
                          seq ~sep: " " [string "mv $leftlink";  dest // "left.norm.fq" ];
                          string "rightlink=`readlink right.norm.fq`";
@@ -144,11 +143,11 @@ let config_fasta_paired_or_single = function
 
 
 let config_output_fasta_paired_or_single = function
-  | Fasta_Single_end (w, _ ) ->
+  | Fasta_Single_end _ ->
        seq ~sep: "\n" [  string "singlelink=`readlink single.norm.fa`";
                          seq ~sep: " " [string "mv $singlelink";  dest // "single.norm.fa" ];
                       ]
-  | Fasta_Paired_end (lw, rw , _) ->
+  | Fasta_Paired_end _ ->
        seq ~sep: "\n" [  string "leftlink=`readlink left.norm.fa`";
                          seq ~sep: " " [string "mv $leftlink";  dest // "left.norm.fa" ];
                          string "rightlink=`readlink right.norm.fa`";
@@ -205,13 +204,13 @@ let fasta_read_normalization_script ~fasta ~max_cov ~given_mem=
 
 let fasta_read_normalization_get_output ~fasta ~dest=
   let (vars, code) = match fasta with
-    | Fasta_Single_end (w, _ ) -> (["DEST", dest;
-                                    "SINGLELINK", string "`readlink single.norm.fa`"],
-                                    {| mv $SINGLELINK $DEST/"single.norm.fa"|})
-    | Fasta_Paired_end (lw, rw , _) -> (["DEST", dest;
-                                         "LEFTLINK", string "`readlink left.norm.fa`";
-                                         "RIGHTLINK", string "`readlink right.norm.fa`"],
-                                       {|echo $LEFTLINK ; mv $LEFTLINK $DEST/"left.norm.fa"; mv $RIGHTLINK $DEST/"right.norm.fa"|})
+    | Fasta_Single_end _ -> (["DEST", dest;
+                              "SINGLELINK", string "`readlink single.norm.fa`"],
+                             {| mv $SINGLELINK $DEST/"single.norm.fa"|})
+    | Fasta_Paired_end _ -> (["DEST", dest;
+                              "LEFTLINK", string "`readlink left.norm.fa`";
+                              "RIGHTLINK", string "`readlink right.norm.fa`"],
+                             {|echo $LEFTLINK ; mv $LEFTLINK $DEST/"left.norm.fa"; mv $RIGHTLINK $DEST/"right.norm.fa"|})
   in
   bash_script vars code
 
@@ -221,9 +220,9 @@ let fasta_read_normalization_2
     ~threads
     ?(memory = 1)
     ?(max_memory = 1)
-    (fasta : fasta workflow sample_fasta)
-    : fasta directory workflow =
-  let descr = if descr = "" then
+    (fasta : fasta pworkflow sample_fasta)
+    : fasta dworkflow =
+  let descr = if String.is_empty "" then
                   descr
                 else
                   ":" ^ descr
@@ -231,21 +230,21 @@ let fasta_read_normalization_2
 
   let bistro_memory = if max_memory > 2
                       then
-                         Pervasives.(min max_memory (int_of_float( float_of_int memory *. 2.)))
+                         Stdlib.(min max_memory (int_of_float( float_of_int memory *. 2.)))
                       else
                          1
                       in
   let given_mem =    if bistro_memory > 2
                       then
-                         Pervasives.(int_of_float( float_of_int bistro_memory /. 2.))
+                         Stdlib.(int_of_float( float_of_int bistro_memory /. 2.))
                       else
                          1
                       in
   (* reserve more memory by bistro than given to normalization tools*)
-  workflow ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(1024 * bistro_memory) [
+  Workflow.shell ~descr:("fasta_read_normalization_(custom)" ^ descr) ~version:2 ~np:threads ~mem:(Workflow.int (1024 * bistro_memory)) [
     mkdir_p dest;
     mkdir_p tmp ;
-    docker env (
+    within_container img (
       and_list [
         cd tmp ;
         cmd "sh" [ file_dump (fasta_read_normalization_script ~fasta ~max_cov ~given_mem) ];
@@ -254,16 +253,12 @@ let fasta_read_normalization_2
     )
   ]
 
-let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fasta workflow =
+let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : #fastq pworkflow) :  fasta pworkflow =
     let (check_input, w_input) = match dep_input with
                         | Some w -> (true, dep w)
                         | None -> (false, ident dest)
                         in
-    let descr = if descr = "" then
-                    descr
-                    else
-                    ":" ^ descr
-    in
+    let descr = if String.is_empty descr then descr else ":" ^ descr in
     let script =
         let vars = [
         "CHECK", flag seq [string "ls "; w_input] check_input  ;
@@ -276,16 +271,12 @@ let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : _ fastq workflow) :  fast
         seqtk seq -A $FQ > $DEST
         |}
     in
-    workflow ~descr:("fastq2fasta" ^ descr) ~np:1 [
-        cmd "sh" ~env [ file_dump script ];
+    Workflow.shell ~descr:("fastq2fasta" ^ descr) ~np:1 [
+        cmd "sh" ~img [ file_dump script ];
     ]
 
-let assembly_stats ?(descr="") (fasta:fasta workflow) : assembly_stats workflow =
-   let descr = if descr = "" then
-                  descr
-                else
-                  ":" ^ descr ^ " "
-   in
+let assembly_stats ?(descr="") (fasta:fasta pworkflow) : assembly_stats pworkflow =
+   let descr = if String.is_empty descr then descr else ":" ^ descr ^ " " in
    let script =
      let vars = [
        "TRINITY_PATH", string "`which Trinity`" ;
@@ -304,6 +295,6 @@ let assembly_stats ?(descr="") (fasta:fasta workflow) : assembly_stats workflow 
     fi
     |}
   in
-  workflow ~descr:("assembly_stats_trinity" ^ descr) ~np:1 [
-    cmd "sh" ~env [ file_dump script ];
+  Workflow.shell ~descr:("assembly_stats_trinity" ^ descr) ~np:1 [
+    cmd "sh" ~img [ file_dump script ];
   ]

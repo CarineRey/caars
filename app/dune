@@ -1,4 +1,5 @@
 (executable
  (name caars_app)
  (public_name caars)
- (libraries caars))
+ (libraries caars)
+ (preprocess (pps ppx_jane)))
