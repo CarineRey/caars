@@ -1,0 +1,4 @@
+(executable
+ (name caars_app)
+ (public_name caars)
+ (libraries caars))
