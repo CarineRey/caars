@@ -37,7 +37,7 @@ open Bistro
 open Bistro.Shell_dsl
 open Commons
 
-type phyldog_configuration = [`phyldog_configuration] dworkflow
+type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
 
@@ -80,11 +80,11 @@ let profileNJ
     ~sptreefile
     ~link
     ~tree
-    : phylotree dworkflow =
+    : phylotree directory =
 
     let tmp_smap = tmp // "smap.txt" in
     let tmp_rerooted_tree = tmp // "rerooted_tree.txt" in
-    
+
     let reroot_cmd = [cmd "reroot_midpoint.py" ~img [dep tree; ident tmp_rerooted_tree]] in
 
     let threshold_l = [1.0; 0.98; 0.96; 0.94; 0.92; 0.9; 0.85] in

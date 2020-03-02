@@ -131,21 +131,37 @@ type config_rna_seq = rna_sample list
 type output = [ `caars_output ]
 type configuration_dir = [ `configuration ]
 
-type sp2seq_link
+class type sp2seq_link = object
+  inherit text
+  method format : [`sp2seq_link]
+end
+
+class type newick = object
+  inherit text
+  method format : [`newick]
+end
+
 type tabular
-type index
+class type biopython_sequence_index = object
+  inherit binary_file
+  method format : [`biopython_sequence_index]
+end
+
 type cdhit
-type blast_db
+class type blast_db = object
+  inherit text
+  method format : [`blast_db]
+end
 
 
 type compressed_read_db = {
   s : rna_sample;
-  concat_fasta : fasta pworkflow;
-  index_concat_fasta : index pworkflow;
-  rep_cluster_fasta : fasta pworkflow;
-  reformated_cluster : fasta pworkflow;
-  index_cluster : index pworkflow;
-  cluster_rep_blast_db : blast_db pworkflow;
+  concat_fasta : fasta file;
+  index_concat_fasta : biopython_sequence_index file;
+  rep_cluster_fasta : fasta file;
+  reformated_cluster : fasta file;
+  index_cluster : biopython_sequence_index file;
+  cluster_rep_blast_db : blast_db file;
 }
 
 let bash_script args code =

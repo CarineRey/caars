@@ -38,7 +38,7 @@ open Bistro.Shell_dsl
 open Commons
 
 
-type assembly_stats
+type assembly_stats = text
 
 let ( % ) f g = fun x -> g (f x)
 
@@ -66,8 +66,8 @@ let trinity_fasta
     ?no_normalization
     ~threads
     ?(memory = 1)
-    (sample_fasta : fasta pworkflow sample_fasta)
-    : fasta pworkflow =
+    (sample_fasta : fasta file sample_fasta)
+    : fasta file =
     let descr = if String.is_empty descr then
                   descr
                 else
@@ -220,8 +220,8 @@ let fasta_read_normalization_2
     ~threads
     ?(memory = 1)
     ?(max_memory = 1)
-    (fasta : fasta pworkflow sample_fasta)
-    : fasta dworkflow =
+    (fasta : fasta file sample_fasta)
+    : fasta directory =
   let descr = if String.is_empty "" then
                   descr
                 else
@@ -253,7 +253,7 @@ let fasta_read_normalization_2
     )
   ]
 
-let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : #fastq pworkflow) :  fasta pworkflow =
+let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : #fastq file) :  fasta file =
     let (check_input, w_input) = match dep_input with
                         | Some w -> (true, dep w)
                         | None -> (false, ident dest)
@@ -275,7 +275,7 @@ let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : #fastq pworkflow) :  fast
         cmd "sh" ~img [ file_dump script ];
     ]
 
-let assembly_stats ?(descr="") (fasta:fasta pworkflow) : assembly_stats pworkflow =
+let assembly_stats ?(descr="") (fasta:fasta file) : assembly_stats file =
    let descr = if String.is_empty descr then descr else ":" ^ descr ^ " " in
    let script =
      let vars = [

@@ -68,7 +68,7 @@ let apytram_multi_species
     ?time_max
     ~query
     ~fam
-    (compressed_reads_dbs : compressed_read_db list) : apytram_output dworkflow =
+    (compressed_reads_dbs : compressed_read_db list) : apytram_output directory =
 
     let memory = match memory with
       | 0 -> 1

@@ -37,7 +37,7 @@ open Bistro
 open Bistro.Shell_dsl
 open Commons
 
-type phyldog_configuration = [`phyldog_configuration] dworkflow
+type phyldog_configuration = [`phyldog_configuration] directory
 
 type phylotree
 
@@ -94,8 +94,8 @@ let phyldog_by_fam
     ~threads
     ~link
     ~tree
-    (ali :fasta pworkflow)
-    : phylotree dworkflow =
+    (ali :fasta file)
+    : phylotree directory =
 
     let config_dir = dest // "Configuration" in
     let results_species = dest // "Species_tree/" in

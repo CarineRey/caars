@@ -15,7 +15,7 @@ let gene_tree fam o =
 let sp2seq_link fam o =
   Workflow.select o [ "Sp2Seq_link" ; fam ^ ".sp2seq.txt" ]
 
-let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~(all_families: family list) ~memory ~configuration : configuration_dir dworkflow =
+let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~(all_families: family list) ~memory ~configuration : configuration_dir directory =
   let families_out = dest // "DetectedFamilies.txt" in
   let script = Bistro.Template_dsl.(
       [[seq ~sep:"\t" [string "Detected_families"; string "Fam_ID"]];
@@ -214,7 +214,7 @@ A different location is incompatible with the bistro docker usage
 workflow by worflow.
 To avoid to cp the complete fasta file we use a symbolic link.
 *)
-let build_biopythonindex ?(descr="") (fasta:fasta pworkflow)  : index pworkflow =
+let build_biopythonindex ?(descr="") (fasta:fasta file)  : biopython_sequence_index file =
   Workflow.shell ~version:1 ~descr:("build_biopythonindex_fasta.py" ^ descr) [
     mkdir_p dest ;
     within_container img (
@@ -225,12 +225,12 @@ let build_biopythonindex ?(descr="") (fasta:fasta pworkflow)  : index pworkflow 
     )
   ]
 
-let reformat_cdhit_cluster ?(descr="") cluster : fasta pworkflow =
+let reformat_cdhit_cluster ?(descr="") cluster : fasta file =
   Workflow.shell ~version:1 ~descr:("reformat_cdhit_cluster2fasta.py" ^ descr) [
     cmd "reformat_cdhit_cluster2fasta.py" ~img [ dep cluster  ; ident dest]
   ]
 
-let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta pworkflow) : cdhit dworkflow =
+let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta file) : cdhit directory =
   let out = dest // "cluster_rep.fa" in
   Workflow.shell ~version:1 ~descr:("cdhitlap" ^ descr) [
     mkdir_p dest;
@@ -280,7 +280,7 @@ let seq_dispatcher
     ~query_id
     ~ref_transcriptome
     ~threads
-    ~seq2fam : fasta pworkflow =
+    ~seq2fam : fasta file =
   Workflow.shell ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
     mkdir_p tmp;
     cmd "SeqDispatcher.py" ~img [
@@ -322,7 +322,7 @@ let trinity_annotated_fams_of_trinity_assemblies configuration_dir ref_blast_dbs
     )
 
 
-let concat_without_error ?(descr="") l : fasta pworkflow =
+let concat_without_error ?(descr="") l : fasta file =
   let script =
     let vars = [
       "FILE", seq ~sep:"" l ;
@@ -375,12 +375,12 @@ let build_target_query ref_species family configuration trinity_annotated_fams a
 let checkfamily
   ?(descr="")
   ~ref_db
-  ~(input:fasta pworkflow)
+  ~(input:fasta file)
   ~family
   ~ref_transcriptome
   ~seq2fam
   ~evalue
-  : fasta pworkflow =
+  : fasta file =
   let tmp_checkfamily = tmp // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
   Workflow.shell ~version:8 ~descr:("CheckFamily.py" ^ descr) [
@@ -441,7 +441,7 @@ let seq_integrator
     ~apytram_results_dir
     ~alignment_sp2seq
     alignment
-  : _ dworkflow =
+  : _ directory =
 
   let merge_criterion_string  = match merge_criterion with
     | Some Merge ->  None
@@ -498,7 +498,7 @@ let seq_filter
     ~alignment
     ~tree
     ~sp2seq
-    : _ dworkflow  =
+    : _ directory  =
 
   let tmp_merge = tmp // "tmp" in
 
@@ -1056,7 +1056,7 @@ let build_term configuration =
     let precious = precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_annotated_fams in
     let repo_term = Repo.to_workflow (repo @ precious) ~outdir:configuration.outdir in
     let trinity_assemblies_stats =
-      List.map trinity_assemblies_stats ~f:(fun (s, w) -> Workflow.(both (pure_data s) (eval_path w)))
+      List.map trinity_assemblies_stats ~f:(fun (s, w) -> Workflow.(both (data s) (path w)))
       |> Workflow.list
     in
     [%workflow

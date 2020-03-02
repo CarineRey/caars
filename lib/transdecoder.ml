@@ -59,7 +59,7 @@ let transdecoder
   ?retain_long_orfs
   ~threads
   ?(memory = 1)
-  (fasta:fasta pworkflow) : fasta pworkflow =
+  (fasta:fasta file) : fasta file =
   let descr = if String.is_empty descr then
                   descr
                 else

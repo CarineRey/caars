@@ -37,7 +37,7 @@ open Bistro
 open Bistro.Shell_dsl
 open Commons
 
-let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta pworkflow) : blast_db pworkflow =
+let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta file) : blast_db file =
     Workflow.shell ~descr:("makeblastdb:" ^ dbname) ~np:1 [
         mkdir_p dest;
         cmd "makeblastdb" ~img [
