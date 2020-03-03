@@ -3,3 +3,11 @@
  (public_name caars)
  (libraries bistro.bioinfo bistro.utils)
  (preprocess (pps bistro.ppx)))
+
+(rule
+ (targets scripts.ml)
+ (action
+  (run bash ocamlify_scripts.sh))
+ (deps
+  (file ocamlify_scripts.sh)
+  (glob_files scripts/*)))

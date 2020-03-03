@@ -42,13 +42,15 @@ let parse_input ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~(a
   cmd "echo" [dep sp2seq]
   )
   in
-  Workflow.shell ~np:1 ~descr:"Parse input" ~version:17 ~mem:(Workflow.int (memory * 1024)) (List.concat [
+  Workflow.shell ~np:1 ~descr:"parse_input" ~version:17 ~mem:(Workflow.int (memory * 1024)) (List.concat [
     [mkdir_p dest;
-    cmd "ParseInput.py"  ~img [ dep sample_sheet ;
-                                dep species_tree_file;
-                                dep alignments_dir;
-                                dep seq2sp_dir;
-                                ident dest ;
+    cmd "python"  ~img [
+    file_dump (string Scripts.parse_input) ;
+     dep sample_sheet ;
+     dep species_tree_file;
+     dep alignments_dir;
+     dep seq2sp_dir;
+     ident dest ;
                               ];
     cmd "cp" [ file_dump script; families_out];
     ];
@@ -220,14 +222,20 @@ let build_biopythonindex ?(descr="") (fasta:fasta file)  : biopython_sequence_in
     within_container img (
       and_list [
         cmd "ln" [ string "-s" ; dep fasta ; dest // "seq.fa" ] ;
-        cmd "build_biopythonindex_fasta.py" ~img [ dest // "index" ; dest // "seq.fa" ]
+        cmd "python" ~img [
+        file_dump (string Scripts.build_biopythonindex_fasta) ;
+        dest // "index" ;
+        dest // "seq.fa" ]
       ]
     )
   ]
 
 let reformat_cdhit_cluster ?(descr="") cluster : fasta file =
   Workflow.shell ~version:1 ~descr:("reformat_cdhit_cluster2fasta.py" ^ descr) [
-    cmd "reformat_cdhit_cluster2fasta.py" ~img [ dep cluster  ; ident dest]
+    cmd "python" ~img [
+    file_dump (string Scripts.reformat_cdhit_cluster2fasta);
+    dep cluster ;
+    ident dest]
   ]
 
 let cdhitoverlap ?(descr="") ?p ?m ?d (fasta:fasta file) : cdhit directory =
@@ -283,7 +291,8 @@ let seq_dispatcher
     ~seq2fam : fasta file =
   Workflow.shell ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
     mkdir_p tmp;
-    cmd "SeqDispatcher.py" ~img [
+    cmd "python" ~img [
+      file_dump (string Scripts.seq_dispatcher);
       option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
       opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
       opt "-tmp" ident tmp ;
@@ -386,7 +395,8 @@ let checkfamily
   Workflow.shell ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
-    cmd "CheckFamily.py" ~img [
+    cmd "python" ~img [
+      file_dump (string Scripts.check_family);
       opt "-tmp" ident tmp_checkfamily ;
       opt "-i" dep input ;
       opt "-t" dep ref_transcriptome ;
@@ -423,8 +433,11 @@ let parse_apytram_results apytram_annotated_ref_fams =
         |> seq ~sep:"\n"
         )
     in
-    let fw = Workflow.shell ~version:4 ~descr:("Parse_apytram_results.py."^fam.name) ~np:1  [
-        cmd "Parse_apytram_results.py" ~img [ file_dump config ; dest ]] in
+    let fw = Workflow.shell ~version:4 ~descr:("parse_apytram_results.py."^fam.name) ~np:1  [
+        cmd "python" ~img [
+        file_dump (string Scripts.parse_apytram_results) ;
+        file_dump config ;
+        dest ]] in
   (fam, fw)
   )
 
@@ -473,7 +486,8 @@ let seq_integrator
 
   Workflow.shell ~version:12 ~descr:("SeqIntegrator.py:" ^ family) [
     mkdir_p tmp_merge ;
-    cmd "SeqIntegrator.py" ~img [
+    cmd "python" ~img [
+      file_dump (string Scripts.seq_integrator);
       opt "-tmp" ident tmp_merge;
       opt "-log" seq [ tmp_merge ; string ("/SeqIntegrator." ^ family ^ ".log" )] ;
       opt "-ali" dep alignment ;
@@ -504,7 +518,8 @@ let seq_filter
 
   Workflow.shell ~version:8 ~descr:("SeqFilter.py:" ^ family) [
     mkdir_p tmp_merge ;
-    cmd "SeqFilter.py" ~img [
+    cmd "python" ~img [
+      file_dump (string Scripts.seq_filter);
       opt "-tmp" ident tmp_merge;
       opt "-log" seq [ tmp_merge ; string ("/SeqFilter." ^ family ^ ".log" )] ;
       opt "-ali" dep alignment ;
@@ -682,7 +697,8 @@ let get_reconstructed_sequences merged_and_reconciled_families_dirs configuratio
     let species_to_refine_list = List.map configuration.all_ref_samples ~f:(fun s -> s.species) in
     Some (Workflow.shell ~descr:"GetReconstructedSequences.py" ~version:6 [
             mkdir_p dest;
-            cmd "GetReconstructedSequences.py" ~img [
+            cmd "python" ~img [
+            file_dump (string Scripts.get_reconstructed_sequences);
             dep merged_and_reconciled_families_dirs // "out/MSA_out";
             dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
             seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
@@ -707,7 +723,8 @@ let write_orthologs_relationships (merged_and_reconciled_families_dirs:'a workfl
     in
     Workflow.shell ~descr:"ExtractOrthologs.py" ~version:7 [
             mkdir_p dest;
-            cmd "ExtractOrthologs.py" ~img [
+            cmd "python" ~img [
+            file_dump (string Scripts.extract_orthologs);
             ident dest;
             dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
             option (opt "" dep) ortho_dir ;
@@ -726,7 +743,8 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
     let dloutprefix = dest // "D_count" in
     Workflow.shell ~descr:"final_plots.py" ~version:19 (List.concat [
         [mkdir_p dest;
-        cmd "final_plots.py" ~img [
+        cmd "python" ~img [
+            file_dump (string Scripts.final_plots);
             opt "-i_ortho" dep orthologs_per_seq;
             opt "-i_filter" dep (Workflow.select merged_reconciled_and_realigned_families_dirs ["out/"]);
             opt "-o" ident dest;

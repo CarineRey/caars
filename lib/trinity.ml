@@ -197,7 +197,7 @@ let fasta_read_normalization_script ~fasta ~max_cov ~given_mem=
   ]
   in
   bash_script vars {|
-    trinity.insilico_read_normalization.pl $FA --seqType "fa" --JM ${MEM}G --max_cov $MAX_COV --CPU $NP --output $TMP --trinity_dir $TRINTIY_DIR_PATH
+    perl trinity_insilico_read_normalization.pl $FA --seqType "fa" --JM ${MEM}G --max_cov $MAX_COV --CPU $NP --output $TMP --trinity_dir $TRINTIY_DIR_PATH
     |}
 
 
@@ -246,7 +246,9 @@ let fasta_read_normalization_2
     mkdir_p tmp ;
     within_container img (
       and_list [
+        cmd "cat" ~stdout:(tmp//"/trinity_insilico_read_normalization.pl") [file_dump (string Scripts.trinity_insilico_read_normalization)];
         cd tmp ;
+        cmd "ls" [];
         cmd "sh" [ file_dump (fasta_read_normalization_script ~fasta ~max_cov ~given_mem) ];
         cmd "sh" [ file_dump (fasta_read_normalization_get_output ~fasta ~dest) ];
       ]
