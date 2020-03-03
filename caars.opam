@@ -15,6 +15,6 @@ dev-repo: "https://github.com/carinerey/caars.git"
 license: "CeCILL"
 build: ["dune" "build" "-p" name "-j" jobs]
 depends: [
-  "bistro" {>= "0.3.0"}
+  "bistro" {>= "0.5.0"}
   "dune" {build & >= "1.0"}
 ]
