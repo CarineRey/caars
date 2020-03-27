@@ -109,7 +109,7 @@ let fastq_to_fasta_conversion {all_ref_samples;_} =
 let normalize_fasta fasta_reads memory max_memory threads =
   List.map fasta_reads ~f:(fun (s, fasta_sample) ->
       let max_cov = 20 in
-      let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory ~max_memory fasta_sample in
+      let normalization_dir = Trinity.fasta_read_normalization_3 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory ~max_memory fasta_sample in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (_, o ) -> Fasta_Single_end (Workflow.select normalization_dir ["single.norm.fa"], o )
         | Fasta_Paired_end (_, _ , o) -> Fasta_Paired_end (Workflow.select normalization_dir ["left.norm.fa"],
