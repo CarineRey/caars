@@ -38,8 +38,11 @@ open Bistro.Shell_dsl
 open Commons
 
 type phyldog_configuration = [`phyldog_configuration] directory
+type generax_configuration = [`generax_configuration] directory
+
 
 type phylotree
+
 
 let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
   let vars = [
@@ -76,6 +79,7 @@ let phyldog_script ~family ~config_dir ~results_species ~tree ~results_genes =
      nw2nhx.py $TREE ${RESULTS_GENES}${family}.ReconciledTree
     fi
 |}
+
 
 
 let phyldog_by_fam
@@ -138,4 +142,61 @@ let phyldog_by_fam
             seq ~sep:"=" [string "param";  ident (config_dir // "GeneralOptions.txt") ];
             ];
     *)
+    ]
+
+
+let generax_config ~family ~ali ~link ~tree2 =
+  seq ~sep:"\n" [
+    seq ~sep:" " [ string "[FAMILIES]"];
+    seq ~sep:" " [ string "-"; string family];
+    seq ~sep:"=" [ string "starting_gene_tree"; ident tree2];
+    seq ~sep:"=" [ string "alignment"; dep ali];
+    seq ~sep:"=" [ string "mapping"; dep link];
+    seq ~sep:"=" [ string "subst_model"; string "GTR+G"]
+  ]
+
+
+
+let generax
+    ?(descr="")
+    ?(memory = 1)
+    ~sptreefile
+    ~family
+    ~threads
+    ~link
+    ~tree
+    (ali :fasta file)
+    : phylotree directory =
+    let generax_results_prefix = tmp // "generax_output" in
+    let output_reconciledtree = dest // (family ^ ".ReconciledTree") in
+    let config = tmp // "config.txt" in
+    let tree2 = tmp // "tree_without_empty_line.nw" in
+    Workflow.shell ~descr:("generax_by_fam" ^ descr) ~version:4 ~np:threads ~mem:(Workflow.int (1024 * memory)) [
+    mkdir_p tmp;
+    mkdir_p dest;
+    within_container img (
+      and_list [
+        cmd "awk" ~stdout:tree2 [
+        string "NF";
+        dep tree ]; (*remove empty lines TODO: to be fix earlier*)
+        cmd "cat" ~stdout:config [ file_dump (generax_config ~family ~ali ~link ~tree2 ) ];
+        cmd "generax" [
+          opt "--species-tree" dep sptreefile ;
+          opt "--strategy" string "SPR" ; (*Search mode: EVAL does not optimize the tree topology, and just evaluates the likelihood, the DTL rates and the reconciliation of the starting gene trees. SPR performs a tree search (with SPR moves). Default is SPR.*)
+          opt "--rec-model" string "UndatedDL" ; (*{UndatedDL, UndatedDTL}; The probabilistic model used to compute the reconciliation likelihood. Default is UndatedDL *)
+          opt "--prefix" ident generax_results_prefix;
+          opt "--families" ident config;
+        ];
+        cmd "mv" [
+          ident generax_results_prefix // ("results/" ^ family ^ "/geneTree.newick");
+          ident output_reconciledtree];
+        cmd "python" [
+        file_dump (string Scripts.annote_reconciledtree);
+        opt "--sp_tree" dep sptreefile;
+        opt "--tree" ident output_reconciledtree;
+        opt "-sp2seq" dep link;
+        opt "--output_prefix" ident (dest // family) ;
+        ]
+      ]
+    )
     ]

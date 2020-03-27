@@ -574,13 +574,15 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let tree = Workflow.select merged_family [ fam.name ^ ".tree" ] in
     let link = Workflow.select merged_family [ fam.name ^ ".sp2seq.txt" ] in
     let sptreefile = Workflow.input configuration.species_tree_file in
-    let profileNJ_tree =
+    (*let profileNJ_tree =
       ProfileNJ.profileNJ ~descr:(":" ^ fam.name) ~sptreefile ~link ~tree
-      |> Fn.flip Workflow.select [ fam.name ^ ".tree" ] in
+      |> Fn.flip Workflow.select [ fam.name ^ ".tree" ] in*)
     let threads = 1 in
     let memory = Stdlib.min 1 (Stdlib.(configuration.memory / configuration.threads)) in
-    let topogene = configuration.refinetree in
-    (fam, Phyldog.phyldog_by_fam ~family:fam.name ~descr:(":" ^ fam.name) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    (*let topogene = configuration.refinetree in*)
+    (*(fam, Phyldog.phyldog_by_fam ~family:fam.name ~descr:(":" ^ fam.name) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)*)
+    
+    (fam, Phyldog.generax ~family:fam.name ~descr:(":" ^ fam.name) ~threads ~memory ~sptreefile ~link ~tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families =
@@ -602,9 +604,10 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
   let extension_list_merged = [(".fa","out/MSA_out");(".tree","out/GeneTree_out");(".sp2seq.txt","no_out/Sp2Seq_link")] in
   let extension_list_filtered = [(".discarded.fa","out/FilterSummary_out");(".filter_summary.txt","out/FilterSummary_out")] in
 
-  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","out/GeneTreeReconciled_out");
-                                   (".events.txt", "Species_tree/", "out/DL_out");
-                                   (".orthologs.txt", "Species_tree/", "out/Orthologs_out")] in
+  let extension_list_reconciled = [(".ReconciledTree","","out/GeneTreeReconciled_out");
+                                   (".nhx", "", "out/GeneTreeReconciled_out");
+                                   (".events.txt", "", "out/DL_out");
+                                   (".orthologs.txt", "", "out/Orthologs_out")] in
   (*let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in*)
   Workflow.shell ~descr:"build_output_directory" ~version:1 (List.concat [
     [mkdir_p tmp;
