@@ -174,4 +174,4 @@ let bash_script args code =
   in
   seq ~sep:"\n" [ prelude ; string code ]
 
-let img = [ docker_image ~account:"carinerey" ~name:"caars_env" ~tag:"generax_20200331" () ]
+let img = [ docker_image ~account:"carinerey" ~name:"caars_env" ~tag:"generax_20200330" () ]
