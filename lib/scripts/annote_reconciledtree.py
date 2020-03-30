@@ -172,6 +172,20 @@ logger.debug("SpeciesTree")
 for n in sptree.get_leaves():
     logger.debug("node: %s Species name: %s", n.name, n.species)
 
+iS = 0
+sp_dict = {}
+for n in sptree.traverse():
+    n.S=iS
+    iS+=1
+    if not n.is_leaf():
+        n.name = n.S
+    else:
+        sp_dict[n.name] = n.S
+
+
+logger.debug("sp_dict")
+logger.debug(sp_dict)
+
 # Let's reconcile our genetree with the species tree
 recon_tree, events = genetree.reconcile(sptree)
 # a new "reconcilied tree" is returned. As well as the list of
@@ -199,23 +213,52 @@ with open(HomologyFile,"w") as File:
 
 EventSummary = []
 i=0
-for n in recon_tree.traverse("levelorder"):
-    i+=1
-    n.id = i
+for n in recon_tree.traverse("postorder"):
+    n.ND = i
+    if n.is_leaf():
+        n.S = sp_dict[n.species]
     if "evoltype" in dir(n):
+        n.Ev = n.evoltype
         if n.evoltype == "L":
-            logger.debug(n.name)
-            logger.debug(n.species)
-            logger.debug(n.evoltype)
-            logger.debug(n.id)
-            EventSummary.append("event(%i,loss)" %(n.id))
+            EventSummary.append("event(%i,loss)" %(n.S))
         elif n.evoltype == "D":
-            EventSummary.append("event(%i,duplication)" %(n.id))
- 
-recon_tree.write(format=1, features=["species", "evoltype" ,"id" ],outfile=OutPrefixName+".nhx", format_root_node=True)
+            sp_dup = n.get_species()
+            oldest_sp = sptree.get_common_ancestor(sp_dup)
+            n.S = oldest_sp.S
+            logger.debug("sp_dup: %s ",sp_dup)
+            EventSummary.append("event(%i,duplication)" %(n.S))
+    else:
+        n.Ev = "S"
+    logger.debug("name: %s",n.name)
+    logger.debug("S: %s",n.S)
+    logger.debug("Ev: %s",n.Ev)
+    logger.debug("ND: %s",n.ND)
+    i+=1
 
 
 EventsFile = OutPrefixName + ".events.txt"
 with open(EventsFile,"w") as File:
         File.write("\n".join(EventSummary)+"\n")
+
+
+recon_tree.prune(genetree.get_leaf_names(),preserve_branch_length=True)
+
+i=0
+node_2events_and_sp = {}
+for n in recon_tree.traverse("postorder"):
+    n.ND = i
+    node_2events_and_sp[n.ND]={"S": n.S, "Ev":n.Ev}
+    i+=1
+
+logger.debug(node_2events_and_sp)
+
+
+i=0
+for n in genetree.traverse("postorder"):
+    n.ND=i
+    n.S=node_2events_and_sp[n.ND]["S"]
+    n.Ev=node_2events_and_sp[n.ND]["Ev"]
+    i+=1
+
+genetree.write(format=1, features=[ "Ev", "S", "ND"],outfile=OutPrefixName+"_ReconciledTree.nhx", format_root_node=True)
 end(0)

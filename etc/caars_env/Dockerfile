@@ -202,6 +202,10 @@ RUN git clone --recursive https://github.com/BenoitMorel/GeneRax && cd GeneRax &
 ENV PATH /opt/GeneRax/build/bin/:$PATH
 
 
+# for trinity
+RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy salmon
+
+
 ##### install local dependencies
 WORKDIR /opt/caars_py_lib
 ENV PYTHONPATH  /opt/caars_py_lib:$PYTHONPATH

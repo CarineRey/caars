@@ -604,8 +604,8 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
   let extension_list_merged = [(".fa","out/MSA_out");(".tree","out/GeneTree_out");(".sp2seq.txt","no_out/Sp2Seq_link")] in
   let extension_list_filtered = [(".discarded.fa","out/FilterSummary_out");(".filter_summary.txt","out/FilterSummary_out")] in
 
-  let extension_list_reconciled = [(".ReconciledTree","","out/GeneTreeReconciled_out");
-                                   (".nhx", "", "out/GeneTreeReconciled_out");
+  let extension_list_reconciled = [("_ReconciledTree.nw","","out/GeneTreeReconciled_nw");
+                                   ("_ReconciledTree.nhx", "", "out/GeneTreeReconciled_out");
                                    (".events.txt", "", "out/DL_out");
                                    (".orthologs.txt", "", "out/Orthologs_out")] in
   (*let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in*)
@@ -755,7 +755,8 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
         ];
         ];
         if configuration.run_reconciliation then
-        [cmd "CountDL.py" ~img [
+        [cmd "python" ~img [
+            file_dump (string Scripts.count_dl);
             opt "-o" ident dloutprefix;
             opt "-sp_tree" dep (Workflow.input (configuration.species_tree_file));
             opt "-rec_trees_dir" dep (Workflow.select merged_reconciled_and_realigned_families_dirs ["out/GeneTreeReconciled_out"])

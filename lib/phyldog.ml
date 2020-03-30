@@ -168,7 +168,7 @@ let generax
     (ali :fasta file)
     : phylotree directory =
     let generax_results_prefix = tmp // "generax_output" in
-    let output_reconciledtree = dest // (family ^ ".ReconciledTree") in
+    let output_reconciledtree = dest // (family ^ "_ReconciledTree.nw") in
     let config = tmp // "config.txt" in
     let tree2 = tmp // "tree_without_empty_line.nw" in
     Workflow.shell ~descr:("generax_by_fam" ^ descr) ~version:4 ~np:threads ~mem:(Workflow.int (1024 * memory)) [
