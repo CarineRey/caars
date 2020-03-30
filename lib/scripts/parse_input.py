@@ -43,7 +43,7 @@ import glob
 import logging
 import re
 
-import ete2
+import ete3
 
 sep = ":"
 
@@ -105,7 +105,7 @@ else: # we create the directory
 
 
 ### Read the species tree
-t = ete2.Tree(species_tree_file)
+t = ete3.Tree(species_tree_file)
 All_Species = [leaf.name for leaf in t.iter_leaves()]
 
 for sp in All_Species:

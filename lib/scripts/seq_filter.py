@@ -46,7 +46,7 @@ import subprocess
 import Aligner
 import PhyloPrograms
 
-from ete2 import Tree
+from ete3 import Tree
 
 start_time = time.time()
 
