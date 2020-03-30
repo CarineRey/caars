@@ -563,7 +563,7 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       (family, w, wf )
     )
 
-let phyldog_by_fam_of_merged_families merged_families configuration =
+let generax_by_fam_of_merged_families merged_families configuration =
   List.map  merged_families ~f:(fun (fam, merged_without_filter_family, merged_and_filtered_family) ->
     let merged_family = match merged_and_filtered_family with
         | Some w -> w
@@ -574,15 +574,9 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let tree = Workflow.select merged_family [ fam.name ^ ".tree" ] in
     let link = Workflow.select merged_family [ fam.name ^ ".sp2seq.txt" ] in
     let sptreefile = Workflow.input configuration.species_tree_file in
-    (*let profileNJ_tree =
-      ProfileNJ.profileNJ ~descr:(":" ^ fam.name) ~sptreefile ~link ~tree
-      |> Fn.flip Workflow.select [ fam.name ^ ".tree" ] in*)
     let threads = 1 in
     let memory = Stdlib.min 1 (Stdlib.(configuration.memory / configuration.threads)) in
-    (*let topogene = configuration.refinetree in*)
-    (*(fam, Phyldog.phyldog_by_fam ~family:fam.name ~descr:(":" ^ fam.name) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)*)
-    
-    (fam, Phyldog.generax ~family:fam.name ~descr:(":" ^ fam.name) ~threads ~memory ~sptreefile ~link ~tree ali, merged_family)
+    (fam, Generax.generax ~family:fam.name ~descr:(":" ^ fam.name) ~threads ~memory ~sptreefile ~link ~tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families =
@@ -767,40 +761,6 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
 
     ])
 
-(*
-
-let output_of_phyldog phyldog merged_families families =
-  Workflow.shell ~descr:"output_of_phyldog" ~version:1 [
-    mkdir_p (dest // "Alignments");
-    mkdir_p (dest // "Sp2Seq_link");
-    mkdir_p (dest // "Gene_trees");
-    let extension_list = [(".fa","Alignments");(".sp2seq.txt","Sp2Seq_link")] in
-    let script = Bistro.Template.(
-        seq ~sep:"\n" [
-          List.map extension_list ~f:(fun (ext,dir) ->
-              List.map  merged_families ~f:(fun (f, w) ->
-                  let input = w / Workflow.select [ f ^ ext ] in
-                  let output = dest // dir // (f ^ ext)  in
-                  seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-                )
-              |> seq ~sep:"\n"
-            )
-          |> seq ~sep:"\n" ;
-          let (ext,dir) = (".ReconciledTree","Gene_trees/") in
-          List.map families ~f:(fun f ->
-              let input = phyldog / Workflow.select [ dir ^ f ^ ext ] in
-              let output = dest // dir // (f ^ ".tree")  in
-              seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-            )
-          |> seq ~sep:"\n";
-        ]
-      )
-    in
-    cmd "bash" [ file_dump script ];
-  ]
-
-  *)
-
 let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families  ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_annotated_fams =
   let any = Repo.precious_item in
   let unwrap_fasta_sample = function
@@ -945,7 +905,7 @@ let build_term configuration =
 
   let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_annotated_fams in
 
-  let merged_and_reconciled_families = phyldog_by_fam_of_merged_families merged_families configuration in
+  let merged_and_reconciled_families = generax_by_fam_of_merged_families merged_families configuration in
 
   let merged_reconciled_and_realigned_families = realign_merged_families merged_and_reconciled_families in
 
