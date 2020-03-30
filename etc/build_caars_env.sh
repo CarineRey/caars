@@ -4,7 +4,7 @@ set -euo pipefail +o nounset
 
 IMAGE_NAME=caars_env
 DOCKERFILE_DIR=caars_env
-TAG="master"
+TAG="generax_20200330"
 REPO=carinerey/$IMAGE_NAME:$TAG
 cp -r ../utils $DOCKERFILE_DIR
 docker build -t $REPO $DOCKERFILE_DIR
