@@ -381,6 +381,14 @@ let build_target_query ref_species family configuration trinity_annotated_fams a
     )
 *)
 
+let remove_dot input :fasta file=
+  Workflow.shell ~descr:("rename_seq") [
+    cmd "sed" ~stdout:dest ~img [
+      opt "-r" string {|"s/\./ /g"|};
+      dep input; 
+    ]
+  ] (* TOBEFIX in apytram, seq id lenght must be < 50 for blast db *)
+
 let checkfamily
   ?(descr="")
   ~ref_db
@@ -392,13 +400,14 @@ let checkfamily
   : fasta file =
   let tmp_checkfamily = tmp // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
+  
   Workflow.shell ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
     cmd "python" ~img [
       file_dump (string Scripts.check_family);
       opt "-tmp" ident tmp_checkfamily ;
-      opt "-i" dep input ;
+      opt "-i" dep (remove_dot input) ;
       opt "-t" dep ref_transcriptome ;
       opt "-f" string family;
       opt "-t2f" dep seq2fam;

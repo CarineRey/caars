@@ -19,6 +19,7 @@ RUN apt-get install --no-install-recommends  -qy git \
                         rsync \
                         samtools \
                         jellyfish \
+                        salmon \
 #To install Transdecoder
                         libany-uri-escape-perl \
 # to install bowtie2
@@ -32,7 +33,7 @@ RUN apt-get install --no-install-recommends  -qy git \
 RUN apt-get install --no-install-recommends  -qy \
 # to mafft
                         ruby \
-#to install ete2
+#to install ete3
                         python-setuptools \
                         python-qt4 \
                         python-tk \
@@ -48,8 +49,10 @@ RUN apt-get install --no-install-recommends  -qy \
                         pkg-config \
                         libncurses5-dev \
                         libgdbm-dev \
-# to install phyldog
-                        cmake \
+# to install generax
+                        flex \
+                        bison \
+                        libgmp3-dev \
                         g++ \
                         libboost-all-dev \
                         ssh \ 
@@ -60,28 +63,25 @@ RUN apt-get install --no-install-recommends  -qy \
                         aspcud \
                         less
 
-RUN pip install ete2 wheel numpy pandas matplotlib biopython
+RUN pip install wheel numpy pandas matplotlib biopython
 
-#### install profileNJ
-RUN pip install ete3==3.0.0b35 profileNJ 
-
-RUN sed -i "s/numpy.set_printoptions(threshold=.*)/numpy.set_printoptions(precision=10)/" /usr/local/lib/python2.7/dist-packages/profileNJ/PolytomySolver/Multipolysolver.py
-
+#### install
+RUN pip install ete3==3.0.0b35
 
 ### install openjdk-11-jre
 RUN echo "deb http://httpredir.debian.org/debian stretch-backports main" >> /etc/apt/sources.list && mkdir /usr/share/man/man1 && \
     apt-get update && apt-get install --no-install-recommends -t stretch-backports -qy ca-certificates-java openjdk-11-jre-headless 
 
 
-###  install bowtie2 2.3.3.1
-ENV bowtie_version 2.3.3.1
+###  install bowtie2 2.3.5.1
+ENV bowtie_version 2.3.5.1
 WORKDIR /opt
 RUN wget https://sourceforge.net/projects/bowtie-bio/files/bowtie2/"$bowtie_version"/bowtie2-"$bowtie_version"-source.zip &&\
     unzip bowtie2-"$bowtie_version"-source.zip && cd bowtie2-"$bowtie_version"/ && make && make install
 
 
-###  install ncbi-blast+=2.6.0
-ENV blast_version 2.6.0
+###  install ncbi-blast+=2.9.0
+ENV blast_version 2.9.0
 WORKDIR /opt
 RUN wget ftp://ftp.ncbi.nih.gov/blast/executables/blast+/"$blast_version"/ncbi-blast-"$blast_version"+-x64-linux.tar.gz &&\
     tar zxf ncbi-blast-"$blast_version"+-x64-linux.tar.gz
@@ -112,10 +112,11 @@ ENV PATH /opt/cdhit/cd-hit-auxtools:$PATH
 
 
 #### install TransDecoder
-ENV transdecoder_version 3.0.1
+ENV transdecoder_version TransDecoder-v5.5.0
 WORKDIR /opt
-RUN wget https://github.com/TransDecoder/TransDecoder/archive/v"$transdecoder_version".zip &&\
-    unzip v"$transdecoder_version".zip  && rm v"$transdecoder_version".zip && \
+
+RUN wget https://github.com/TransDecoder/TransDecoder/archive/"$transdecoder_version".zip &&\
+    unzip "$transdecoder_version".zip  && rm "$transdecoder_version".zip && \
     ls /opt/ && cd /opt/TransDecoder-"$transdecoder_version"/ && make && ls /opt
 ENV PATH /opt/TransDecoder-"$transdecoder_version"/:$PATH
 
@@ -134,6 +135,12 @@ ENV PATH /opt/apytram:$PATH
 WORKDIR /usr/local/bin
 RUN wget http://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz && \
     tar xvzf muscle3.8.31_i86linux64.tar.gz && rm muscle3.8.31_i86linux64.tar.gz && mv muscle3.8.31_i86linux64 muscle
+
+
+##### install generax
+WORKDIR  /opt/
+RUN git clone --recursive https://github.com/BenoitMorel/GeneRax && cd GeneRax && ./install.sh
+ENV PATH /opt/GeneRax/build/bin/:$PATH
 
 #### install bpp
 
@@ -190,21 +197,6 @@ ENV PERL5LIB $HOME/.opam/4.09.0/lib/perl5:$PERL5LIB
 ##### install bistro
 RUN opam pin add -y bistro --dev-repo
 RUN opam install ocamlify
-
-
-##### install generax
-WORKDIR  /opt/
-
-# for generax
-RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy flex bison libgmp3-dev
-
-RUN git clone --recursive https://github.com/BenoitMorel/GeneRax && cd GeneRax && ./install.sh
-ENV PATH /opt/GeneRax/build/bin/:$PATH
-
-
-# for trinity
-RUN apt-get clean && apt-get update && apt-get install --no-install-recommends -qy salmon
-
 
 ##### install local dependencies
 WORKDIR /opt/caars_py_lib

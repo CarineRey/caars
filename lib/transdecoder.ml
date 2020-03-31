@@ -65,11 +65,12 @@ let transdecoder
                 else
                   ":" ^ descr
   in
-  let tmp_fasta = string "tmp" in
+  let tmp_fasta = dest // "tmp.fa" in
   Workflow.shell ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(Workflow.int (1024 * memory)) [
     mkdir_p dest;
     within_container img (
       and_list [
+        mkdir_p tmp;      
         cd dest;
         cmd "bash" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
         cmd "TransDecoder.LongOrfs" ~img [
@@ -81,7 +82,14 @@ let transdecoder
           opt "-t" ident tmp_fasta ;
           opt "--cpu" ident np ;
           option (flag string "--single_best_orf") only_best_orf ;
-          option (opt "--retain_long_orfs" int ) retain_long_orfs ;
+          option (opt "--retain_long_orfs_length" int ) retain_long_orfs ;
+          string "||";
+          string "TransDecoder.Predict";
+          opt "-t" ident tmp_fasta ;
+          opt "--cpu" ident np ;
+          option (flag string "--single_best_orf") only_best_orf ;
+          option (opt "--retain_long_orfs_length" int ) retain_long_orfs ;
+          string "--no_refine_starts "
         ] ;
         mv (string "*.cds") (string "orfs.cds") ;
       ] ;
