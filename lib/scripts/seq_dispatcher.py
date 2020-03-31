@@ -274,7 +274,7 @@ if Not_correct_database:
     if not os.path.isfile(TargetFile):
        logger.error("The fasta file (-t) does not exist.")
        end(1)
-    
+
     if len(Databases) > 1:
         DatabaseName = "%s/Target_DB" %TmpDirName
         Databases = [DatabaseName]
@@ -344,7 +344,7 @@ start_blast_time = time.time()
 BlastOutputFile = "%s/Queries_Targets.blast" % (TmpDirName)
 BlastnProcess = BlastPlus.Blast("blastn", QueryFile, db_list=Databases)
 BlastnProcess.Evalue = Evalue
-BlastnProcess.Task = "dc-megablast"
+BlastnProcess.Task = "blastn"
 BlastnProcess.max_target_seqs = 500
 BlastnProcess.max_hsps_per_subject = 1
 BlastnProcess.Threads = Threads
@@ -386,16 +386,29 @@ for Query in QueryNames:
     else:
         TmpBestScore = max(TmpTable.score)
 
-        BestTargetTable = TmpTable[TmpTable.score == TmpBestScore]
-        BestTargetTable.is_copy = False
+        flag_dup_fam = True
+        threshold_list=[1]
+        t_i=0
 
-        BestTarget = BestTargetTable.tid.values
-        BestTargetTable["reverse_calc"] = (BestTargetTable["qend"] - BestTargetTable["qstart"]) * (BestTargetTable["tend"] - BestTargetTable["tstart"])
+        while flag_dup_fam and t_i < len(threshold_list):
 
-        BestTargetTable.loc[BestTargetTable['reverse_calc'] >= 0, "reverse"] = False
-        BestTargetTable.loc[BestTargetTable['reverse_calc'] < 0, 'reverse'] = True
+            BestTargetTable = TmpTable[TmpTable.score >= threshold_list[t_i] * TmpBestScore]
+            BestTargetTable.is_copy = False
 
-        TmpFamily = BestTargetTable["Family"].unique()
+            BestTarget = BestTargetTable.tid.values
+            BestTargetTable["reverse_calc"] = (BestTargetTable["qend"] - BestTargetTable["qstart"]) * (BestTargetTable["tend"] - BestTargetTable["tstart"])
+
+            BestTargetTable.loc[BestTargetTable['reverse_calc'] >= 0, "reverse"] = False
+            BestTargetTable.loc[BestTargetTable['reverse_calc'] < 0, 'reverse'] = True
+
+            TmpFamily = BestTargetTable["Family"].unique()
+
+            if len(TmpFamily) > 1:
+                logger.debug("More than one family can be attributed with the threshold [%s * maxscore] to %s. Try with another threshold.", threshold_list[t_i], Query)
+            else:
+                flag_dup_fam = False
+
+            t_i+=1
 
         if len(TmpFamily) > 1:
             logger.info("More than one family can be attributed to %s:\n\t- %s\nIt will be discarded.", Query, "\n\t- ".join(TmpFamily))
@@ -409,6 +422,7 @@ for Query in QueryNames:
                 HitDic[Family][Target]["Query"].append(Query)
                 HitDic[Family][Target]["Score"].append(TmpBestScore)
                 HitDic[Family][Target]["Reverse"].append(BestTargetTable.reverse[BestTargetTable.tid == Target].values[0])
+
 
 
 #if NoHitList:

@@ -381,14 +381,6 @@ let build_target_query ref_species family configuration trinity_annotated_fams a
     )
 *)
 
-let remove_dot input :fasta file=
-  Workflow.shell ~descr:("rename_seq") [
-    cmd "sed" ~stdout:dest ~img [
-      opt "-r" string {|"s/\./ /g"|};
-      dep input; 
-    ]
-  ] (* TOBEFIX in apytram, seq id lenght must be < 50 for blast db *)
-
 let checkfamily
   ?(descr="")
   ~ref_db
@@ -407,7 +399,7 @@ let checkfamily
     cmd "python" ~img [
       file_dump (string Scripts.check_family);
       opt "-tmp" ident tmp_checkfamily ;
-      opt "-i" dep (remove_dot input) ;
+      opt "-i" dep input;
       opt "-t" dep ref_transcriptome ;
       opt "-f" string family;
       opt "-t2f" dep seq2fam;
@@ -427,7 +419,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (ref_transcriptomes r configuration_dir))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (ref_seq_fam_links r configuration_dir))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ~equal:Poly.( = ) ref_blast_dbs r) in
-    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-40 in
+    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-6 in
     (s, f, checked_families_fasta)
     ) in
   (fam, checked_fws)
@@ -564,10 +556,10 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let sp2seq = Workflow.select w [family.name ^ ".sp2seq.txt"] in
 
       let filter_threshold = configuration.ali_sister_threshold in
-      let wf = match (filter_threshold, (List.length species_to_refine_list)) with
-        | (f, l) when (Float.(f > 0.) && (l > 0)) ->
+      let wf = match (List.length species_to_refine_list) with
+        | l when (l > 0) ->
                  Some (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family:family.name ~tree ~alignment ~sp2seq)
-        | (_, _) ->  None
+        | _ ->  None
         in
       (family, w, wf )
     )
@@ -620,7 +612,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     mkdir_p (dest // "no_out" // "Sp2Seq_link");
     ]
     ;
-    if Float.(configuration.ali_sister_threshold > 0.) && (List.length configuration.all_ref_samples) > 0 then
+    if (List.length configuration.all_ref_samples) > 0 then
         [mkdir_p (dest // "out" // "FilterSummary_out")]
     else
         []
@@ -648,7 +640,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 seq ~sep:" " [ string "cp"; dep input ; ident output ]
               )
               ;
-              if Float.(configuration.ali_sister_threshold > 0.) &&  ((List.length configuration.all_ref_samples) > 0) then
+              if List.length configuration.all_ref_samples > 0 then
                 List.map extension_list_filtered ~f:(fun (ext,dir) ->
                     let input = Workflow.select merged_w [ f.name  ^ ext ] in
                     let output = dest // dir // (f.name  ^ ext)  in
@@ -885,9 +877,9 @@ let build_term configuration =
                         let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> ref_fams sp fam.name configuration_dir)) in
                         let target_query = build_target_query ref_species fam.name configuration trinity_annotated_fams apytram_group in
                         let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
-                        let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if Poly.equal s.ref_species ref_species then Some db else None) in
+                        let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if (Poly.equal s.ref_species ref_species && Poly.equal s.apytram_group apytram_group) then Some db else None) in
                         let time_max = 18000 * List.length compressed_reads_dbs in
-                        let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam:fam.name ~query compressed_reads_dbs in
+                        let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~mal:66 ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam:fam.name ~query compressed_reads_dbs in
                         List.filter_map configuration.apytram_samples ~f:(fun s ->
                           if Poly.(s.ref_species = ref_species) && Poly.(s.apytram_group = apytram_group) then
                               let apytram_filename = "apytram." ^ fam.name ^ "." ^ s.id ^ ".fasta" in

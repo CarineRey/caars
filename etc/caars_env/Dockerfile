@@ -128,7 +128,7 @@ ENV PATH /opt/TransDecoder-"$transdecoder_version"/:$PATH
 ### install apytram
 WORKDIR /opt/apytram
 RUN git clone https://github.com/carinerey/apytram /opt/apytram &&\
-    git pull && git checkout a3cb5da
+    git pull && git checkout 1cf5cfd
 ENV PATH /opt/apytram:$PATH
 
 ### Install muscle
