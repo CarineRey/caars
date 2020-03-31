@@ -1,4 +1,4 @@
-FROM carinerey/caars_env:generax_20200330
+FROM carinerey/caars_env:generax_20200331
 MAINTAINER Carine Rey carine.rey@ens-lyon.org
 
 ### install caars master
