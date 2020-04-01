@@ -62,7 +62,7 @@ let parse_orientation id = function
 let str_list_sample_line l =
   let rec str_elements i = function
     | [] -> ""
-    | h::t -> "col #" ^ (string_of_int  i) ^ ": " ^ h ^ ";" ^ (str_elements (i+1) t)
+    | h::t -> "col #" ^ (string_of_int  i) ^ ": " ^ h ^ ";\n" ^ (str_elements (i+1) t)
   in
   "[" ^ (str_elements 1 l) ^ "]"
 
@@ -116,7 +116,8 @@ let parse_line_fields_of_rna_conf_file = function
        run_apytram
      }
   | [""] -> (printf "Warning: empty line in the sample sheet file\n"; None)
-  | l -> failwith ("Syntax error in the sample sheet file. There aren't 11 tab delimited columns: " ^ (str_list_sample_line l))
+  | l -> failwith ( "Syntax error in the sample sheet file. There aren't 11 tab delimited columns. Contents must be:\n" ^(str_list_sample_line ["id->IDx";"species->my_species";"apytram_group->group1";"ref_species->ref_species";"path_fastq_single->single.fastq/-";"path_fastq_left->-/paired_1.fastq";"path_fastq_right->-/paired_2.fastq";"orientation [F,R,FR,RF,UP,US]";"run_trinity-> y/n";"path_assembly->assembly.fa";"run_apytram-> y/n"]) ^ "\nbut your contnts are:\n" ^ (str_list_sample_line l))
+
 
 module SS = Set.Make(String)
 

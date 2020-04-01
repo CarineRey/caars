@@ -121,25 +121,28 @@ RefSpApytram = []
 RnaSp = []
 
 error_nb = 0
-
+l_nb = 0
 logger.info("Parse the sample sheet")
 with open(config_file, "r") as f:
     HeaderConf = f.readline()
     for line in f:
-        line_list = line.split("\t")
-        if len(line_list) == 11:
+        l_nb +=1
+        line_list = line.strip().split("\t")
+        if line_list == [""]:
+            logger.warning("l%i: empty line", l_nb)
+        elif len(line_list) == 11:
             (rna_id, sp, apytram_group, ref_species, path_fastq_single, path_fastq_left, path_fastq_right, orientation, run_trinity, path_assembly, run_apytram) = line_list
             if path_assembly != "-":
                 if not os.path.isfile(path_assembly):
                     error_nb += 1
-                    logger.error("The given trinity assembly file %s does not exist for %s", path_assembly, rna_id)
+                    logger.error("l%i: The given trinity assembly file %s does not exist for %s", l_nb, path_assembly, rna_id)
             if path_fastq_left == path_fastq_right and path_fastq_left != "-":
                 error_nb += 1
-                logger.error("Left and right fastq files are identical, check sample sheet line of %s", rna_id)
+                logger.error("l%i: Left and right fastq files are identical, check sample sheet line of %s", l_nb, rna_id)
             for ref in ref_species.split(","):
                 if not ref in All_Species:
                     error_nb += 1
-                    logger.error("%s is not in the species tree.\nSpecies in the species tree:\n\t%s", ref, "\n\t".join(All_Species))
+                    logger.error("l%i: %s is not in the species tree.\nSpecies in the species tree:\n\t%s", l_nb,  ref, "\n\t".join(All_Species))
             if sp in All_Species:
                 if run_apytram.strip() in ["y", "yes", "Y", "Yes"]:
                     RefSpApytram.extend(ref_species.split(","))
@@ -149,13 +152,13 @@ with open(config_file, "r") as f:
                     RnaSp.append(sp)
                 if orientation not in ["FR", "RF", "F", "R", "US", "UP","-"]:
                     error_nb += 1
-                    logger.error("orientation must be  in [FR,RF,F,R,US,UP,-] and not: %s", orientation)
+                    logger.error("l%i: orientation must be  in [FR,RF,F,R,US,UP,-] and not: %s", l_nb, orientation)
             else:
                 error_nb += 1
-                logger.error("%s is not in the species tree.\nSpecies in the species tree:\n\t%s", sp, "\n\t".join(All_Species))
+                logger.error("l%i: %s is not in the species tree.\nSpecies in the species tree:\n\t%s", l_nb, sp, "\n\t".join(All_Species))
 
         else:
-            logger.error("Config file has not 10 elements in line:\n%s", line)
+            logger.error("l%i: Config file has not 11 elements in line:\nid	species	apytram_group	ref_species	path_fastq_single	path_fastq_left	path_fastq_right	orientation	run_trinity	path_assembly	run_apytram)\nbut:\n%s", l_nb, line)
             error_nb += 1
 
 
@@ -174,12 +177,15 @@ def read_seq2species_file(Seq2Sp_dict, File):
     if os.path.isfile(File):
         f = open(File, "r")
         for line in f:
-            (seq, sp) = line.split("\t")
-            if not Seq2Sp_dict.has_key(seq):
-                Seq2Sp_dict[seq] = sp.replace("\n", "")
+            if line.strip() == "":
+                pass
             else:
-                logger.error("ERROR : Sequence name \"%s\" is not unique", seq)
-                sys.exit(1)
+                (seq, sp) = line.split("\t")
+                if not Seq2Sp_dict.has_key(seq):
+                    Seq2Sp_dict[seq] = sp.replace("\n", "")
+                else:
+                    logger.error("ERROR : Sequence name \"%s\" is not unique", seq)
+                    sys.exit(1)
         f.close()
     return Seq2Sp_dict
 
@@ -380,7 +386,7 @@ for f in glob.glob("%s/*" %ali_dir):
         for n, s in AliDict_i.items():
             seq = "".join(s)
             length_seq.append(len(seq))
-            invalid_char_tmp = set(re.sub("[ATGCNUWSMKRYBDHV-]","", seq))
+            invalid_char_tmp = set(re.sub("[atgcnuwsmkrybdhvATGCNUWSMKRYBDHV-]","", seq))
             if invalid_char_tmp:
                 invalid_char |= invalid_char_tmp
                 invalid_char_seq.append(n)
