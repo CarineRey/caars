@@ -113,6 +113,19 @@ for sp in All_Species:
         logger.error("The species [%s] contained the separator [%s] used in CAARS. Please remove it." %(sp, sep))
         sys.exit(1)
 
+#check for polytomy
+t_poly = t.copy()
+t_poly.resolve_polytomy()
+
+compare_trees = t_poly.compare(t)
+
+if compare_trees["source_edges_in_ref"] != 1:
+    logger.error("The species tree contains polytomy. Please remove it.")
+    for n in t.traverse():
+        if len(n.children) > 2:
+            logger.error(n)
+    sys.exit(1)
+
 logger.info("Sp:\n%s", ";".join(All_Species))
 
 ### Retrieve Reference species for Trinity or apytram:
@@ -158,7 +171,7 @@ with open(config_file, "r") as f:
                 logger.error("l%i: %s is not in the species tree.\nSpecies in the species tree:\n\t%s", l_nb, sp, "\n\t".join(All_Species))
 
         else:
-            logger.error("l%i: Config file has not 11 elements in line:\nid	species	apytram_group	ref_species	path_fastq_single	path_fastq_left	path_fastq_right	orientation	run_trinity	path_assembly	run_apytram)\nbut:\n%s", l_nb, line)
+            logger.error("l%i: Config file has not 11 elements in line:\nid species apytram_group   ref_species path_fastq_single   path_fastq_left path_fastq_right    orientation run_trinity path_assembly   run_apytram)\nbut:\n%s", l_nb, line)
             error_nb += 1
 
 
