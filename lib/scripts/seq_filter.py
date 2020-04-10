@@ -46,7 +46,7 @@ import subprocess
 import Aligner
 import PhyloPrograms
 
-from ete2 import Tree
+from ete3 import Tree
 
 start_time = time.time()
 
@@ -322,7 +322,7 @@ class Sequence(object):
         return(">" + self.Name + "\n" + '\n'.join(self.Sequence[i:i+60] for i in range(0, len(self.Sequence), 60)) + "\n")
 
 
-if args.filter_threshold > 0:
+if args.filter_threshold >= 0:
     logger.info("All sequences with a percentage of alignement with its sister sequence under %s will be discarded.", args.filter_threshold)
     sequenceTodiscard = []
     sequenceTokeep = []

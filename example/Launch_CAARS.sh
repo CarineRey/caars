@@ -15,11 +15,17 @@ START=$(date +%s)
 mkdir -p $WORKING_DIR
 cd $WORKING_DIR
 
-if [[ $1 == "docker" ]]
+if (( $# == 0 ))
 then
-use_docker="--use-docker"
+    echo "no arguments"
+    use_docker=""
 else
-use_docker=""
+    if [[ $1 == "docker" ]]
+        then
+        use_docker="--use-docker"
+        else
+        use_docker=""
+        fi
 fi
 
 ../../caars  --outdir $OUTPUT_DIR/justparseinput --sample-sheet $DATA_DIR/sample_sheet.tsv --species-tree $DATA_DIR/species_tree.nw --alignment-dir $DATA_DIR/gene_fams/ --seq2sp-dir $DATA_DIR/sp2seq_links/ --np 2 --memory 5 --mpast 50 --refinetree $use_docker --family-subset $DATA_DIR/subset_fam.txt --just-parse-input

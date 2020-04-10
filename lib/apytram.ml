@@ -114,7 +114,7 @@ let apytram_multi_species
         option (opt "-e" float ) evalue;
         option (opt "-id" float ) id ;
         option (opt "-fid" float ) fid ;
-        option (opt "-mal" float ) mal ;
+        option (opt "-mal" int ) mal ;
         option (opt "-fmal" float ) fmal ;
         option (opt "-len" float ) len ;
         option (opt "-flen" float ) flen ;

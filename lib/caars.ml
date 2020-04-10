@@ -109,7 +109,7 @@ let fastq_to_fasta_conversion {all_ref_samples;_} =
 let normalize_fasta fasta_reads memory max_memory threads =
   List.map fasta_reads ~f:(fun (s, fasta_sample) ->
       let max_cov = 20 in
-      let normalization_dir = Trinity.fasta_read_normalization_2 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory ~max_memory fasta_sample in
+      let normalization_dir = Trinity.fasta_read_normalization_3 ~descr:(s.id ^ "_" ^ s.species) max_cov ~threads ~memory ~max_memory fasta_sample in
       let norm_fasta_sample_to_normalization_dir normalization_dir = function
         | Fasta_Single_end (_, o ) -> Fasta_Single_end (Workflow.select normalization_dir ["single.norm.fa"], o )
         | Fasta_Paired_end (_, _ , o) -> Fasta_Paired_end (Workflow.select normalization_dir ["left.norm.fa"],
@@ -392,13 +392,14 @@ let checkfamily
   : fasta file =
   let tmp_checkfamily = tmp // "tmp" in
   let dest_checkfamily = dest // "sequences.fa" in
+  
   Workflow.shell ~version:8 ~descr:("CheckFamily.py" ^ descr) [
     mkdir_p tmp_checkfamily;
     cd tmp_checkfamily;
     cmd "python" ~img [
       file_dump (string Scripts.check_family);
       opt "-tmp" ident tmp_checkfamily ;
-      opt "-i" dep input ;
+      opt "-i" dep input;
       opt "-t" dep ref_transcriptome ;
       opt "-f" string family;
       opt "-t2f" dep seq2fam;
@@ -418,7 +419,7 @@ let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuratio
     let ref_transcriptome = concat ~descr:(descr_ref ^  ".ref_transcriptome") (List.map s.ref_species ~f:(fun r -> (ref_transcriptomes r configuration_dir))) in
     let seq2fam = concat ~descr:(descr_ref ^ ".seq2fam") (List.map s.ref_species ~f:(fun r -> (ref_seq_fam_links r configuration_dir))) in
     let ref_db = List.map s.ref_species ~f:(fun r -> List.Assoc.find_exn ~equal:Poly.( = ) ref_blast_dbs r) in
-    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-40 in
+    let checked_families_fasta = checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-6 in
     (s, f, checked_families_fasta)
     ) in
   (fam, checked_fws)
@@ -555,15 +556,15 @@ let merged_families_of_families configuration configuration_dir trinity_annotate
       let sp2seq = Workflow.select w [family.name ^ ".sp2seq.txt"] in
 
       let filter_threshold = configuration.ali_sister_threshold in
-      let wf = match (filter_threshold, (List.length species_to_refine_list)) with
-        | (f, l) when (Float.(f > 0.) && (l > 0)) ->
+      let wf = match (List.length species_to_refine_list) with
+        | l when (l > 0) ->
                  Some (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family:family.name ~tree ~alignment ~sp2seq)
-        | (_, _) ->  None
+        | _ ->  None
         in
       (family, w, wf )
     )
 
-let phyldog_by_fam_of_merged_families merged_families configuration =
+let generax_by_fam_of_merged_families merged_families configuration =
   List.map  merged_families ~f:(fun (fam, merged_without_filter_family, merged_and_filtered_family) ->
     let merged_family = match merged_and_filtered_family with
         | Some w -> w
@@ -574,13 +575,9 @@ let phyldog_by_fam_of_merged_families merged_families configuration =
     let tree = Workflow.select merged_family [ fam.name ^ ".tree" ] in
     let link = Workflow.select merged_family [ fam.name ^ ".sp2seq.txt" ] in
     let sptreefile = Workflow.input configuration.species_tree_file in
-    let profileNJ_tree =
-      ProfileNJ.profileNJ ~descr:(":" ^ fam.name) ~sptreefile ~link ~tree
-      |> Fn.flip Workflow.select [ fam.name ^ ".tree" ] in
     let threads = 1 in
     let memory = Stdlib.min 1 (Stdlib.(configuration.memory / configuration.threads)) in
-    let topogene = configuration.refinetree in
-    (fam, Phyldog.phyldog_by_fam ~family:fam.name ~descr:(":" ^ fam.name) ~max_gap:95.0 ~threads ~memory ~topogene ~timelimit:9999999 ~sptreefile ~link ~tree:profileNJ_tree ali, merged_family)
+    (fam, Generax.generax ~family:fam.name ~descr:(":" ^ fam.name) ~threads ~memory ~sptreefile ~link ~tree ali, merged_family)
     )
 
 let realign_merged_families merged_and_reconciled_families =
@@ -602,9 +599,10 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
   let extension_list_merged = [(".fa","out/MSA_out");(".tree","out/GeneTree_out");(".sp2seq.txt","no_out/Sp2Seq_link")] in
   let extension_list_filtered = [(".discarded.fa","out/FilterSummary_out");(".filter_summary.txt","out/FilterSummary_out")] in
 
-  let extension_list_reconciled = [(".ReconciledTree","Gene_trees/","out/GeneTreeReconciled_out");
-                                   (".events.txt", "Species_tree/", "out/DL_out");
-                                   (".orthologs.txt", "Species_tree/", "out/Orthologs_out")] in
+  let extension_list_reconciled = [("_ReconciledTree.nw","","out/GeneTreeReconciled_nw");
+                                   ("_ReconciledTree.nhx", "", "out/GeneTreeReconciled_out");
+                                   (".events.txt", "", "out/DL_out");
+                                   (".orthologs.txt", "", "out/Orthologs_out")] in
   (*let extension_list_realigned = [(".realign.fa","Realigned_fasta/")] in*)
   Workflow.shell ~descr:"build_output_directory" ~version:1 (List.concat [
     [mkdir_p tmp;
@@ -614,7 +612,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
     mkdir_p (dest // "no_out" // "Sp2Seq_link");
     ]
     ;
-    if Float.(configuration.ali_sister_threshold > 0.) && (List.length configuration.all_ref_samples) > 0 then
+    if (List.length configuration.all_ref_samples) > 0 then
         [mkdir_p (dest // "out" // "FilterSummary_out")]
     else
         []
@@ -642,7 +640,7 @@ let merged_families_distributor merged_reconciled_and_realigned_families configu
                 seq ~sep:" " [ string "cp"; dep input ; ident output ]
               )
               ;
-              if Float.(configuration.ali_sister_threshold > 0.) &&  ((List.length configuration.all_ref_samples) > 0) then
+              if List.length configuration.all_ref_samples > 0 then
                 List.map extension_list_filtered ~f:(fun (ext,dir) ->
                     let input = Workflow.select merged_w [ f.name  ^ ext ] in
                     let output = dest // dir // (f.name  ^ ext)  in
@@ -752,7 +750,8 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
         ];
         ];
         if configuration.run_reconciliation then
-        [cmd "CountDL.py" ~img [
+        [cmd "python" ~img [
+            file_dump (string Scripts.count_dl);
             opt "-o" ident dloutprefix;
             opt "-sp_tree" dep (Workflow.input (configuration.species_tree_file));
             opt "-rec_trees_dir" dep (Workflow.select merged_reconciled_and_realigned_families_dirs ["out/GeneTreeReconciled_out"])
@@ -762,40 +761,6 @@ let build_final_plots orthologs_per_seq merged_reconciled_and_realigned_families
         []
 
     ])
-
-(*
-
-let output_of_phyldog phyldog merged_families families =
-  Workflow.shell ~descr:"output_of_phyldog" ~version:1 [
-    mkdir_p (dest // "Alignments");
-    mkdir_p (dest // "Sp2Seq_link");
-    mkdir_p (dest // "Gene_trees");
-    let extension_list = [(".fa","Alignments");(".sp2seq.txt","Sp2Seq_link")] in
-    let script = Bistro.Template.(
-        seq ~sep:"\n" [
-          List.map extension_list ~f:(fun (ext,dir) ->
-              List.map  merged_families ~f:(fun (f, w) ->
-                  let input = w / Workflow.select [ f ^ ext ] in
-                  let output = dest // dir // (f ^ ext)  in
-                  seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-                )
-              |> seq ~sep:"\n"
-            )
-          |> seq ~sep:"\n" ;
-          let (ext,dir) = (".ReconciledTree","Gene_trees/") in
-          List.map families ~f:(fun f ->
-              let input = phyldog / Workflow.select [ dir ^ f ^ ext ] in
-              let output = dest // dir // (f ^ ".tree")  in
-              seq ~sep:" " [ string "ln -s"; dep input ; ident output ]
-            )
-          |> seq ~sep:"\n";
-        ]
-      )
-    in
-    cmd "bash" [ file_dump script ];
-  ]
-
-  *)
 
 let precious_workflows ~configuration_dir ~norm_fasta ~trinity_assemblies ~trinity_orfs ~reads_blast_dbs ~trinity_annotated_fams ~apytram_checked_families  ~merged_families ~merged_and_reconciled_families ~merged_reconciled_and_realigned_families ~apytram_annotated_fams =
   let any = Repo.precious_item in
@@ -912,9 +877,9 @@ let build_term configuration =
                         let guide_query = concat ~descr (List.map ref_species ~f:(fun sp -> ref_fams sp fam.name configuration_dir)) in
                         let target_query = build_target_query ref_species fam.name configuration trinity_annotated_fams apytram_group in
                         let query = concat ~descr:(descr ^ ".+seqdispatcher") [guide_query; target_query] in
-                        let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if Poly.equal s.ref_species ref_species then Some db else None) in
+                        let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun (s, db) -> if (Poly.equal s.ref_species ref_species && Poly.equal s.apytram_group apytram_group) then Some db else None) in
                         let time_max = 18000 * List.length compressed_reads_dbs in
-                        let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam:fam.name ~query compressed_reads_dbs in
+                        let w = Apytram.apytram_multi_species ~descr ~time_max ~no_best_file:true ~write_even_empty:true ~mal:66 ~i:5 ~evalue:1e-10 ~out_by_species:true ~memory:divided_thread_memory ~fam:fam.name ~query compressed_reads_dbs in
                         List.filter_map configuration.apytram_samples ~f:(fun s ->
                           if Poly.(s.ref_species = ref_species) && Poly.(s.apytram_group = apytram_group) then
                               let apytram_filename = "apytram." ^ fam.name ^ "." ^ s.id ^ ".fasta" in
@@ -941,7 +906,7 @@ let build_term configuration =
 
   let merged_families = merged_families_of_families configuration configuration_dir trinity_annotated_fams apytram_annotated_fams in
 
-  let merged_and_reconciled_families = phyldog_by_fam_of_merged_families merged_families configuration in
+  let merged_and_reconciled_families = generax_by_fam_of_merged_families merged_families configuration in
 
   let merged_reconciled_and_realigned_families = realign_merged_families merged_and_reconciled_families in
 

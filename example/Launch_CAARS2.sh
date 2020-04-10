@@ -7,13 +7,18 @@ WORKING_DIR=$CURRENT_DIR/working2_dir
 OUTPUT_DIR=$CURRENT_DIR/output2_dir
 DATA_DIR=$CURRENT_DIR/data
 
-if [[ $1 == "docker" ]]
+if (( $# == 0 ))
 then
-use_docker="--use-docker"
+    echo "no arguments"
+    use_docker=""
 else
-use_docker=""
+    if [[ $1 == "docker" ]]
+        then
+        use_docker="--use-docker"
+        else
+        use_docker=""
+        fi
 fi
-
 
 echo "START:"
 date
