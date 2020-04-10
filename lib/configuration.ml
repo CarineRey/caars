@@ -248,12 +248,12 @@ let load ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir ~np ~memor
                           | _ ->  0 );}
   )
   in
-  let _ = (printf "%i families in %s.\n" (List.length all_families) alignments_dir; ())  in
-  let _ = (printf "%i families will be used.\n" (List.length used_families); ())  in
+  let () = (printf "%i families in %s.\n" (List.length all_families) alignments_dir; ())  in
+  let () = (printf "%i families will be used.\n" (List.length used_families); ())  in
   let merge_criterion = parse_merge_criterion merge_criterion in
 
-  let _ = if debug then (printf "debug: %b.\n" (debug))  else ()  in
-  let _ = if get_reads then (printf "get_reads: %b.\n" (get_reads))  else ()  in
+  let () = if debug then (printf "debug: %b.\n" (debug))  else ()  in
+  let () = if get_reads then (printf "get_reads: %b.\n" (get_reads))  else ()  in
 
   if List.contains_dup id_list ~compare:String.compare then
     failwith {|There are duplicate id in the first colum of the config file.|}
