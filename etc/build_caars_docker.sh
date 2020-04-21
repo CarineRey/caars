@@ -38,7 +38,7 @@ else
     export TAG="dev_$BRANCH_$HASH"
 fi
 
-REPO=carinerey/$IMAGE_NAME:$TAG
+REPO=carinerey/$IMAGE_NAME
 
 if [[ $push_flag == "only_pull" ]]
 then
@@ -55,11 +55,14 @@ then
     exit 0
 fi
 
+echo "## Build docker: $REPO:$TAG ##"
+docker build --no-cache --build-arg BRANCH=$BRANCH --build-arg ENV_TAG=$ENV_TAG -t $REPO:$TAG $DOCKERFILE_DIR
 echo "## Build docker: $REPO ##"
-docker build --no-cache --build-arg BRANCH=$BRANCH --build-arg ENV_TAG=$ENV_TAG -t $REPO $DOCKERFILE_DIR
+docker build --build-arg BRANCH=$BRANCH --build-arg ENV_TAG=$ENV_TAG -t $REPO $DOCKERFILE_DIR
 
 if [[ $push_flag == "push_yes" ]]
 then
     echo "## Push docker ##"
+    docker push $REPO:$TAG
     docker push $REPO
 fi
