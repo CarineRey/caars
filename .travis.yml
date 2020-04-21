@@ -9,7 +9,7 @@ install:
   - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
   - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
   - if [[ $BRANCH == "master" ]]; then export DOCKER_caars="caars"; else export DOCKER_caars="caars_dev"; fi
-  - make pull_caars_env_docker
+  - make pull_caars_env_docker_travis
 before_script:
   - make build_caars_docker
 script:

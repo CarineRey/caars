@@ -25,6 +25,8 @@ build_caars_docker:
 
 pull_caars_env_docker:
 	cd etc && ./build_caars_docker.sh only_pull_env
+pull_caars_env_docker_travis:
+	cd etc && ./build_caars_docker.sh only_pull_env ${TRAVIS_BRANCH}
 pull_caars_docker:
 	cd etc && ./build_caars_docker.sh only_pull
 

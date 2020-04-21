@@ -5,6 +5,16 @@ set -euo pipefail +o nounset
 export HASH=`git rev-parse --short HEAD`
 export BRANCH=`git branch | grep \* | cut -d ' ' -f2`
 push_flag=$1
+branch_flag=$2
+
+if [[ ! -z $branch_flag ]]
+then
+    #For travis
+    echo "Replace BRANCH for travis"
+    echo "from: $BRANCH"
+    echo "to: $branch_flag"
+    BRANCH=$branch_flag
+fi
 
 if [ $BRANCH = "master" ]
 then
@@ -22,8 +32,8 @@ else
     IMAGE_NAME=caars_dev
     DOCKERFILE_DIR=caars_dev
 
-    export ENV_TAG="dev_"$BRANCH"_20200421"
-    #export ENV_TAG="generax_20200331"
+    #export ENV_TAG="dev_"$BRANCH"_20200421"
+    export ENV_TAG="generax_20200331"
 
     export TAG="dev_$BRANCH_$HASH"
 fi
