@@ -35,9 +35,9 @@ pull_caars_docker:
 push_caars_env_docker:
 	cd etc && ./build_caars_env.sh push_yes
 push_caars_docker:
-	cd etc && ./build_caars.sh push_yes
+	cd etc && ./build_caars_docker.sh push_yes
 push_caars_docker_travis:
-	cd etc && ./build_caars.sh push_yes ${TRAVIS_BRANCH}
+	cd etc && ./build_caars_docker.sh push_yes ${TRAVIS_BRANCH}
 
 ##########################
 # Some tests             #
