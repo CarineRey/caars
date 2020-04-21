@@ -23,7 +23,7 @@ build_caars_env_docker:
 build_caars_docker:
 	cd etc && ./build_caars_docker.sh
 build_caars_docker_travis:
-	cd etc && ./build_caars_docker.sh ${TRAVIS_BRANCH}
+	cd etc && ./build_caars_docker.sh build ${TRAVIS_BRANCH}
 
 pull_caars_env_docker:
 	cd etc && ./build_caars_docker.sh only_pull_env
@@ -37,7 +37,7 @@ push_caars_env_docker:
 push_caars_docker:
 	cd etc && ./build_caars.sh push_yes
 push_caars_docker_travis:
-	cd etc && ./build_caars.sh ${TRAVIS_BRANCH}
+	cd etc && ./build_caars.sh push_yes ${TRAVIS_BRANCH}
 
 ##########################
 # Some tests             #
