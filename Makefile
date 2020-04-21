@@ -23,6 +23,11 @@ build_caars_env_docker:
 build_caars_docker:
 	cd etc && ./build_caars_docker.sh
 
+pull_caars_env_docker:
+	cd etc && ./build_caars_docker.sh only_pull_env
+pull_caars_docker:
+	cd etc && ./build_caars_docker.sh only_pull
+
 push_caars_env_docker:
 	cd etc && ./build_caars_env.sh push_yes
 push_caars_docker:

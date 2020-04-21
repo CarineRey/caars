@@ -4,6 +4,7 @@ set -euo pipefail +o nounset
 
 export HASH=`git rev-parse --short HEAD`
 export BRANCH=`git branch | grep \* | cut -d ' ' -f2`
+push_flag=$1
 
 if [ $BRANCH = "master" ]
 then
@@ -29,14 +30,26 @@ fi
 
 REPO=carinerey/$IMAGE_NAME:$TAG
 
+if [[ $push_flag == "only_pull" ]]
+then
+    echo "## Pull docker $REPO ##"
+    docker pull $REPO
+    exit 0
+fi
+
+if [[ $push_flag == "only_pull_env" ]]
+then
+    ENV_DEPO=carinerey/caars_env:$ENV_TAG
+    echo "## Pull docker $ENV_DEPO ##"
+    docker pull $ENV_DEPO
+    exit 0
+fi
+
 echo "## Build docker: $REPO ##"
-
 docker build --no-cache --build-arg BRANCH=$BRANCH --build-arg ENV_TAG=$ENV_TAG -t $REPO $DOCKERFILE_DIR
-
-push_flag=$1
 
 if [[ $push_flag == "push_yes" ]]
 then
     echo "## Push docker ##"
-    docker push $REPO:$TAG
+    docker push $REPO
 fi

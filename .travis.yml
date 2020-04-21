@@ -6,17 +6,15 @@ os:
   - linux
 
 install:
-  - docker pull carinerey/caars_env:latest
-before_script:
   - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
   - echo "TRAVIS_BRANCH=$TRAVIS_BRANCH, BRANCH=$BRANCH"
   - if [[ $BRANCH == "master" ]]; then export DOCKER_caars="caars"; else export DOCKER_caars="caars_dev"; fi
+  - make pull_caars_env_docker
+before_script:
   - make build_caars_docker
-
 script:
   - docker run -v $PWD:$PWD -t carinerey/$DOCKER_caars bash -c "cd /opt/caars && make test_options"
   - make test_wiki
-
 after_success:
   - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
   - make push_caars_docker
