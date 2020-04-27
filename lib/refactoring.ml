@@ -224,6 +224,7 @@ module Pipeline = struct
     fasta_reads : (Rna_sample.t, fasta SE_or_PE_file.t) List.Assoc.t ;
     normalized_fasta_reads : (Rna_sample.t, fasta SE_or_PE_file.t) List.Assoc.t ;
     trinity_assemblies : (Rna_sample.t, fasta file) List.Assoc.t ;
+    trinity_orfs : (Rna_sample.t, fasta file) List.Assoc.t ;
     ref_blast_dbs : blast_db file assoc ;
   }
 
@@ -272,6 +273,21 @@ module Pipeline = struct
         | (_, _)   -> None
       )
 
+  let transdecoder_orfs_of_trinity_assemblies trinity_assemblies ~memory ~nthreads =
+    assoc_map trinity_assemblies ~f:(fun (s : Rna_sample.t) trinity_assembly ->
+        match s.run_transdecoder, s.precomputed_assembly with
+        | true, None ->
+          let pep_min_length = 50 in
+          let retain_long_orfs = 150 in
+          let descr = id_concat ["Assembly" ; s.id ; s.species] in
+          Transdecoder.transdecoder
+            ~descr ~retain_long_orfs ~pep_min_length ~only_best_orf:false
+            ~memory ~threads:nthreads
+            trinity_assembly
+        | (false, _ )
+        | (true, Some _) -> trinity_assembly
+      )
+
   let ref_blast_dbs (config : Configuration.t) =
     assoc config.reference_species ~f:(fun ref_species ->
         let fasta = Configuration.reference_transcriptome config ref_species in
@@ -290,5 +306,7 @@ module Pipeline = struct
     let fasta_reads = fasta_reads config in
     let normalized_fasta_reads = normalize_fasta_reads fasta_reads memory_per_sample config.memory threads_per_sample in
     let trinity_assemblies = trinity_assemblies_of_norm_fasta normalized_fasta_reads ~memory:memory_per_sample ~nthreads:threads_per_sample in
-    { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ; trinity_assemblies }
+    let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies ~memory:memory_per_sample ~nthreads:threads_per_sample in
+    { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
+      trinity_assemblies ; trinity_orfs }
 end
