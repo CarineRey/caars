@@ -187,6 +187,7 @@ module Rna_sample = struct
     run_apytram : bool ;
     precomputed_assembly : string option ;
   }
+  type 'a assoc = (t * 'a) list
 end
 
 module Configuration = struct
@@ -221,10 +222,12 @@ end
 
 module Pipeline = struct
   type t = {
-    fasta_reads : (Rna_sample.t, fasta SE_or_PE_file.t) List.Assoc.t ;
-    normalized_fasta_reads : (Rna_sample.t, fasta SE_or_PE_file.t) List.Assoc.t ;
-    trinity_assemblies : (Rna_sample.t, fasta file) List.Assoc.t ;
-    trinity_orfs : (Rna_sample.t, fasta file) List.Assoc.t ;
+    fasta_reads : fasta SE_or_PE_file.t Rna_sample.assoc ;
+    normalized_fasta_reads : fasta SE_or_PE_file.t Rna_sample.assoc ;
+    trinity_assemblies : fasta file Rna_sample.assoc ;
+    trinity_orfs : fasta file Rna_sample.assoc ;
+    trinity_assemblies_stats : text file Rna_sample.assoc ;
+    trinity_orfs_stats : text file Rna_sample.assoc ;
     ref_blast_dbs : blast_db file assoc ;
   }
 
@@ -288,6 +291,14 @@ module Pipeline = struct
         | (true, Some _) -> trinity_assembly
       )
 
+  let assemblies_stats_of_assemblies assemblies =
+    assoc_filter_map assemblies ~f:(fun (s : Rna_sample.t) assembly ->
+        match s.precomputed_assembly with
+        | Some _ -> None
+        | None ->
+          Some (Trinity.assembly_stats ~descr:(s.id ^ "_" ^ s.species) assembly)
+      )
+
   let ref_blast_dbs (config : Configuration.t) =
     assoc config.reference_species ~f:(fun ref_species ->
         let fasta = Configuration.reference_transcriptome config ref_species in
@@ -307,6 +318,9 @@ module Pipeline = struct
     let normalized_fasta_reads = normalize_fasta_reads fasta_reads memory_per_sample config.memory threads_per_sample in
     let trinity_assemblies = trinity_assemblies_of_norm_fasta normalized_fasta_reads ~memory:memory_per_sample ~nthreads:threads_per_sample in
     let trinity_orfs = transdecoder_orfs_of_trinity_assemblies trinity_assemblies ~memory:memory_per_sample ~nthreads:threads_per_sample in
+    let trinity_assemblies_stats = assemblies_stats_of_assemblies trinity_assemblies in
+    let trinity_orfs_stats = assemblies_stats_of_assemblies trinity_orfs in
     { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
-      trinity_assemblies ; trinity_orfs }
+      trinity_assemblies ; trinity_orfs ; trinity_assemblies_stats ;
+      trinity_orfs_stats }
 end
