@@ -11,6 +11,9 @@ let assoc keys ~f =
 let assoc_map a ~f =
   List.map a ~f:(fun (k, v) -> k, f k v)
 
+let assoc_filter_map a ~f =
+  List.filter_map a ~f:(fun (k, v) -> Option.map (f k v) ~f:(fun v -> k, v))
+
 let assoc_opt keys ~f =
   List.filter_map keys ~f:(fun k ->
       Option.map (f k) ~f:(fun v -> k, v)
@@ -19,6 +22,11 @@ let assoc_opt keys ~f =
 let id_concat xs =
   List.filter xs ~f:(String.( <> ) "")
   |> String.concat ~sep:"_"
+
+let descr ?label d =
+  match label with
+  | None -> d
+  | Some label -> sprintf "%s:%s" d label
 
 class type blast_db = object
   inherit text
@@ -98,7 +106,6 @@ module Trinity = struct
     ?(max_memory = 1)
     (fasta : fasta SE_or_PE_file.t)
     : fasta SE_or_PE_file.t =
-  let descr = if String.is_empty "" then descr else ":" ^ descr in
   let bistro_memory =
     if max_memory > 2 then Int.(min max_memory (memory * 2))
     else 1
@@ -137,6 +144,35 @@ module Trinity = struct
       (Workflow.select output_dir ["left.norm.fa"])
       (Workflow.select output_dir ["right.norm.fa"])
       pe.orientation
+
+  let trinity_fasta
+      ?label
+      ?full_cleanup
+      ?no_normalization
+      ~threads
+      ?(memory = 1)
+      (sample_fasta : fasta SE_or_PE_file.t)
+    : fasta file =
+    Workflow.shell ~descr:(descr ?label "Trinity") ~np:threads ~mem:(Workflow.int (1024 * memory)) [
+      mkdir_p dest;
+      cmd "Trinity" ~img [
+        string "--no_version_check";
+        opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
+        opt "--CPU" ident np ;
+        option (flag string "--full_cleanup") full_cleanup ;
+        option (flag string "--no_normalize_reads") no_normalization ;
+        config_trinity_fasta_paired_or_single sample_fasta;
+        string "--seqType fa" ;
+        opt "--output" seq [ ident dest ; string "/trinity"] ;
+      ];
+      cmd "sed" [
+        string "-re";
+        string {|"s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/"|};
+        string "-i";
+        seq [ident dest; string "/trinity.Trinity.fasta";];
+      ];
+    ]
+    |> Fn.flip Workflow.select [ "trinity.Trinity.fasta" ]
 end
 
 module Rna_sample = struct
@@ -169,6 +205,9 @@ module Configuration = struct
 
   let reference_transcriptome config spe = config.reference_transcriptome $ spe
 
+  let samples_with_trinity_run config =
+    List.filter config.samples ~f:(fun s -> s.run_trinity)
+
   let make ?(nthreads = 1) ?(memory = 1) ~reference_transcriptome ~samples = {
     samples ;
     reference_species = (
@@ -184,6 +223,7 @@ module Pipeline = struct
   type t = {
     fasta_reads : (Rna_sample.t, fasta SE_or_PE_file.t) List.Assoc.t ;
     normalized_fasta_reads : (Rna_sample.t, fasta SE_or_PE_file.t) List.Assoc.t ;
+    trinity_assemblies : (Rna_sample.t, fasta file) List.Assoc.t ;
     ref_blast_dbs : blast_db file assoc ;
   }
 
@@ -221,6 +261,17 @@ module Pipeline = struct
         Trinity.fasta_read_normalization ~descr max_cov ~threads ~memory ~max_memory fa
       )
 
+  let trinity_assemblies_of_norm_fasta normalized_fasta_reads ~memory ~nthreads =
+    assoc_filter_map normalized_fasta_reads ~f:(fun (s : Rna_sample.t) normalized_fasta_reads ->
+        match s.run_trinity, s.precomputed_assembly with
+        | true, None ->
+          let label = id_concat [s.id ; s.species] in
+          Trinity.trinity_fasta ~label ~no_normalization:true ~full_cleanup:true ~memory ~threads:nthreads normalized_fasta_reads
+          |> Option.some
+        | _, Some assembly_path -> Some (Workflow.input assembly_path)
+        | (_, _)   -> None
+      )
+
   let ref_blast_dbs (config : Configuration.t) =
     assoc config.reference_species ~f:(fun ref_species ->
         let fasta = Configuration.reference_transcriptome config ref_species in
@@ -238,5 +289,6 @@ module Pipeline = struct
     let ref_blast_dbs = ref_blast_dbs config in
     let fasta_reads = fasta_reads config in
     let normalized_fasta_reads = normalize_fasta_reads fasta_reads memory_per_sample config.memory threads_per_sample in
-    { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads }
+    let trinity_assemblies = trinity_assemblies_of_norm_fasta normalized_fasta_reads ~memory:memory_per_sample ~nthreads:threads_per_sample in
+    { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ; trinity_assemblies }
 end
