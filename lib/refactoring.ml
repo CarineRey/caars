@@ -21,6 +21,11 @@ type paired_end_orientation =
   | RF
   | UP
 
+type merge_criterion =
+  | Merge
+  | Length
+  | Length_complete
+
 let ( $ ) a k = List.Assoc.find_exn ~equal:String.equal a k
 
 let assoc keys ~f =
@@ -401,11 +406,6 @@ module Sample_sheet = struct
     | Fasta of 'a
     | Fastq of 'b
 
-  type merge_criterion =
-    | Merge
-    | Length
-    | Length_complete
-
   let parse_fastX_path f = match f, Filename.split_extension f with
     | "-", _ -> None
     | x, (_, Some "fa")-> Some (Fasta x)
@@ -629,6 +629,12 @@ module Dataset = struct
 
   let apytram_samples dataset =
     List.filter dataset.samples ~f:(fun s -> s.run_apytram)
+
+  let trinity_samples dataset =
+    List.filter dataset.samples ~f:(fun s -> s.run_trinity)
+
+  let reference_samples dataset =
+    List.filter dataset.samples ~f:(fun s -> s.run_apytram || s.run_trinity);
 end
 
 module Configuration_directory = struct
@@ -715,6 +721,7 @@ module Pipeline = struct
     apytram_orfs_ref_fams : (Family.t * (Rna_sample.t * Family.t * fasta file) list) list ;
     apytram_checked_families : (Family.t * (Rna_sample.t * Family.t * fasta file) list) list ;
     apytram_annotated_families : (Family.t * fasta file) list ;
+    merged_families : (Family.t * [ `seq_integrator ] directory * [ `seq_filter ] directory option) list ;
   }
 
   let rna_sample_needs_rna (s : Rna_sample.t) =
@@ -1025,7 +1032,126 @@ module Pipeline = struct
         (fam, fw)
       )
 
-  let make ?(memory = 4) ?(nthreads = 2) (dataset : Dataset.t) =
+  let transform_species_list l =
+    Bistro.Shell_dsl.(list ~sep:"," string l)
+
+  let seq_integrator
+      ?realign_ali
+      ?resolve_polytomy
+      ?species_to_refine_list
+      ?no_merge
+      ?merge_criterion
+      ~family
+      ~trinity_fam_results_dirs
+      ~apytram_results_dir
+      ~alignment_sp2seq
+      alignment
+    : [`seq_integrator] directory =
+
+    let open Bistro.Shell_dsl in
+    let merge_criterion_string =
+      Option.bind merge_criterion ~f:(function
+          | Merge -> None
+          | Length -> Some "length"
+          | Length_complete -> Some "length.complete"
+        )
+    in
+    let get_trinity_file_list extension dirs =
+      List.concat_map dirs ~f:(fun ((s : Rna_sample.t), dir) ->
+          [ dep dir ; string ("/Trinity." ^ s.id ^ "." ^ s.species ^ "." ^ family ^ "." ^ extension) ; string ","]
+        )
+    in
+    let get_apytram_file_list extension dir =
+      [ dep dir ; string ("/apytram." ^ family ^ "." ^ extension) ; string ","]
+    in
+    let trinity_fasta_list = get_trinity_file_list "fa" trinity_fam_results_dirs in
+    let trinity_sp2seq_list = get_trinity_file_list "sp2seq.txt" trinity_fam_results_dirs in
+
+    let apytram_fasta = get_apytram_file_list "fa" apytram_results_dir in
+    let apytram_sp2seq = get_apytram_file_list "sp2seq.txt" apytram_results_dir in
+
+    let sp2seq = List.concat [[dep alignment_sp2seq ; string "," ] ; trinity_sp2seq_list ; apytram_sp2seq ]  in
+    let fasta = List.concat [trinity_fasta_list; apytram_fasta]  in
+
+    let tmp_merge = tmp // "tmp" in
+
+    Workflow.shell ~version:12 ~descr:("SeqIntegrator.py:" ^ family) [
+      mkdir_p tmp_merge ;
+      cmd "python" ~img:caars_img [
+        file_dump (string Scripts.seq_integrator);
+        opt "-tmp" ident tmp_merge;
+        opt "-log" seq [ tmp_merge ; string ("/SeqIntegrator." ^ family ^ ".log" )] ;
+        opt "-ali" dep alignment ;
+        opt "-fa" (seq ~sep:"") fasta;
+        option (flag string "--realign_ali") realign_ali;
+        option (opt "--merge_criterion" string) merge_criterion_string;
+        option (flag string "--no_merge") no_merge;
+        option (flag string "--resolve_polytomy") resolve_polytomy;
+        opt "-sp2seq" (seq ~sep:"") sp2seq  ; (* list de sp2seq delimited by comas *)
+        opt "-out" seq [ dest ; string "/" ; string family] ;
+        option (opt "-sptorefine" transform_species_list) species_to_refine_list;
+      ]
+    ]
+  let seq_filter
+      ?realign_ali
+      ?resolve_polytomy
+      ?species_to_refine_list
+      ~filter_threshold
+      ~family
+      ~alignment
+      ~tree
+      ~sp2seq
+    : [`seq_filter] directory  =
+
+    let open Bistro.Shell_dsl in
+    let tmp_merge = tmp // "tmp" in
+
+    Workflow.shell ~version:8 ~descr:("SeqFilter.py:" ^ family) [
+      mkdir_p tmp_merge ;
+      cmd "python" ~img:caars_img [
+        file_dump (string Scripts.seq_filter);
+        opt "-tmp" ident tmp_merge;
+        opt "-log" seq [ tmp_merge ; string ("/SeqFilter." ^ family ^ ".log" )] ;
+        opt "-ali" dep alignment ;
+        opt "-t" dep tree;
+        opt "--filter_threshold" float filter_threshold;
+        option (flag string "--realign_ali") realign_ali;
+        option (flag string "--resolve_polytomy") resolve_polytomy;
+        opt "-sp2seq" dep sp2seq  ;
+        opt "-out" seq [ dest ; string "/" ; string family] ;
+        option (opt "-sptorefine" transform_species_list) species_to_refine_list;
+      ]
+    ]
+
+  let merged_families_of_families (dataset : Dataset.t) configuration_dir trinity_annotated_fams apytram_annotated_fams merge_criterion filter_threshold =
+    List.map dataset.used_families ~f:(fun family ->
+        let trinity_fam_results_dirs=
+          List.map (Dataset.trinity_samples dataset) ~f:(fun s ->
+              (s , List.Assoc.find_exn ~equal:Poly.( = ) trinity_annotated_fams s)
+            )
+        in
+        let apytram_results_dir =  List.Assoc.find_exn ~equal:Poly.( = ) apytram_annotated_fams family in
+        let alignment = Workflow.input (dataset.alignments_dir ^ "/" ^ family.name ^ ".fa")  in
+        let alignment_sp2seq = Configuration_directory.ali_species2seq_links configuration_dir family.name  in
+        let species_to_refine_list = List.map (Dataset.reference_samples dataset) ~f:(fun s -> s.species) in
+        let w = if (List.length species_to_refine_list) = 0 then
+            seq_integrator ~realign_ali:false ~resolve_polytomy:true ~no_merge:true ~family:family.name ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
+          else
+            seq_integrator ~realign_ali:false ~resolve_polytomy:true ~species_to_refine_list ~family:family.name ~trinity_fam_results_dirs ~apytram_results_dir ~alignment_sp2seq ~merge_criterion alignment
+        in
+        let tree = Workflow.select w [family.name ^ ".tree"] in
+        let alignment = Workflow.select w [family.name ^ ".fa"] in
+        let sp2seq = Workflow.select w [family.name ^ ".sp2seq.txt"] in
+
+        let wf =
+          if List.length species_to_refine_list > 0 then
+            Some (seq_filter ~realign_ali:true ~resolve_polytomy:true ~filter_threshold ~species_to_refine_list ~family:family.name ~tree ~alignment ~sp2seq)
+          else None
+        in
+        (family, w, wf )
+      )
+
+  let make ?(memory = 4) ?(nthreads = 2) ~merge_criterion ~filter_threshold (dataset : Dataset.t) =
     let memory_per_sample, threads_per_sample =
       let nb_samples = List.length dataset.samples in
       Int.(max 1 (memory / (max 1 nb_samples))), Stdlib.(max 1 (nthreads / (max 1 nb_samples)))
@@ -1046,9 +1172,10 @@ module Pipeline = struct
     in
     let apytram_checked_families = apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams config_dir ref_blast_dbs in
     let apytram_annotated_families = parse_apytram_results apytram_checked_families in
+    let merged_families = merged_families_of_families dataset config_dir trinity_annotated_fams apytram_annotated_families merge_criterion filter_threshold in
     { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
       trinity_assemblies ; trinity_orfs ; trinity_assemblies_stats ;
       trinity_orfs_stats ; trinity_annotated_fams ;
       reads_blast_dbs ; apytram_orfs_ref_fams ; apytram_checked_families ;
-      apytram_annotated_families ; }
+      apytram_annotated_families ; merged_families }
 end
