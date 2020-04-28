@@ -712,7 +712,9 @@ module Pipeline = struct
     trinity_annotated_fams : [`seq_dispatcher] directory Rna_sample.assoc ;
     ref_blast_dbs : blast_db file assoc ;
     reads_blast_dbs : Apytram.compressed_read_db Rna_sample.assoc ;
-    apytram_annotated_ref_fams_by_fam_by_groups : (Family.t * (Rna_sample.t * Family.t * fasta file) list) list ;
+    apytram_orfs_ref_fams : (Family.t * (Rna_sample.t * Family.t * fasta file) list) list ;
+    apytram_checked_families : (Family.t * (Rna_sample.t * Family.t * fasta file) list) list ;
+    apytram_annotated_families : (Family.t * fasta file) list ;
   }
 
   let rna_sample_needs_rna (s : Rna_sample.t) =
@@ -949,6 +951,80 @@ module Pipeline = struct
         (fam, fws)
       )
 
+  let checkfamily
+      ?(descr="")
+      ~ref_db
+      ~(input:fasta file)
+      ~family
+      ~ref_transcriptome
+      ~seq2fam
+      ~evalue
+    : fasta file =
+    let open Bistro.Shell_dsl in
+    let tmp_checkfamily = tmp // "tmp" in
+    let dest_checkfamily = dest // "sequences.fa" in
+
+    Workflow.shell ~version:8 ~descr:("CheckFamily.py" ^ descr) [
+      mkdir_p tmp_checkfamily;
+      cd tmp_checkfamily;
+      cmd "python" ~img:caars_img [
+        file_dump (string Scripts.check_family);
+        opt "-tmp" ident tmp_checkfamily ;
+        opt "-i" dep input;
+        opt "-t" dep ref_transcriptome ;
+        opt "-f" string family;
+        opt "-t2f" dep seq2fam;
+        opt "-o" ident dest_checkfamily;
+        (*opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));*)
+        opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
+        opt "-e" float evalue;
+      ]
+    ]
+    |> Fn.flip Workflow.select [ "sequences.fa" ]
+
+  let apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams configuration_dir ref_blast_dbs =
+    List.map apytram_orfs_ref_fams ~f:(fun (fam, fws) ->
+        let checked_fws = List.map fws ~f:(fun ((s : Rna_sample.t), (f : Family.t), apytram_orfs_fasta) ->
+            let input = apytram_orfs_fasta in
+            let tag = id_concat s.reference_species in
+            let ref_transcriptome =
+              List.map s.reference_species ~f:(Configuration_directory.ref_transcriptome configuration_dir)
+              |> Misc_workflows.fasta_concat ~tag:(tag ^ ".ref_transcriptome")
+            in
+            let seq2fam =
+              List.map s.reference_species ~f:(Configuration_directory.ref_seq_fam_links configuration_dir)
+              |> Misc_workflows.fasta_concat ~tag:(tag ^ ".seq2fam") in
+            let ref_db =
+              List.map s.reference_species ~f:(( $ ) ref_blast_dbs) in
+            let checked_families_fasta =
+              checkfamily ~descr:(":"^s.id^"."^f.name) ~input ~family:f.name ~ref_transcriptome ~seq2fam ~ref_db ~evalue:1e-6
+            in
+            (s, f, checked_families_fasta)
+          ) in
+        (fam, checked_fws)
+      )
+
+  let parse_apytram_results apytram_annotated_ref_fams =
+    let open Bistro.Shell_dsl in
+    List.map apytram_annotated_ref_fams ~f:(fun (fam, fws) ->
+        let config = Bistro.Template_dsl.(
+            List.map fws ~f:(fun ((s : Rna_sample.t), (f : Family.t), w) ->
+                seq ~sep:"\t" [ string s.species ; string s.id ; string f.name ; int f.id ; dep w ]
+              )
+            |> seq ~sep:"\n"
+          )
+        in
+        let fw =
+          Workflow.shell ~version:4 ~descr:("parse_apytram_results.py." ^ fam.Family.name) ~np:1  [
+            cmd "python" ~img:caars_img [
+              file_dump (string Scripts.parse_apytram_results) ;
+              file_dump config ;
+              dest ]
+          ]
+        in
+        (fam, fw)
+      )
+
   let make ?(memory = 4) ?(nthreads = 2) (dataset : Dataset.t) =
     let memory_per_sample, threads_per_sample =
       let nb_samples = List.length dataset.samples in
@@ -965,11 +1041,14 @@ module Pipeline = struct
     let trinity_orfs_stats = assemblies_stats_of_assemblies trinity_orfs in
     let trinity_annotated_fams = trinity_annotated_families_of_trinity_assemblies config_dir trinity_orfs ref_blast_dbs threads_per_sample in
     let reads_blast_dbs = blast_dbs_of_norm_fasta normalized_fasta_reads in
-    let apytram_annotated_ref_fams_by_fam_by_groups =
+    let apytram_orfs_ref_fams =
       apytram_annotated_ref_fams_by_fam_by_groups dataset config_dir trinity_annotated_fams reads_blast_dbs memory_per_sample
     in
+    let apytram_checked_families = apytram_checked_families_of_orfs_ref_fams apytram_orfs_ref_fams config_dir ref_blast_dbs in
+    let apytram_annotated_families = parse_apytram_results apytram_checked_families in
     { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
       trinity_assemblies ; trinity_orfs ; trinity_assemblies_stats ;
       trinity_orfs_stats ; trinity_annotated_fams ;
-      reads_blast_dbs ; apytram_annotated_ref_fams_by_fam_by_groups }
+      reads_blast_dbs ; apytram_orfs_ref_fams ; apytram_checked_families ;
+      apytram_annotated_families ; }
 end
