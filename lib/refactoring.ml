@@ -41,10 +41,10 @@ let id_concat xs =
   List.filter xs ~f:(String.( <> ) "")
   |> String.concat ~sep:"_"
 
-let descr ?label d =
-  match label with
+let descr ?tag d =
+  match tag with
   | None -> d
-  | Some label -> sprintf "%s:%s" d label
+  | Some tag -> sprintf "%s:%s" d tag
 
 class type blast_db = object
   inherit text
@@ -79,11 +79,11 @@ end
 module Misc_workflows = struct
   open Bistro.Shell_dsl
 
-  let concat ?label = function
+  let concat ?tag = function
     | [] -> raise (Invalid_argument "fastX concat: empty list")
     | x :: [] -> x
     | fXs ->
-      Workflow.shell ~descr:(descr ?label "concat") [
+      Workflow.shell ~descr:(descr ?tag "concat") [
         cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
       ]
 
@@ -100,8 +100,8 @@ module Misc_workflows = struct
      A different location is incompatible with the bistro docker usage
      workflow by worflow. To avoid to cp the complete fasta file we
      use a symbolic link. *)
-  let build_biopythonindex ?label (fasta : fasta file) : biopython_sequence_index file =
-    Workflow.shell ~version:1 ~descr:(descr ?label "build_biopythonindex_fasta.py") [
+  let build_biopythonindex ?tag (fasta : fasta file) : biopython_sequence_index file =
+    Workflow.shell ~version:1 ~descr:(descr ?tag "build_biopythonindex_fasta.py") [
       mkdir_p dest ;
       within_container caars_img (
         and_list [
@@ -118,9 +118,9 @@ end
 module Cdhitoverlap = struct
   open Bistro.Shell_dsl
 
-  let cdhitoverlap ?label ?p ?m ?d (fasta : fasta file) : [`cdhit] directory =
+  let cdhitoverlap ?tag ?p ?m ?d (fasta : fasta file) : [`cdhit] directory =
     let out = dest // "cluster_rep.fa" in
-    Workflow.shell ~version:1 ~descr:(descr ?label "cdhitlap") [
+    Workflow.shell ~version:1 ~descr:(descr ?tag "cdhitlap") [
       mkdir_p dest;
       cmd "cd-hit-lap" ~img:caars_img [
         opt "-i" dep fasta;
@@ -215,14 +215,14 @@ module Trinity = struct
       pe.orientation
 
   let trinity_fasta
-      ?label
+      ?tag
       ?full_cleanup
       ?no_normalization
       ~threads
       ?(memory = 1)
       (sample_fasta : fasta file OSE_or_PE.t)
     : fasta file =
-    Workflow.shell ~descr:(descr ?label "Trinity") ~np:threads ~mem:(Workflow.int (1024 * memory)) [
+    Workflow.shell ~descr:(descr ?tag "Trinity") ~np:threads ~mem:(Workflow.int (1024 * memory)) [
       mkdir_p dest;
       cmd "Trinity" ~img:caars_img [
         string "--no_version_check";
@@ -596,8 +596,8 @@ module Pipeline = struct
     assoc_opt config.samples ~f:(fun s ->
         if rna_sample_needs_rna s then
           let open OSE_or_PE in
-          let fq2fa ?(label = "") x =
-            let descr = id_concat [s.id ; s.species ; label] in
+          let fq2fa ?(tag = "") x =
+            let descr = id_concat [s.id ; s.species ; tag] in
             Trinity.fastq2fasta ~descr x
           in
           match s.sample_file with
@@ -606,8 +606,8 @@ module Pipeline = struct
             Some (OSE_or_PE.se (fq2fa (Workflow.input se.reads)) se.orientation)
           | Fastq_file (Paired_end pe) ->
             Some (OSE_or_PE.pe
-                    (fq2fa ~label:"left" (Workflow.input pe.reads1))
-                    (fq2fa ~label:"right" (Workflow.input pe.reads2))
+                    (fq2fa ~tag:"left" (Workflow.input pe.reads1))
+                    (fq2fa ~tag:"right" (Workflow.input pe.reads2))
                     pe.orientation)
         else None
       )
@@ -623,8 +623,8 @@ module Pipeline = struct
     assoc_filter_map normalized_fasta_reads ~f:(fun (s : Rna_sample.t) normalized_fasta_reads ->
         match s.run_trinity, s.precomputed_assembly with
         | true, None ->
-          let label = id_concat [s.id ; s.species] in
-          Trinity.trinity_fasta ~label ~no_normalization:true ~full_cleanup:true ~memory ~threads:nthreads normalized_fasta_reads
+          let tag = id_concat [s.id ; s.species] in
+          Trinity.trinity_fasta ~tag ~no_normalization:true ~full_cleanup:true ~memory ~threads:nthreads normalized_fasta_reads
           |> Option.some
         | _, Some assembly_path -> Some (Workflow.input assembly_path)
         | (_, _)   -> None
@@ -661,9 +661,9 @@ module Pipeline = struct
         BlastPlus.makeblastdb ~parse_seqids ~dbtype  ("DB_" ^ ref_species) fasta
       )
 
-  let reformat_cdhit_cluster ?label cluster : fasta file =
+  let reformat_cdhit_cluster ?tag cluster : fasta file =
     let open Bistro.Shell_dsl in
-    Workflow.shell ~version:1 ~descr:(descr ?label "reformat_cdhit_cluster2fasta.py") [
+    Workflow.shell ~version:1 ~descr:(descr ?tag "reformat_cdhit_cluster2fasta.py") [
       cmd "python" ~img:caars_img [
         file_dump (string Scripts.reformat_cdhit_cluster2fasta);
         dep cluster ;
@@ -676,19 +676,19 @@ module Pipeline = struct
           let concat_fasta = match norm_fasta with
             | OSE_or_PE.Single_end se -> se.reads
             | Paired_end pe ->
-              Misc_workflows.fasta_concat ~label:(id_concat [s.id ; "fasta_lr"]) [ pe.reads1 ; pe.reads2 ]
+              Misc_workflows.fasta_concat ~tag:(id_concat [s.id ; "fasta_lr"]) [ pe.reads1 ; pe.reads2 ]
           in
-          let label = id_concat [s.id ; s.species] in
+          let tag = id_concat [s.id ; s.species] in
           (*Build biopython index*)
-          let index_concat_fasta = Misc_workflows.build_biopythonindex ~label concat_fasta in
+          let index_concat_fasta = Misc_workflows.build_biopythonindex ~tag concat_fasta in
           (*build overlapping read cluster*)
-          let cluster_repo = Cdhitoverlap.cdhitoverlap ~label concat_fasta in
+          let cluster_repo = Cdhitoverlap.cdhitoverlap ~tag concat_fasta in
           let rep_cluster_fasta = Cdhitoverlap.cluster_rep cluster_repo in
           let cluster = Cdhitoverlap.cluster cluster_repo in
           (*reformat cluster*)
-          let reformated_cluster = reformat_cdhit_cluster ~label cluster in
+          let reformated_cluster = reformat_cdhit_cluster ~tag cluster in
           (*build index for cluster*)
-          let index_cluster = Misc_workflows.build_biopythonindex ~label reformated_cluster in
+          let index_cluster = Misc_workflows.build_biopythonindex ~tag reformated_cluster in
           (*Build blast db of cluster representatives*)
           let parse_seqids = true in
           let hash_index = true in
@@ -733,14 +733,14 @@ module Pipeline = struct
         let query = trinity_assembly in
         let query_species= s.species in
         let query_id = s.id in
-        let label = id_concat s.reference_species in
+        let tag = id_concat s.reference_species in
         let ref_transcriptome =
           List.map s.reference_species ~f:(Configuration_directory.ref_transcriptome config_dir)
-          |> Misc_workflows.fasta_concat ~label:(label ^ ".ref_transcriptome")
+          |> Misc_workflows.fasta_concat ~tag:(tag ^ ".ref_transcriptome")
         in
         let seq2fam =
           List.map s.reference_species ~f:(Configuration_directory.ref_seq_fam_links config_dir)
-          |> Misc_workflows.fasta_concat ~label:(label ^ ".seq2fam")
+          |> Misc_workflows.fasta_concat ~tag:(tag ^ ".seq2fam")
         in
         seq_dispatcher
           ~s2s_tab_by_family:true
