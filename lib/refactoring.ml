@@ -68,22 +68,32 @@ module OSE_or_PE = struct
   let map x ~f = match x with
     | Single_end se -> Single_end { se with reads = f se.reads }
     | Paired_end pe -> Paired_end { pe with reads1 = f pe.reads1 ; reads2 = f pe.reads2 }
+
+  let orientation = function
+    | Single_end se -> Left se.orientation
+    | Paired_end pe -> Right pe.orientation
 end
 
 module Sample_source = struct
   type t =
     | Fastq_file of string OSE_or_PE.t
     | Fasta_file of string OSE_or_PE.t
+
+  let orientation = function
+    | Fastq_file x
+    | Fasta_file x -> OSE_or_PE.orientation x
 end
 
 module Misc_workflows = struct
   open Bistro.Shell_dsl
 
-  let concat ?tag = function
-    | [] -> raise (Invalid_argument "fastX concat: empty list")
+  let concat ?tag xs =
+    let descr = descr ?tag "concat" in
+    match xs with
+    | [] -> Workflow.shell ~descr [ cmd "touch" [ dest ] ]
     | x :: [] -> x
     | fXs ->
-      Workflow.shell ~descr:(descr ?tag "concat") [
+      Workflow.shell ~descr [
         cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
       ]
 
@@ -259,6 +269,132 @@ module Rna_sample = struct
   type 'a assoc = (t * 'a) list
 end
 
+module Apytram = struct
+
+  open Bistro.Shell_dsl
+
+  type compressed_read_db = {
+    s : Rna_sample.t ;
+    concat_fasta : fasta file;
+    index_concat_fasta : Misc_workflows.biopython_sequence_index file;
+    rep_cluster_fasta : fasta file;
+    reformated_cluster : fasta file;
+    index_cluster : Misc_workflows.biopython_sequence_index file;
+    cluster_rep_blast_db : blast_db file;
+  }
+
+  let string_of_db_type = function
+    | Left F -> "F"
+    | Left R -> "R"
+    | Left US -> "single"
+    | Right RF -> "RF"
+    | Right FR -> "FR"
+    | Right UP -> "paired"
+
+  type apytram_output
+
+  let apytram_multi_species
+      ?(descr="")
+      ?i
+      ?evalue
+      ?no_best_file
+      ?only_best_file
+      ?out_by_species
+      ?write_even_empty
+      ?id
+      ?fid
+      ?mal
+      ?fmal
+      ?len
+      ?flen
+      ?required_coverage
+      ?stats
+      ?(threads = 1)
+      ?(memory = 1)
+      ?time_max
+      ~query
+      ~fam
+      (compressed_reads_dbs : compressed_read_db list) : apytram_output directory =
+
+    let memory = match memory with
+      | 0 -> 1
+      | _ -> memory
+    in
+
+    let formated_db_blasts =
+      List.map compressed_reads_dbs ~f:(fun db ->
+          seq [dep db.cluster_rep_blast_db ; string "/db:"; string db.s.id]
+        )
+    in
+    let db_types =
+      List.map compressed_reads_dbs ~f:(fun {s ; _}->
+          seq ~sep:":" [string (string_of_db_type (Sample_source.orientation s.Rna_sample.sample_file)); string s.id]
+        )
+    in
+    let formated_fasta =
+      List.map compressed_reads_dbs ~f:(fun db ->
+          seq [dep db.concat_fasta ; string ":"; string db.s.id]
+        )
+    in
+    let formated_fastaidx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+          seq [dep db.index_concat_fasta // "index" ; string ":"; string db.s.id]
+        )
+    in
+    let formated_cluster =
+      List.map compressed_reads_dbs ~f:(fun db ->
+          seq [dep db.reformated_cluster ; string ":"; string db.s.id]
+        )
+    in
+    let formated_clusteridx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+          seq [dep db.index_cluster // "index" ; string ":"; string db.s.id]
+        )
+    in
+
+
+    Workflow.shell  ~version:5 ~descr:("apytram.py" ^ descr) ~np:threads ~mem:(Workflow.int (memory * 1024)) [
+      cmd "apytram.py" ~img:caars_img [
+        opt "-q" seq [dep query ; string ":"; string fam] ;
+        option (opt "-i" int ) i ;
+        option (opt "-e" float ) evalue;
+        option (opt "-id" float ) id ;
+        option (opt "-fid" float ) fid ;
+        option (opt "-mal" int ) mal ;
+        option (opt "-fmal" float ) fmal ;
+        option (opt "-len" float ) len ;
+        option (opt "-flen" float ) flen ;
+        option (opt "-required_coverage" float ) required_coverage ;
+        option (opt "-time_max" int ) time_max ;
+        option (flag string "--stats") stats ;
+        option (flag string "--no_best_file") no_best_file ;
+        option (flag string "--write_even_empty") write_even_empty ;
+        option (flag string "--only_best_file") only_best_file ;
+        option (flag string "--out_by_species") out_by_species ;
+        opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;
+        opt "-threads" ident np ;
+        opt "-d" ident (seq ~sep:"," formated_db_blasts) ;
+        opt "-dt" ident (seq ~sep:"," db_types) ;
+        opt "-fa" ident (seq ~sep:"," formated_fasta) ;
+        opt "-idx" ident (seq ~sep:"," formated_fastaidx) ;
+        flag string "--UseIndex" true;
+        opt "-clstr" ident (seq ~sep:"," formated_cluster) ;
+        opt "-clstridx" ident (seq ~sep:"," formated_clusteridx) ;
+        opt "-out" seq [ident dest ; string "/apytram"] ;
+        opt "-log" seq [ident dest ; string "/apytram.log"] ;
+        opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;
+        flag string "--cds" true;
+        (*flag string "--keep_tmp" true;
+          opt "-tmp" ident  ( dest // "apytram_tmp" ) ;*)
+      ]
+    ]
+
+  let get_fasta dir ~family_name ~sample_id =
+    let filename = sprintf "apytram.%s.%s.fasta" family_name sample_id in
+    Workflow.select dir [ filename ]
+
+end
+
 module Sample_sheet = struct
 
   type ('a,'b) fastX =
@@ -414,8 +550,8 @@ module Dataset = struct
     used_families : Family.t list ;
   }
 
-  let samples_with_trinity_run config =
-    List.filter config.samples ~f:(fun s -> s.run_trinity)
+  let samples_with_trinity_run dataset =
+    List.filter dataset.samples ~f:(fun s -> s.run_trinity)
 
   let families_of_alignments_dir alignments_dir =
     Sys.readdir alignments_dir
@@ -477,19 +613,22 @@ module Dataset = struct
         all_families = String.Map.data family_ids ;
       }
 
-  let apytram_reference_species config =
-    List.filter_map config.samples ~f:(fun s ->
+  let apytram_reference_species dataset =
+    List.filter_map dataset.samples ~f:(fun s ->
         if s.run_apytram then Some s.reference_species
         else None
       )
     |> List.dedup_and_sort ~compare:(List.compare String.compare)
 
-  let apytram_group_list config =
-    List.filter_map config.samples ~f:(fun s ->
+  let apytram_groups dataset =
+    List.filter_map dataset.samples ~f:(fun s ->
         if s.run_apytram then Some s.group_id
         else None
       )
     |> List.dedup_and_sort ~compare:String.compare
+
+  let apytram_samples dataset =
+    List.filter dataset.samples ~f:(fun s -> s.run_apytram)
 end
 
 module Configuration_directory = struct
@@ -563,16 +702,6 @@ module Configuration_directory = struct
 end
 
 module Pipeline = struct
-  type compressed_read_db = {
-    s : Rna_sample.t ;
-    concat_fasta : fasta file;
-    index_concat_fasta : Misc_workflows.biopython_sequence_index file;
-    rep_cluster_fasta : fasta file;
-    reformated_cluster : fasta file;
-    index_cluster : Misc_workflows.biopython_sequence_index file;
-    cluster_rep_blast_db : blast_db file;
-  }
-
   type t = {
     fasta_reads : fasta file OSE_or_PE.t Rna_sample.assoc ;
     normalized_fasta_reads : fasta file OSE_or_PE.t Rna_sample.assoc ;
@@ -580,9 +709,10 @@ module Pipeline = struct
     trinity_orfs : fasta file Rna_sample.assoc ;
     trinity_assemblies_stats : text file Rna_sample.assoc ;
     trinity_orfs_stats : text file Rna_sample.assoc ;
-    trinity_annotated_fams : fasta file Rna_sample.assoc ;
+    trinity_annotated_fams : [`seq_dispatcher] directory Rna_sample.assoc ;
     ref_blast_dbs : blast_db file assoc ;
-    reads_blast_dbs : compressed_read_db Rna_sample.assoc ;
+    reads_blast_dbs : Apytram.compressed_read_db Rna_sample.assoc ;
+    apytram_annotated_ref_fams_by_fam_by_groups : (Family.t * (Rna_sample.t * Family.t * fasta file) list) list ;
   }
 
   let rna_sample_needs_rna (s : Rna_sample.t) =
@@ -694,38 +824,50 @@ module Pipeline = struct
           let hash_index = true in
           let dbtype = "nucl" in
           let cluster_rep_blast_db = BlastPlus.makeblastdb ~hash_index ~parse_seqids ~dbtype  (s.id ^ "_" ^ s.species) rep_cluster_fasta in
-          Some {s; concat_fasta; index_concat_fasta; rep_cluster_fasta; reformated_cluster; index_cluster ; cluster_rep_blast_db}
+          Some {
+            Apytram.s ; concat_fasta; index_concat_fasta;
+            rep_cluster_fasta; reformated_cluster; index_cluster ;
+            cluster_rep_blast_db
+          }
         else
           None
       )
 
-  let seq_dispatcher
-      ?s2s_tab_by_family
-      ~ref_db
-      ~query
-      ~query_species
-      ~query_id
-      ~ref_transcriptome
-      ~threads
-      ~seq2fam : fasta file =
-    let open Shell_dsl in
-    Workflow.shell ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
-      mkdir_p tmp;
-      cmd "python" ~img:caars_img [
-        file_dump (string Scripts.seq_dispatcher);
-        option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
-        opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
-        opt "-tmp" ident tmp ;
-        opt "-log" seq [ dest ; string ("/SeqDispatcher." ^ query_id ^ "." ^ query_species ^ ".log" )] ;
-        opt "-q" dep query ;
-        opt "-qs" string query_species ;
-        opt "-qid" string query_id ;
-        opt "-threads" ident np ;
-        opt "-t" dep ref_transcriptome ;
-        opt "-t2f" dep seq2fam;
-        opt "-out" seq [ dest ; string ("/Trinity." ^ query_id ^ "." ^ query_species )] ;
+  module Seq_dispatcher = struct
+    let seq_dispatcher
+        ?s2s_tab_by_family
+        ~ref_db
+        ~query
+        ~query_species
+        ~query_id
+        ~ref_transcriptome
+        ~threads
+        ~seq2fam : [`seq_dispatcher] directory =
+      let open Shell_dsl in
+      Workflow.shell ~np:threads ~version:9 ~descr:("SeqDispatcher.py:" ^ query_id ^ "_" ^ query_species) [
+        mkdir_p tmp;
+        cmd "python" ~img:caars_img [
+          file_dump (string Scripts.seq_dispatcher);
+          option (flag string "--sp2seq_tab_out_by_family" ) s2s_tab_by_family;
+          opt "-d" ident (seq ~sep:"," (List.map ref_db ~f:(fun blast_db -> seq [dep blast_db ; string "/db"]) ));
+          opt "-tmp" ident tmp ;
+          opt "-log" seq [ dest ; string ("/SeqDispatcher." ^ query_id ^ "." ^ query_species ^ ".log" )] ;
+          opt "-q" dep query ;
+          opt "-qs" string query_species ;
+          opt "-qid" string query_id ;
+          opt "-threads" ident np ;
+          opt "-t" dep ref_transcriptome ;
+          opt "-t2f" dep seq2fam;
+          opt "-out" seq [ dest ; string ("/Trinity." ^ query_id ^ "." ^ query_species )] ;
+        ]
       ]
-    ]
+
+    let get_fasta dir (sample : Rna_sample.t) family =
+      let file = sprintf "Trinity.%s.%s.%s.fa" sample.id sample.species family in
+      Workflow.select dir [file]
+
+  end
+
 
   let trinity_annotated_families_of_trinity_assemblies config_dir assemblies ref_blast_dbs threads =
     assoc_map assemblies  ~f:(fun (s : Rna_sample.t) trinity_assembly ->
@@ -742,7 +884,7 @@ module Pipeline = struct
           List.map s.reference_species ~f:(Configuration_directory.ref_seq_fam_links config_dir)
           |> Misc_workflows.fasta_concat ~tag:(tag ^ ".seq2fam")
         in
-        seq_dispatcher
+        Seq_dispatcher.seq_dispatcher
           ~s2s_tab_by_family:true
           ~query
           ~query_species
@@ -751,6 +893,82 @@ module Pipeline = struct
           ~seq2fam
           ~ref_db
           ~threads
+      )
+
+
+
+  let concat_without_error ?(descr="") l : fasta file =
+    let open Bistro.Shell_dsl in
+    let script =
+      let vars = [
+        "FILE", seq ~sep:"" l ;
+        "DEST", dest ;
+      ]
+      in
+      Commons.bash_script vars {|
+        touch tmp
+        cat tmp $FILE > tmp1
+        mv tmp1 $DEST
+        |}
+    in
+    Workflow.shell ~descr:("concat_without_error" ^ descr) [
+      mkdir_p tmp;
+      cd tmp;
+      cmd "sh" [ file_dump script];
+    ]
+
+  let build_target_query dataset ref_species family (trinity_annotated_fams : [`seq_dispatcher] directory Rna_sample.assoc) apytram_group =
+    let seq_dispatcher_results_dirs =
+      assoc_opt (Dataset.apytram_samples dataset) ~f:(fun s ->
+          if String.(s.group_id = apytram_group) && Poly.(s.reference_species = ref_species) && s.run_trinity then
+            Some (List.Assoc.find_exn ~equal:Poly.( = ) trinity_annotated_fams s)
+          else
+            None
+        )
+    in
+    let tag = family ^ ".seqdispatcher" in
+    List.map seq_dispatcher_results_dirs ~f:(fun (s, dir) ->
+        Seq_dispatcher.get_fasta dir s family
+      )
+    |> Misc_workflows.fasta_concat ~tag
+
+
+  let apytram_annotated_ref_fams_by_fam_by_groups (dataset : Dataset.t) configuration_dir trinity_annotated_fams reads_blast_dbs memory_per_sample =
+    let apytram_groups = Dataset.apytram_groups dataset in
+    let apytram_ref_species = Dataset.apytram_reference_species dataset in
+    let apytram_samples = Dataset.apytram_samples dataset in
+    List.map dataset.used_families ~f:(fun fam ->
+        let fws =
+          List.concat_map apytram_groups ~f:(fun apytram_group ->
+              let pairs = List.cartesian_product apytram_ref_species [fam] in
+              List.concat_map pairs ~f:(fun (ref_species, fam) ->
+                  let tag = id_concat [fam.name ; String.concat ~sep:"_" ref_species ; String.strip apytram_group] in
+                  let guide_query =
+                    List.map ref_species ~f:(fun sp -> Configuration_directory.ref_fams configuration_dir sp fam.name)
+                    |> Misc_workflows.fasta_concat ~tag
+                  in
+                  let target_query = build_target_query dataset ref_species fam.name trinity_annotated_fams apytram_group in
+                  let query = Misc_workflows.fasta_concat ~tag:(tag ^ ".+seqdispatcher") [guide_query; target_query] in
+                  let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun ((s : Rna_sample.t), db) ->
+                      if (List.equal String.equal s.reference_species ref_species && String.equal s.group_id apytram_group)
+                      then Some db else None
+                    )
+                  in
+                  let time_max = 18000 * List.length compressed_reads_dbs in
+                  let w =
+                    Apytram.apytram_multi_species
+                      ~descr:tag ~time_max ~no_best_file:true ~write_even_empty:true
+                      ~mal:66 ~i:5 ~evalue:1e-10 ~out_by_species:true
+                      ~memory:memory_per_sample ~fam:fam.name ~query compressed_reads_dbs in
+                  List.filter_map apytram_samples ~f:(fun s ->
+                      if List.equal String.equal s.reference_species ref_species && String.(s.group_id = apytram_group) then
+                        Some (s, fam, Apytram.get_fasta w ~family_name:fam.name ~sample_id:s.id )
+                      else None
+                    )
+                )
+              )
+        in
+        (fam, fws)
       )
 
   let make ?(memory = 4) ?(nthreads = 2) (dataset : Dataset.t) =
@@ -769,8 +987,11 @@ module Pipeline = struct
     let trinity_orfs_stats = assemblies_stats_of_assemblies trinity_orfs in
     let trinity_annotated_fams = trinity_annotated_families_of_trinity_assemblies config_dir trinity_orfs ref_blast_dbs threads_per_sample in
     let reads_blast_dbs = blast_dbs_of_norm_fasta normalized_fasta_reads in
+    let apytram_annotated_ref_fams_by_fam_by_groups =
+      apytram_annotated_ref_fams_by_fam_by_groups dataset config_dir trinity_annotated_fams reads_blast_dbs memory_per_sample
+    in
     { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
       trinity_assemblies ; trinity_orfs ; trinity_assemblies_stats ;
       trinity_orfs_stats ; trinity_annotated_fams ;
-      reads_blast_dbs }
+      reads_blast_dbs ; apytram_annotated_ref_fams_by_fam_by_groups }
 end
