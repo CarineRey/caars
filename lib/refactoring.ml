@@ -895,28 +895,6 @@ module Pipeline = struct
           ~threads
       )
 
-
-
-  let concat_without_error ?(descr="") l : fasta file =
-    let open Bistro.Shell_dsl in
-    let script =
-      let vars = [
-        "FILE", seq ~sep:"" l ;
-        "DEST", dest ;
-      ]
-      in
-      Commons.bash_script vars {|
-        touch tmp
-        cat tmp $FILE > tmp1
-        mv tmp1 $DEST
-        |}
-    in
-    Workflow.shell ~descr:("concat_without_error" ^ descr) [
-      mkdir_p tmp;
-      cd tmp;
-      cmd "sh" [ file_dump script];
-    ]
-
   let build_target_query dataset ref_species family (trinity_annotated_fams : [`seq_dispatcher] directory Rna_sample.assoc) apytram_group =
     let seq_dispatcher_results_dirs =
       assoc_opt (Dataset.apytram_samples dataset) ~f:(fun s ->
