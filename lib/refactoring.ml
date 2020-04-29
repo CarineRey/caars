@@ -26,6 +26,12 @@ type merge_criterion =
   | Length
   | Length_complete
 
+let merge_criterion_of_string = function
+  | "merge" -> Some Merge
+  | "length" -> Some Length
+  | "length.complete" -> Some Length_complete
+  | _ -> None
+
 let ( $ ) a k = List.Assoc.find_exn ~equal:String.equal a k
 
 let assoc keys ~f =
@@ -1656,12 +1662,12 @@ let just_parse_workflow ~outdir p =
   let repo = R.precious_item p.Pipeline.configuration_directory :: Repo.just_parse_repo p in
   R.to_workflow repo ~outdir
 
-let full_analysis_workflow ~outdir p =
+let full_analysis_workflow ?get_reads ?debug ~outdir p =
   let module R = Bistro_utils.Repo in
   let repo =
     List.concat [
       Repo.precious_repo p ;
-      Repo.full_repo p ;
+      Repo.full_repo ?get_reads ?debug p ;
     ]
   in
   let repo_workflow = R.to_workflow repo ~outdir in

@@ -36,7 +36,7 @@ open Core
 open Bistro_utils
 open Caars_lib
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report quiet use_docker family_to_use () =
+let _main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report quiet use_docker family_to_use () =
   let loggers quiet html_report = [
     if quiet then Bistro_engine.Logger.null else Console_logger.create () ;
     (match html_report with
@@ -69,6 +69,43 @@ let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memo
     ~allowed_containers:(if use_docker then [`Docker] else [])
     caars_term
 
+let refactored_main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile _refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report quiet use_docker family_to_use () =
+  let open Refactoring in
+  let loggers quiet html_report = [
+    if quiet then Bistro_engine.Logger.null else Console_logger.create () ;
+    (match html_report with
+     | Some path -> Html_logger.create path
+     | None -> Bistro_engine.Logger.null) ;
+  ]
+  in
+  let run_reconciliation = not no_reconcile in
+  let ali_sister_threshold = Option.value ~default:0.0 ali_sister_threshold in
+  let merge_criterion =
+    Option.value_map ~default:Merge merge_criterion ~f:(fun s ->
+        match merge_criterion_of_string s with
+        | Some mgc -> mgc
+        | None -> failwith "Invalid merge criterion argument"
+      )
+  in
+  let nthreads = Option.value ~default:2 np in
+  let memory = Option.value ~default:1 memory in
+  let dataset = Dataset.make ?family_subset_file:family_to_use ~sample_sheet ~species_tree_file ~alignments_dir ~seq2sp_dir () in
+  let pipeline = Pipeline.make ~nthreads ~memory ~merge_criterion dataset ~filter_threshold:ali_sister_threshold ~refine_ali:false ~run_reconciliation in
+  let caars_workflow =
+    if just_parse_input then
+      Refactoring.just_parse_workflow ~outdir pipeline
+    else
+      Refactoring.full_analysis_workflow ~get_reads ~debug ~outdir pipeline
+  in
+  Bistro_engine.Scheduler.simple_eval_exn
+    ~loggers:(loggers quiet html_report)
+    ~np:nthreads
+    ~mem:(`GB memory)
+    ~collect:true
+    ~db_path:"_caars"
+    ~allowed_containers:(if use_docker then [`Docker] else [])
+    caars_workflow
+
 let command =
   let open Command.Let_syntax in
   Command.basic
@@ -95,7 +132,7 @@ let command =
       and use_docker = flag "--use-docker"      no_arg            ~doc:" Use docker in caars.  Default: off"
       and family_to_use = flag "--family-subset"  (optional Filename.arg_type)    ~doc:"PATH A file containing a subset of families to use.  Default: off"
       in
-      main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug get_reads just_parse_input html_report quiet use_docker family_to_use
+      refactored_main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug get_reads just_parse_input html_report quiet use_docker family_to_use
     ]
 
 let () = Command.run ~version:"1.0.1" command
