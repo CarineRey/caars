@@ -522,6 +522,7 @@ module Sample_sheet = struct
     let samples =
       In_channel.read_lines path
       |> List.tl_exn (* remove the first line*)
+      |> List.filter ~f:String.(( <> ) "")
       |> List.map ~f:(String.split ~on:'\t')
       |> List.filter_map ~f:parse_line_fields_of_rna_conf_file
     in
@@ -931,10 +932,11 @@ module Pipeline = struct
         ]
       ]
 
-    let get_fasta dir (sample : Rna_sample.t) family =
-      let file = sprintf "Trinity.%s.%s.%s.fa" sample.id sample.species family in
-      Workflow.select dir [file]
+    let fasta_file_name (sample : Rna_sample.t) family =
+      sprintf "Trinity.%s.%s.%s.fa" sample.id sample.species family
 
+    let get_fasta dir (sample : Rna_sample.t) family =
+      Workflow.select dir [fasta_file_name sample family]
   end
 
 
@@ -964,6 +966,30 @@ module Pipeline = struct
           ~threads
       )
 
+  (* This is needed by [build_target_query] to concat a list of fasta
+     in a directory without error, even if some requested files are
+     not present. It seems that seq_dispatcher doesn't produce files
+     for all families, hence the need to do this. *)
+  let concat_without_error ?tag l : fasta file =
+    let open Bistro.Shell_dsl in
+    let script =
+      let vars = [
+        "FILE", seq ~sep:"" l ;
+        "DEST", dest ;
+      ]
+      in
+      Commons.bash_script vars {|
+        touch tmp
+        cat tmp $FILE > tmp1
+        mv tmp1 $DEST
+        |}
+    in
+    Workflow.shell ~descr:(descr ?tag "concat_without_error") [
+      mkdir_p tmp;
+      cd tmp;
+      cmd "sh" [ file_dump script];
+    ]
+
   let build_target_query dataset ref_species family (trinity_annotated_fams : [`seq_dispatcher] directory Rna_sample.assoc) apytram_group =
     let seq_dispatcher_results_dirs =
       assoc_opt (Dataset.apytram_samples dataset) ~f:(fun s ->
@@ -974,10 +1000,11 @@ module Pipeline = struct
         )
     in
     let tag = family ^ ".seqdispatcher" in
-    List.map seq_dispatcher_results_dirs ~f:(fun (s, dir) ->
-        Seq_dispatcher.get_fasta dir s family
-      )
-    |> Misc_workflows.fasta_concat ~tag
+    concat_without_error ~tag (
+      List.map seq_dispatcher_results_dirs ~f:Bistro.Shell_dsl.(fun (s, dir) ->
+          dep dir // Seq_dispatcher.fasta_file_name s family
+        )
+    )
 
   let apytram_annotated_ref_fams_by_fam_by_groups (dataset : Dataset.t) configuration_dir trinity_annotated_fams reads_blast_dbs memory_per_sample =
     let apytram_groups = Dataset.apytram_groups dataset in
