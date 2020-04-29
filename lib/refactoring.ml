@@ -728,6 +728,7 @@ module Pipeline = struct
     merged_and_reconciled_families : (Family.t * Generax.phylotree directory * [ `seq_integrator ] directory) list ;
     merged_reconciled_and_realigned_families_dirs : [`merged_families_distributor] directory ;
     reconstructed_sequences : [`reconstructed_sequences] directory option ;
+    orthologs_per_seq : [`extract_orthologs] directory ;
   }
 
   let rna_sample_needs_rna (s : Rna_sample.t) =
@@ -1266,6 +1267,25 @@ module Pipeline = struct
     else
       None
 
+  let write_orthologs_relationships dataset merged_and_reconciled_families_dirs ~run_reconciliation =
+    let ortho_dir,species_to_refine_list =
+      if run_reconciliation then
+      Some (Workflow.select merged_and_reconciled_families_dirs ["out/Orthologs_out"]),
+      Some (List.map (Dataset.reference_samples dataset) ~f:(fun s -> s.species))
+      else (None, None)
+    in
+    let open Bistro.Shell_dsl in
+    Workflow.shell ~descr:"ExtractOrthologs.py" ~version:7 [
+      mkdir_p dest;
+      cmd "python" ~img:caars_img [
+        file_dump (string Scripts.extract_orthologs);
+        ident dest;
+        dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
+        option (opt "" dep) ortho_dir ;
+        option (opt "" Seq_integrator.transform_species_list) species_to_refine_list ;
+      ]
+    ]
+
   let make
       ?(memory = 4) ?(nthreads = 2)
       ~merge_criterion ~filter_threshold
@@ -1297,11 +1317,12 @@ module Pipeline = struct
       merged_families_distributor dataset merged_and_reconciled_families ~refine_ali ~run_reconciliation
     in
     let reconstructed_sequences = get_reconstructed_sequences dataset merged_reconciled_and_realigned_families_dirs in
+    let orthologs_per_seq = write_orthologs_relationships dataset merged_reconciled_and_realigned_families_dirs ~run_reconciliation in
     { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
       trinity_assemblies ; trinity_orfs ; trinity_assemblies_stats ;
       trinity_orfs_stats ; trinity_annotated_fams ;
       reads_blast_dbs ; apytram_orfs_ref_fams ; apytram_checked_families ;
       apytram_annotated_families ; merged_families ;
       merged_and_reconciled_families ; merged_reconciled_and_realigned_families_dirs ;
-      reconstructed_sequences }
+      reconstructed_sequences ; orthologs_per_seq }
 end
