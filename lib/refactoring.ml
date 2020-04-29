@@ -708,10 +708,18 @@ module Configuration_directory = struct
         let dbtype = "nucl" in
         (ref_species, BlastPlus.makeblastdb ~parse_seqids ~dbtype  ("DB_" ^ ref_species) fasta)
       )
+
+  let family_metadata dir = Workflow.select dir ["FamilyMetadata.txt"]
+  let species_metadata dir = Workflow.select dir ["SpeciesMetadata.txt"]
+  let usable_families dir = Workflow.select dir ["UsableFamilies.txt"]
+  let detected_families dir = Workflow.select dir ["DetectedFamilies.txt"]
 end
 
 module Pipeline = struct
   type t = {
+    run_reconciliation : bool ;
+    configuration_directory : Configuration_directory.t ;
+    checked_used_families_all_together : text file ;
     fasta_reads : fasta file OSE_or_PE.t Rna_sample.assoc ;
     normalized_fasta_reads : fasta file OSE_or_PE.t Rna_sample.assoc ;
     trinity_assemblies : fasta file Rna_sample.assoc ;
@@ -729,6 +737,7 @@ module Pipeline = struct
     merged_reconciled_and_realigned_families_dirs : [`merged_families_distributor] directory ;
     reconstructed_sequences : [`reconstructed_sequences] directory option ;
     orthologs_per_seq : [`extract_orthologs] directory ;
+    final_plots : [`final_plots] directory ;
   }
 
   let rna_sample_needs_rna (s : Rna_sample.t) =
@@ -737,6 +746,44 @@ module Pipeline = struct
     | false, true, Some _ -> false
     | false, true, None   -> true
     | false, false, _     -> false
+
+  let check_used_families ~used_fam_list ~usable_fam_file =
+    let open Bistro.Shell_dsl in
+    let sorted_usable_fam_file = tmp // "usablefam.sorted.txt" in
+    let sorted_all_used_fam_file = dest in
+    let common_fam_file = tmp // "common_fam.txt" in
+    let fam_subset_not_ok = tmp // "fam_subset_not_ok.txt" in
+    let all_used_fam = Bistro.Template_dsl.(
+        List.map used_fam_list ~f:(fun (fam : Family.t) -> seq [string fam.name])
+        |> seq ~sep:"\n"
+      )
+    in
+
+    let script_post ~fam_subset_not_ok =
+      let args = [
+        "FILE_EMPTY", fam_subset_not_ok ;
+      ]
+      in
+      Commons.bash_script args {|
+    if [ -s $FILE_EMPTY ]
+    then
+      echo "These families are not in the \"Usable\" families:"
+      cat $FILE_EMPTY
+      echo "Use the option --just-parse-input and --family-subset with an empty file to get the file UsableFamilies.txt"
+      exit 3
+    else
+      exit 0
+    fi
+    |}
+    in
+    Workflow.shell ~descr:("check_used_families") [
+      mkdir_p tmp;
+      cmd "sort" ~stdout:sorted_usable_fam_file [ dep usable_fam_file;];
+      cmd "sort" ~stdout:sorted_all_used_fam_file [ file_dump all_used_fam; ];
+      cmd "join" ~stdout: common_fam_file [ string "-1 1"; sorted_all_used_fam_file; sorted_usable_fam_file];
+      cmd "comm" ~stdout: fam_subset_not_ok [string "-3"; common_fam_file;sorted_all_used_fam_file];
+      cmd "bash" [ file_dump (script_post ~fam_subset_not_ok)]
+    ]
 
   let fasta_reads (config : Dataset.t) =
     assoc_opt config.samples ~f:(fun s ->
@@ -1286,6 +1333,41 @@ module Pipeline = struct
       ]
     ]
 
+  let build_final_plots dataset orthologs_per_seq merged_reconciled_and_realigned_families_dirs ~run_reconciliation =
+    let open Bistro.Shell_dsl in
+    let formated_target_species =
+      match Dataset.reference_samples dataset with
+      | [] -> None
+      | samples -> Some (
+          List.map samples ~f:(fun s ->
+              seq ~sep:":" [string s.species ; string s.id]
+            )
+        )
+    in
+    let dloutprefix = dest // "D_count" in
+    Workflow.shell ~descr:"final_plots.py" ~version:19 (List.concat [
+        [mkdir_p dest;
+         cmd "python" ~img:caars_img [
+           file_dump (string Scripts.final_plots);
+           opt "-i_ortho" dep orthologs_per_seq;
+           opt "-i_filter" dep (Workflow.select merged_reconciled_and_realigned_families_dirs ["out/"]);
+           opt "-o" ident dest;
+           option (opt "-t_sp" (seq ~sep:",")) formated_target_species;
+         ];
+        ];
+        if run_reconciliation then
+          [cmd "python" ~img:caars_img [
+              file_dump (string Scripts.count_dl);
+              opt "-o" ident dloutprefix;
+              opt "-sp_tree" dep (Workflow.input (dataset.species_tree_file));
+              opt "-rec_trees_dir" dep (Workflow.select merged_reconciled_and_realigned_families_dirs ["out/GeneTreeReconciled_out"])
+            ];
+          ]
+        else
+          []
+
+      ])
+
   let make
       ?(memory = 4) ?(nthreads = 2)
       ~merge_criterion ~filter_threshold
@@ -1297,6 +1379,9 @@ module Pipeline = struct
     in
     (* let memory_per_thread = Int.(max 1 (config.memory / config.nthreads)) in *)
     let config_dir = Configuration_directory.make ~memory dataset in
+    let checked_used_families_all_together =
+      check_used_families ~used_fam_list:dataset.used_families ~usable_fam_file:(Configuration_directory.usable_families config_dir)
+    in
     let ref_blast_dbs = ref_blast_dbs dataset config_dir in
     let fasta_reads = fasta_reads dataset in
     let normalized_fasta_reads = normalize_fasta_reads fasta_reads memory_per_sample memory threads_per_sample in
@@ -1318,11 +1403,14 @@ module Pipeline = struct
     in
     let reconstructed_sequences = get_reconstructed_sequences dataset merged_reconciled_and_realigned_families_dirs in
     let orthologs_per_seq = write_orthologs_relationships dataset merged_reconciled_and_realigned_families_dirs ~run_reconciliation in
-    { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
+    let final_plots = build_final_plots dataset orthologs_per_seq merged_reconciled_and_realigned_families_dirs ~run_reconciliation in
+    { run_reconciliation ;
+      configuration_directory = config_dir ; checked_used_families_all_together ;
+      ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
       trinity_assemblies ; trinity_orfs ; trinity_assemblies_stats ;
       trinity_orfs_stats ; trinity_annotated_fams ;
       reads_blast_dbs ; apytram_orfs_ref_fams ; apytram_checked_families ;
       apytram_annotated_families ; merged_families ;
       merged_and_reconciled_families ; merged_reconciled_and_realigned_families_dirs ;
-      reconstructed_sequences ; orthologs_per_seq }
+      reconstructed_sequences ; orthologs_per_seq ; final_plots }
 end
