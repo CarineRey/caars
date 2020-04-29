@@ -634,7 +634,10 @@ module Dataset = struct
     List.filter dataset.samples ~f:(fun s -> s.run_trinity)
 
   let reference_samples dataset =
-    List.filter dataset.samples ~f:(fun s -> s.run_apytram || s.run_trinity);
+    List.filter dataset.samples ~f:(fun s -> s.run_apytram || s.run_trinity)
+
+  let has_at_least_one_sample_with_reference dataset =
+    not (List.is_empty (reference_samples dataset))
 end
 
 module Configuration_directory = struct
@@ -723,6 +726,8 @@ module Pipeline = struct
     apytram_annotated_families : (Family.t * fasta file) list ;
     merged_families : (Family.t * [ `seq_integrator ] directory * [ `seq_integrator ] directory option) list ;
     merged_and_reconciled_families : (Family.t * Generax.phylotree directory * [ `seq_integrator ] directory) list ;
+    merged_reconciled_and_realigned_families_dirs : [`merged_families_distributor] directory ;
+    reconstructed_sequences : [`reconstructed_sequences] directory option ;
   }
 
   let rna_sample_needs_rna (s : Rna_sample.t) =
@@ -1175,7 +1180,97 @@ module Pipeline = struct
         (fam, Generax.generax ~family:fam.name ~descr:(":" ^ fam.name) ~threads ~memory ~sptreefile ~link:sp2seq ~tree alignment, merged_family)
       )
 
-  let make ?(memory = 4) ?(nthreads = 2) ~merge_criterion ~filter_threshold (dataset : Dataset.t) =
+  let merged_families_distributor dataset merged_reconciled_and_realigned_families ~run_reconciliation ~refine_ali : [`merged_families_distributor] directory =
+    let open Bistro.Shell_dsl in
+    let more_than_one_sample_with_reference = Dataset.has_at_least_one_sample_with_reference dataset in
+    let extension_list_merged = [(".fa","out/MSA_out");(".tree","out/GeneTree_out");(".sp2seq.txt","no_out/Sp2Seq_link")] in
+    let extension_list_filtered = [(".discarded.fa","out/FilterSummary_out");(".filter_summary.txt","out/FilterSummary_out")] in
+
+    let extension_list_reconciled = [("_ReconciledTree.nw","","out/GeneTreeReconciled_nw");
+                                     ("_ReconciledTree.nhx", "", "out/GeneTreeReconciled_out");
+                                     (".events.txt", "", "out/DL_out");
+                                     (".orthologs.txt", "", "out/Orthologs_out")] in
+    let dest_dir_preparation_commands = List.concat [
+        [
+          mkdir_p tmp;
+          mkdir_p (dest // "out" // "MSA_out");
+          mkdir_p (dest // "out" // "GeneTree_out");
+          mkdir_p (dest // "no_out" // "Sp2Seq_link");
+        ] ;
+
+        if more_than_one_sample_with_reference
+        then [ mkdir_p (dest // "out" // "FilterSummary_out") ]
+        else [] ;
+
+        if run_reconciliation then
+          [
+            mkdir_p (dest // "out" // "GeneTreeReconciled_out");
+            mkdir_p (dest // "out" // "DL_out");
+            mkdir_p (dest // "out" // "Orthologs_out");
+          ]
+        else [] ;
+
+        if refine_ali && run_reconciliation then
+          [mkdir_p (dest // "Realigned_fasta")]
+        else []
+      ]
+    in
+    let commands_for_one_family ((f : Family.t), reconciled_w, merged_w) =
+      let open Bistro.Template_dsl in
+      List.concat [
+        List.map extension_list_merged ~f:(fun (ext,dir) ->
+            let input = Workflow.select merged_w [ f.name ^ ext ] in
+            let output = dest // dir // (f.name ^ ext)  in
+            seq ~sep:" " [ string "cp"; dep input ; ident output ]
+          ) ;
+        if more_than_one_sample_with_reference then
+          List.map extension_list_filtered ~f:(fun (ext,dir) ->
+              let input = Workflow.select merged_w [ f.name  ^ ext ] in
+              let output = dest // dir // (f.name  ^ ext)  in
+              seq ~sep:" " [ string "cp"; dep input ; ident output ]
+            )
+        else [] ;
+        if run_reconciliation then
+          List.concat [
+            List.map extension_list_reconciled ~f:(fun (ext,dirin,dirout) ->
+                let input = Workflow.select reconciled_w [ dirin ^ f.name  ^ ext ] in
+                let output = dest // dirout // (f.name  ^ ext)  in
+                seq ~sep:" " [ string "cp"; dep input ; ident output ]
+              )
+            ;
+          ]
+        else [] ;
+      ]
+    in
+    let script =
+      List.concat_map merged_reconciled_and_realigned_families ~f:commands_for_one_family
+      |> seq ~sep:"\n"
+    in
+    let commands = dest_dir_preparation_commands @ [ cmd "bash" [ file_dump script ] ] in
+    Workflow.shell ~descr:"build_output_directory" ~version:1 commands
+
+  let get_reconstructed_sequences dataset merged_and_reconciled_families_dirs =
+    let open Bistro.Shell_dsl in
+    if Dataset.has_at_least_one_sample_with_reference dataset then
+      let species_to_refine_list = List.map (Dataset.reference_samples dataset) ~f:(fun s -> s.species) in
+      Some (Workflow.shell ~descr:"GetReconstructedSequences.py" ~version:6 [
+          mkdir_p dest;
+          cmd "python" ~img:caars_img [
+            file_dump (string Scripts.get_reconstructed_sequences);
+            dep merged_and_reconciled_families_dirs // "out/MSA_out";
+            dep merged_and_reconciled_families_dirs // "no_out/Sp2Seq_link";
+            seq ~sep:"," (List.map species_to_refine_list ~f:(fun sp -> string sp));
+            ident dest
+          ]
+        ])
+    else
+      None
+
+  let make
+      ?(memory = 4) ?(nthreads = 2)
+      ~merge_criterion ~filter_threshold
+      ~refine_ali ~run_reconciliation
+      (dataset : Dataset.t) =
     let memory_per_sample, threads_per_sample =
       let nb_samples = List.length dataset.samples in
       Int.(max 1 (memory / (max 1 nb_samples))), Stdlib.(max 1 (nthreads / (max 1 nb_samples)))
@@ -1198,10 +1293,15 @@ module Pipeline = struct
     let apytram_annotated_families = parse_apytram_results apytram_checked_families in
     let merged_families = merged_families_of_families dataset config_dir trinity_annotated_fams apytram_annotated_families merge_criterion filter_threshold in
     let merged_and_reconciled_families = generax_by_fam_of_merged_families dataset merged_families memory nthreads in
+    let merged_reconciled_and_realigned_families_dirs =
+      merged_families_distributor dataset merged_and_reconciled_families ~refine_ali ~run_reconciliation
+    in
+    let reconstructed_sequences = get_reconstructed_sequences dataset merged_reconciled_and_realigned_families_dirs in
     { ref_blast_dbs ; fasta_reads ; normalized_fasta_reads ;
       trinity_assemblies ; trinity_orfs ; trinity_assemblies_stats ;
       trinity_orfs_stats ; trinity_annotated_fams ;
       reads_blast_dbs ; apytram_orfs_ref_fams ; apytram_checked_families ;
       apytram_annotated_families ; merged_families ;
-      merged_and_reconciled_families }
+      merged_and_reconciled_families ; merged_reconciled_and_realigned_families_dirs ;
+      reconstructed_sequences }
 end
