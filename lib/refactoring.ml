@@ -3,26 +3,6 @@ open Bistro
 open Defs
 open Wutils
 
-module Cdhitoverlap = struct
-  open Bistro.Shell_dsl
-
-  let cdhitoverlap ?tag ?p ?m ?d (fasta : fasta file) : [`cdhit] directory =
-    let out = dest // "cluster_rep.fa" in
-    Workflow.shell ~version:1 ~descr:(descr ?tag "cdhitlap") [
-      mkdir_p dest;
-      cmd "cd-hit-lap" ~img:caars_img [
-        opt "-i" dep fasta;
-        opt "-o" ident out ;
-        option ( opt "-p" float ) p;
-        option ( opt "-m" float ) m;
-        option ( opt "-d" float ) d;
-      ]
-    ]
-
-  let cluster_rep dir = Workflow.select dir ["cluster_rep.fa"]
-  let cluster dir = Workflow.select dir ["cluster_rep.fa.clstr"]
-end
-
 module Trinity = struct
   open Bistro.Shell_dsl
   include Trinity
@@ -749,9 +729,9 @@ module Pipeline = struct
           (*Build biopython index*)
           let index_concat_fasta = build_biopythonindex ~tag concat_fasta in
           (*build overlapping read cluster*)
-          let cluster_repo = Cdhitoverlap.cdhitoverlap ~tag concat_fasta in
-          let rep_cluster_fasta = Cdhitoverlap.cluster_rep cluster_repo in
-          let cluster = Cdhitoverlap.cluster cluster_repo in
+          let cluster_repo = Cdhit.lap ~tag concat_fasta in
+          let rep_cluster_fasta = Cdhit.cluster_rep_of_lap cluster_repo in
+          let cluster = Cdhit.cluster_of_lap cluster_repo in
           (*reformat cluster*)
           let reformated_cluster = reformat_cdhit_cluster ~tag cluster in
           (*build index for cluster*)
