@@ -35,12 +35,12 @@
 open Core_kernel
 open Bistro
 open Bistro.Shell_dsl
-open Commons
+open Wutils
 
 let makeblastdb ?parse_seqids ?hash_index ~dbtype  dbname  (fasta : fasta file) : blast_db file =
     Workflow.shell ~descr:("makeblastdb:" ^ dbname) ~np:1 [
         mkdir_p dest;
-        cmd "makeblastdb" ~img [
+        cmd "makeblastdb" ~img:caars_img [
                     option (flag string "-parse_seqids") parse_seqids ;
                     option (flag string "-hash_index") hash_index ;
                     opt "-in" dep fasta;

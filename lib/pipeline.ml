@@ -51,7 +51,7 @@ let check_used_families ~used_fam_list ~usable_fam_file =
       "FILE_EMPTY", fam_subset_not_ok ;
     ]
     in
-    Commons.bash_script args {|
+    bash_script args {|
     if [ -s $FILE_EMPTY ]
     then
       echo "These families are not in the \"Usable\" families:"
@@ -221,7 +221,7 @@ let concat_without_error ?tag l : fasta file =
       "DEST", dest ;
     ]
     in
-    Commons.bash_script vars {|
+    bash_script vars {|
         touch tmp
         cat tmp $FILE > tmp1
         mv tmp1 $DEST

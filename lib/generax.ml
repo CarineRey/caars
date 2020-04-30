@@ -35,7 +35,7 @@
 open Core
 open Bistro
 open Bistro.Shell_dsl
-open Commons
+open Wutils
 
 type generax_configuration = [`generax_configuration] directory
 
@@ -69,7 +69,7 @@ let generax
     Workflow.shell ~descr:("generax_by_fam" ^ descr) ~version:4 ~np:threads ~mem:(Workflow.int (1024 * memory)) [
     mkdir_p tmp;
     mkdir_p dest;
-    within_container img (
+    within_container caars_img (
       and_list [
         cmd "awk" ~stdout:tree2 [
         string "NF";

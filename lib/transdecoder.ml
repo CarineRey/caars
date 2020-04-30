@@ -35,7 +35,7 @@
 open Core_kernel
 open Bistro
 open Bistro.Shell_dsl
-open Commons
+open Wutils
 
 
 
@@ -68,17 +68,17 @@ let transdecoder
   let tmp_fasta = dest // "tmp.fa" in
   Workflow.shell ~descr:("Transdecoder" ^ descr ) ~np:threads ~mem:(Workflow.int (1024 * memory)) [
     mkdir_p dest;
-    within_container img (
+    within_container caars_img (
       and_list [
         mkdir_p tmp;      
         cd dest;
         cmd "bash" [ file_dump (fasta_template ~fasta ~tmp_fasta) ];
-        cmd "TransDecoder.LongOrfs" ~img [
+        cmd "TransDecoder.LongOrfs" [
           opt "-t" ident tmp_fasta ;
           option (opt "-m" int ) pep_min_length ;
           option (flag string "-S") only_top_strand ;
         ] ;
-        cmd "TransDecoder.Predict" ~img [
+        cmd "TransDecoder.Predict" [
           opt "-t" ident tmp_fasta ;
           opt "--cpu" ident np ;
           option (flag string "--single_best_orf") only_best_orf ;

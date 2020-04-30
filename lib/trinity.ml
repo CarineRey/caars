@@ -64,7 +64,7 @@ let fasta_read_normalization_get_output ~fasta ~dest=
                         "RIGHTLINK", string "`readlink right.norm.fa`"],
                        {|echo $LEFTLINK ; mv $LEFTLINK $DEST/"left.norm.fa"; mv $RIGHTLINK $DEST/"right.norm.fa"|})
   in
-  Commons.bash_script vars code
+  Wutils.bash_script vars code
 
 let fasta_read_normalization
     ?(descr = "")
