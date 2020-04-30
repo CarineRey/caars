@@ -34,4 +34,4 @@
 
 open Core
 
-let () = Command.run ~version:"1.0.1" Caars_lib.App.command
+let () = Command.run ~version:"1.0.1" Caars.App.command
