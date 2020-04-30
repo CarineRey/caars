@@ -3,47 +3,6 @@ open Bistro
 open Defs
 open Wutils
 
-module Misc_workflows = struct
-  open Bistro.Shell_dsl
-
-  let concat ?tag xs =
-    let descr = descr ?tag "concat" in
-    match xs with
-    | [] -> Workflow.shell ~descr [ cmd "touch" [ dest ] ]
-    | x :: [] -> x
-    | fXs ->
-      Workflow.shell ~descr [
-        cmd "cat" ~stdout:dest [ list dep ~sep:" " fXs ]
-      ]
-
-  let fasta_concat = concat
-  let fastq_concat = concat
-
-  class type biopython_sequence_index = object
-    inherit binary_file
-    method format : [`biopython_sequence_index]
-  end
-
-  (* Fasta file and its index must be in the same directory due to
-     biopython wich retains the relative path between these 2 files.
-     A different location is incompatible with the bistro docker usage
-     workflow by worflow. To avoid to cp the complete fasta file we
-     use a symbolic link. *)
-  let build_biopythonindex ?tag (fasta : fasta file) : biopython_sequence_index file =
-    Workflow.shell ~version:1 ~descr:(descr ?tag "build_biopythonindex_fasta.py") [
-      mkdir_p dest ;
-      within_container caars_img (
-        and_list [
-          cmd "ln" [ string "-s" ; dep fasta ; dest // "seq.fa" ] ;
-          cmd "python" [
-            file_dump (string Scripts.build_biopythonindex_fasta) ;
-            dest // "index" ;
-            dest // "seq.fa" ]
-        ]
-      )
-    ]
-end
-
 module Cdhitoverlap = struct
   open Bistro.Shell_dsl
 
@@ -195,10 +154,10 @@ module Apytram = struct
   type compressed_read_db = {
     s : Rna_sample.t ;
     concat_fasta : fasta file;
-    index_concat_fasta : Misc_workflows.biopython_sequence_index file;
+    index_concat_fasta : biopython_sequence_index file;
     rep_cluster_fasta : fasta file;
     reformated_cluster : fasta file;
-    index_cluster : Misc_workflows.biopython_sequence_index file;
+    index_cluster : biopython_sequence_index file;
     cluster_rep_blast_db : blast_db file;
   }
 
@@ -784,11 +743,11 @@ module Pipeline = struct
           let concat_fasta = match norm_fasta with
             | OSE_or_PE.Single_end se -> se.reads
             | Paired_end pe ->
-              Misc_workflows.fasta_concat ~tag:(id_concat [s.id ; "fasta_lr"]) [ pe.reads1 ; pe.reads2 ]
+              fasta_concat ~tag:(id_concat [s.id ; "fasta_lr"]) [ pe.reads1 ; pe.reads2 ]
           in
           let tag = id_concat [s.id ; s.species] in
           (*Build biopython index*)
-          let index_concat_fasta = Misc_workflows.build_biopythonindex ~tag concat_fasta in
+          let index_concat_fasta = build_biopythonindex ~tag concat_fasta in
           (*build overlapping read cluster*)
           let cluster_repo = Cdhitoverlap.cdhitoverlap ~tag concat_fasta in
           let rep_cluster_fasta = Cdhitoverlap.cluster_rep cluster_repo in
@@ -796,7 +755,7 @@ module Pipeline = struct
           (*reformat cluster*)
           let reformated_cluster = reformat_cdhit_cluster ~tag cluster in
           (*build index for cluster*)
-          let index_cluster = Misc_workflows.build_biopythonindex ~tag reformated_cluster in
+          let index_cluster = build_biopythonindex ~tag reformated_cluster in
           (*Build blast db of cluster representatives*)
           let parse_seqids = true in
           let hash_index = true in
@@ -857,11 +816,11 @@ module Pipeline = struct
         let tag = id_concat s.reference_species in
         let ref_transcriptome =
           List.map s.reference_species ~f:(Configuration_directory.ref_transcriptome config_dir)
-          |> Misc_workflows.fasta_concat ~tag:(tag ^ ".ref_transcriptome")
+          |> fasta_concat ~tag:(tag ^ ".ref_transcriptome")
         in
         let seq2fam =
           List.map s.reference_species ~f:(Configuration_directory.ref_seq_fam_links config_dir)
-          |> Misc_workflows.fasta_concat ~tag:(tag ^ ".seq2fam")
+          |> fasta_concat ~tag:(tag ^ ".seq2fam")
         in
         Seq_dispatcher.seq_dispatcher
           ~s2s_tab_by_family:true
@@ -926,10 +885,10 @@ module Pipeline = struct
                   let tag = id_concat [fam.name ; String.concat ~sep:"_" ref_species ; String.strip apytram_group] in
                   let guide_query =
                     List.map ref_species ~f:(fun sp -> Configuration_directory.ref_fams configuration_dir sp fam.name)
-                    |> Misc_workflows.fasta_concat ~tag
+                    |> fasta_concat ~tag
                   in
                   let target_query = build_target_query dataset ref_species fam.name trinity_annotated_fams apytram_group in
-                  let query = Misc_workflows.fasta_concat ~tag:(tag ^ ".+seqdispatcher") [guide_query; target_query] in
+                  let query = fasta_concat ~tag:(tag ^ ".+seqdispatcher") [guide_query; target_query] in
                   let compressed_reads_dbs = List.filter_map reads_blast_dbs ~f:(fun ((s : Rna_sample.t), db) ->
                       if (List.equal String.equal s.reference_species ref_species && String.equal s.group_id apytram_group)
                       then Some db else None
@@ -989,11 +948,11 @@ module Pipeline = struct
             let tag = id_concat s.reference_species in
             let ref_transcriptome =
               List.map s.reference_species ~f:(Configuration_directory.ref_transcriptome configuration_dir)
-              |> Misc_workflows.fasta_concat ~tag:(tag ^ ".ref_transcriptome")
+              |> fasta_concat ~tag:(tag ^ ".ref_transcriptome")
             in
             let seq2fam =
               List.map s.reference_species ~f:(Configuration_directory.ref_seq_fam_links configuration_dir)
-              |> Misc_workflows.fasta_concat ~tag:(tag ^ ".seq2fam") in
+              |> fasta_concat ~tag:(tag ^ ".seq2fam") in
             let ref_db =
               List.map s.reference_species ~f:(( $ ) ref_blast_dbs) in
             let checked_families_fasta =
