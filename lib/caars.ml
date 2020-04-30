@@ -173,6 +173,120 @@ let assembly_stats ?(descr="") (fasta:fasta file) : assembly_stats file =
   ]
 end
 
+module Apytram = struct
+  open Core
+open Bistro
+open Bistro.Shell_dsl
+open Commons
+
+let string_of_db_type = function
+  | Left F -> "F"
+  | Left R -> "R"
+  | Left US -> "single"
+  | Right RF -> "RF"
+  | Right FR -> "FR"
+  | Right UP -> "paired"
+
+type apytram_output
+
+let apytram_multi_species
+    ?(descr="")
+    ?i
+    ?evalue
+    ?no_best_file
+    ?only_best_file
+    ?out_by_species
+    ?write_even_empty
+    ?id
+    ?fid
+    ?mal
+    ?fmal
+    ?len
+    ?flen
+    ?required_coverage
+    ?stats
+    ?(threads = 1)
+    ?(memory = 1)
+    ?time_max
+    ~query
+    ~fam
+    (compressed_reads_dbs : compressed_read_db list) : apytram_output directory =
+
+    let memory = match memory with
+      | 0 -> 1
+      | _ -> memory
+      in
+
+    let formated_db_blasts =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.cluster_rep_blast_db ; string "/db:"; string db.s.id]
+      )
+    in
+    let db_types =
+      List.map compressed_reads_dbs ~f:(fun {s ; _}->
+    seq ~sep:":" [string (string_of_db_type (sample_file_orientation s.sample_file)); string s.id]
+      )
+    in
+    let formated_fasta =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.concat_fasta ; string ":"; string db.s.id]
+      )
+    in
+    let formated_fastaidx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.index_concat_fasta // "index" ; string ":"; string db.s.id]
+      )
+    in
+    let formated_cluster =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.reformated_cluster ; string ":"; string db.s.id]
+      )
+    in
+    let formated_clusteridx =
+      List.map compressed_reads_dbs ~f:(fun db ->
+    seq [dep db.index_cluster // "index" ; string ":"; string db.s.id]
+      )
+    in
+
+
+    Workflow.shell  ~version:5 ~descr:("apytram.py" ^ descr) ~np:threads ~mem:(Workflow.int (memory * 1024)) [
+    cmd "apytram.py" ~img [
+        opt "-q" seq [dep query ; string ":"; string fam] ;
+        option (opt "-i" int ) i ;
+        option (opt "-e" float ) evalue;
+        option (opt "-id" float ) id ;
+        option (opt "-fid" float ) fid ;
+        option (opt "-mal" int ) mal ;
+        option (opt "-fmal" float ) fmal ;
+        option (opt "-len" float ) len ;
+        option (opt "-flen" float ) flen ;
+        option (opt "-required_coverage" float ) required_coverage ;
+        option (opt "-time_max" int ) time_max ;
+        option (flag string "--stats") stats ;
+        option (flag string "--no_best_file") no_best_file ;
+        option (flag string "--write_even_empty") write_even_empty ;
+        option (flag string "--only_best_file") only_best_file ;
+        option (flag string "--out_by_species") out_by_species ;
+        opt "-memory" ident (seq [ string "$((" ; mem ; string " / 1024))" ]) ;
+        opt "-threads" ident np ;
+        opt "-d" ident (seq ~sep:"," formated_db_blasts) ;
+        opt "-dt" ident (seq ~sep:"," db_types) ;
+        opt "-fa" ident (seq ~sep:"," formated_fasta) ;
+        opt "-idx" ident (seq ~sep:"," formated_fastaidx) ;
+        flag string "--UseIndex" true;
+        opt "-clstr" ident (seq ~sep:"," formated_cluster) ;
+        opt "-clstridx" ident (seq ~sep:"," formated_clusteridx) ;
+        opt "-out" seq [ident dest ; string "/apytram"] ;
+        opt "-log" seq [ident dest ; string "/apytram.log"] ;
+        opt "-tmp" ident  ( tmp // "apytram_tmp" ) ;
+        flag string "--cds" true;
+        (*flag string "--keep_tmp" true;
+        opt "-tmp" ident  ( dest // "apytram_tmp" ) ;*)
+        ]
+    ]
+
+end
+
 let alignement_fasta fam o =
   Workflow.select o [ "Alignements" ; fam ^ ".fa" ]
 
