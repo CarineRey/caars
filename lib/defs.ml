@@ -18,6 +18,13 @@ type paired_end_orientation =
   | RF
   | UP
 
+module Family = struct
+  type t = {
+    name : string ;
+    id : int;
+  }
+end
+
 type merge_criterion =
   | Merge
   | Length

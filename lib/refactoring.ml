@@ -3,13 +3,6 @@ open Bistro
 open Defs
 open Wutils
 
-module Family = struct
-  type t = {
-    name : string ;
-    id : int;
-  }
-end
-
 module Dataset = struct
   type merge_criterion =
     | Merge
