@@ -3,115 +3,6 @@ open Bistro
 open Defs
 open Wutils
 
-module Trinity = struct
-  open Bistro.Shell_dsl
-  include Trinity
-
-  let single_stranded_or_unstranded = function
-    | F -> string "--SS_lib_type F"
-    | R -> string "--SS_lib_type R"
-    | US -> string ""
-
-  let paired_stranded_or_unstranded = function
-    | RF -> string "--SS_lib_type RF"
-    | FR -> string "--SS_lib_type FR"
-    | UP -> string ""
-
-  let config_trinity_fasta_paired_or_single = function
-    | OSE_or_PE.Single_end se ->
-      seq ~sep: " " [ string "--single" ; dep se.reads ; single_stranded_or_unstranded se.orientation ]
-    | Paired_end pe ->
-      seq ~sep: " " [ string "--left" ; dep pe.reads1 ; string "--right" ; dep pe.reads2 ; paired_stranded_or_unstranded pe.orientation ]
-
-  let fasta_read_normalization_get_output ~fasta ~dest=
-    let (vars, code) = match fasta with
-      | OSE_or_PE.Single_end _ -> (["DEST", dest;
-                                "SINGLELINK", string "`readlink single.norm.fa`"],
-                               {| mv $SINGLELINK $DEST/"single.norm.fa"|})
-      | Paired_end _ -> (["DEST", dest;
-                                "LEFTLINK", string "`readlink left.norm.fa`";
-                                "RIGHTLINK", string "`readlink right.norm.fa`"],
-                               {|echo $LEFTLINK ; mv $LEFTLINK $DEST/"left.norm.fa"; mv $RIGHTLINK $DEST/"right.norm.fa"|})
-    in
-    Commons.bash_script vars code
-
-  let fasta_read_normalization
-    ?(descr = "")
-    max_cov
-    ~threads
-    ?(memory = 1)
-    ?(max_memory = 1)
-    (fasta : fasta file OSE_or_PE.t)
-    : fasta file OSE_or_PE.t =
-  let bistro_memory =
-    if max_memory > 2 then Int.(min max_memory (memory * 2))
-    else 1
-  in
-  let given_mem =
-    if bistro_memory > 2 then Int.(bistro_memory / 2)
-    else 1
-  in
-  (* reserve more memory by bistro than given to normalization tools*)
-  let output_dir =
-    Workflow.shell ~descr:("fasta_read_normalization" ^ descr) ~version:2 ~np:threads ~mem:(Workflow.int (1024 * bistro_memory)) [
-      mkdir_p dest;
-      mkdir_p tmp ;
-      within_container caars_img (
-        and_list [
-          cmd "Trinity" [
-            string "--no_version_check";
-            opt "--max_memory" ident (seq [ string "$((" ; int given_mem ; string " / 1024))G" ]) ;
-            opt "--CPU" ident np ;
-            string "--just_normalize_reads";
-            opt "--normalize_max_read_cov" int max_cov ;
-            config_trinity_fasta_paired_or_single fasta ;
-            string "--seqType fa" ;
-            opt "--output" seq [ ident tmp ; string "/trinity"] ;
-          ];
-          cd (tmp // "trinity/insilico_read_normalization") ;
-          cmd "sh" [ file_dump (fasta_read_normalization_get_output ~fasta ~dest) ];
-        ]
-      )
-    ]
-  in
-  match fasta with
-  | Single_end se -> OSE_or_PE.se (Workflow.select output_dir ["single.norm.fa"]) se.orientation
-  | Paired_end pe ->
-    OSE_or_PE.pe
-      (Workflow.select output_dir ["left.norm.fa"])
-      (Workflow.select output_dir ["right.norm.fa"])
-      pe.orientation
-
-  let trinity_fasta
-      ?tag
-      ?full_cleanup
-      ?no_normalization
-      ~threads
-      ?(memory = 1)
-      (sample_fasta : fasta file OSE_or_PE.t)
-    : fasta file =
-    Workflow.shell ~descr:(descr ?tag "Trinity") ~np:threads ~mem:(Workflow.int (1024 * memory)) [
-      mkdir_p dest;
-      cmd "Trinity" ~img:caars_img [
-        string "--no_version_check";
-        opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
-        opt "--CPU" ident np ;
-        option (flag string "--full_cleanup") full_cleanup ;
-        option (flag string "--no_normalize_reads") no_normalization ;
-        config_trinity_fasta_paired_or_single sample_fasta;
-        string "--seqType fa" ;
-        opt "--output" seq [ ident dest ; string "/trinity"] ;
-      ];
-      cmd "sed" [
-        string "-re";
-        string {|"s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/"|};
-        string "-i";
-        seq [ident dest; string "/trinity.Trinity.fasta";];
-      ];
-    ]
-    |> Fn.flip Workflow.select [ "trinity.Trinity.fasta" ]
-end
-
 module Rna_sample = struct
   type t = {
     id : string ;
@@ -663,7 +554,7 @@ module Pipeline = struct
      assoc_map fasta_reads ~f:(fun (s : Rna_sample.t) fa ->
         let max_cov = 20 in
         let descr = id_concat [s.id ; s.species] in
-        Trinity.fasta_read_normalization ~descr max_cov ~threads ~memory ~max_memory fa
+        Trinity.fasta_read_normalization ~descr ~max_cov ~threads ~memory ~max_memory fa
       )
 
   let trinity_assemblies_of_norm_fasta normalized_fasta_reads ~memory ~nthreads =

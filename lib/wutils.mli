@@ -1,6 +1,7 @@
 (** Utility functions to build workflows *)
 
 open Bistro
+open Bistro.Shell_dsl
 
 class type blast_db = object
   inherit text
@@ -14,6 +15,8 @@ end
 
 val caars_img : Shell_dsl.container_image list
 val descr : ?tag:string -> string -> string
+
+val bash_script : (string * template) list -> string -> template
 
 val fasta_concat : ?tag:string -> fasta file list -> fasta file
 val fastq_concat : ?tag:string -> fastq file list -> fastq file

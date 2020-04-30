@@ -6,6 +6,173 @@ open Commons
 open Configuration
 
 
+module Trinity = struct
+  open Core
+open Bistro
+open Bistro.Shell_dsl
+open Commons
+
+
+type assembly_stats = text
+
+let single_stranded_or_unstranded = function
+  | F -> string "--SS_lib_type F"
+  | R -> string "--SS_lib_type R"
+  | US -> string ""
+
+let paired_stranded_or_unstranded = function
+  | RF -> string "--SS_lib_type RF"
+  | FR -> string "--SS_lib_type FR"
+  | UP -> string ""
+
+let config_trinity_fasta_paired_or_single = function
+  | Fasta_Single_end (w, o ) ->
+        seq ~sep: " " [ string "--single" ; dep w ; single_stranded_or_unstranded o ]
+  | Fasta_Paired_end (lw, rw , o) ->
+       seq ~sep: " " [ string "--left" ; dep lw ; string "--right" ; dep rw ; paired_stranded_or_unstranded o]
+
+let trinity_fasta
+    ?(descr = "")
+    ?full_cleanup
+    ?no_normalization
+    ~threads
+    ?(memory = 1)
+    (sample_fasta : fasta file sample_fasta)
+    : fasta file =
+    let descr = if String.is_empty descr then
+                  descr
+                else
+                  ":" ^ descr
+    in
+    Workflow.shell ~descr:("Trinity" ^ descr) ~np:threads ~mem:(Workflow.int (1024 * memory)) [
+        mkdir_p dest;
+        cmd "Trinity" ~img [
+            string "--no_version_check";
+            opt "--max_memory" ident (seq [ string "$((" ; mem ; string " / 1024))G" ]) ;
+            opt "--CPU" ident np ;
+            option (flag string "--full_cleanup") full_cleanup ;
+            option (flag string "--no_normalize_reads") no_normalization ;
+            config_trinity_fasta_paired_or_single sample_fasta;
+            string "--seqType fa" ;
+            opt "--output" seq [ ident dest ; string "/trinity"] ;
+        ];
+        cmd "sed" [
+                     string "-re";
+                     string {|"s/(>[_a-zA-Z0-9]*)( len=[0-9]* path=.*)/\1/"|};
+                     string "-i";
+                     seq [ident dest; string "/trinity.Trinity.fasta";];
+        ];
+    ]
+    |> Fn.flip Workflow.select [ "trinity.Trinity.fasta" ]
+
+let fasta_read_normalization_get_output ~fasta ~dest=
+  let (vars, code) = match fasta with
+    | Fasta_Single_end _ -> (["DEST", dest;
+                              "SINGLELINK", string "`readlink single.norm.fa`"],
+                             {| mv $SINGLELINK $DEST/"single.norm.fa"|})
+    | Fasta_Paired_end _ -> (["DEST", dest;
+                              "LEFTLINK", string "`readlink left.norm.fa`";
+                              "RIGHTLINK", string "`readlink right.norm.fa`"],
+                             {|echo $LEFTLINK ; mv $LEFTLINK $DEST/"left.norm.fa"; mv $RIGHTLINK $DEST/"right.norm.fa"|})
+  in
+  bash_script vars code
+
+let fasta_read_normalization_3
+    ?(descr = "")
+    max_cov
+    ~threads
+    ?(memory = 1)
+    ?(max_memory = 1)
+    (fasta : fasta file sample_fasta)
+    : fasta directory =
+  let descr = if String.is_empty "" then
+                  descr
+                else
+                  ":" ^ descr
+  in
+
+  let bistro_memory = if max_memory > 2
+                      then
+                         Stdlib.(min max_memory (int_of_float( float_of_int memory *. 2.)))
+                      else
+                         1
+                      in
+  let given_mem =    if bistro_memory > 2
+                      then
+                         Stdlib.(int_of_float( float_of_int bistro_memory /. 2.))
+                      else
+                         1
+                      in
+  (* reserve more memory by bistro than given to normalization tools*)
+  Workflow.shell ~descr:("fasta_read_normalization_" ^ descr) ~version:2 ~np:threads ~mem:(Workflow.int (1024 * bistro_memory)) [
+    mkdir_p dest;
+    mkdir_p tmp ;
+    within_container img (
+      and_list [
+      cmd "Trinity" [
+            string "--no_version_check";
+            opt "--max_memory" ident (seq [ string "$((" ; int given_mem ; string " / 1024))G" ]) ;
+            opt "--CPU" ident np ;
+            string "--just_normalize_reads";
+            opt "--normalize_max_read_cov" int max_cov ;
+            config_trinity_fasta_paired_or_single fasta ;
+            string "--seqType fa" ;
+            opt "--output" seq [ ident tmp ; string "/trinity"] ;
+        ];
+        cd (tmp // "trinity/insilico_read_normalization") ;
+        cmd "sh" [ file_dump (fasta_read_normalization_get_output ~fasta ~dest) ];
+      ]
+    )
+  ]
+
+
+let fastq2fasta ?(descr="") ?(dep_input=None) (fastq : #fastq file) :  fasta file =
+    let (check_input, w_input) = match dep_input with
+                        | Some w -> (true, dep w)
+                        | None -> (false, ident dest)
+                        in
+    let descr = if String.is_empty descr then descr else ":" ^ descr in
+    let script =
+        let vars = [
+        "CHECK", flag seq [string "ls "; w_input] check_input  ;
+        "FQ", dep fastq ;
+        "DEST", dest ;
+        ]
+        in
+        bash_script vars {|
+        $CHECK
+        seqtk seq -A $FQ > $DEST
+        |}
+    in
+    Workflow.shell ~descr:("fastq2fasta" ^ descr) ~np:1 [
+        cmd "sh" ~img [ file_dump script ];
+    ]
+
+let assembly_stats ?(descr="") (fasta:fasta file) : assembly_stats file =
+   let descr = if String.is_empty descr then descr else ":" ^ descr ^ " " in
+   let script =
+     let vars = [
+       "TRINITY_PATH", string "`which Trinity`" ;
+       "TRINTIY_DIR_PATH", string "`dirname $TRINITY_PATH`" ;
+       "TRINITYSTATS_PATH", string "$TRINTIY_DIR_PATH/util/TrinityStats.pl" ;
+       "FASTA" , dep fasta ;
+       "DEST", dest ;
+     ]
+     in
+     bash_script vars {|
+    if [ -s $FASTA ]
+    then
+    $TRINITYSTATS_PATH $FASTA > $DEST
+    else
+    echo "Empty file" > $DEST
+    fi
+    |}
+  in
+  Workflow.shell ~descr:("assembly_stats_trinity" ^ descr) ~np:1 [
+    cmd "sh" ~img [ file_dump script ];
+  ]
+end
+
 let alignement_fasta fam o =
   Workflow.select o [ "Alignements" ; fam ^ ".fa" ]
 

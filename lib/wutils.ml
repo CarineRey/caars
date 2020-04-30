@@ -19,6 +19,16 @@ let descr ?tag d =
   | None -> d
   | Some tag -> sprintf "%s:%s" d tag
 
+let bash_script args code =
+  let prelude =
+    args
+    |> List.map ~f:(fun (k, v) ->
+        seq ~sep:"" [ string k ; string "=\"" ; v ;string "\""]
+      )
+    |> seq ~sep:"\n"
+  in
+  seq ~sep:"\n" [ prelude ; string code ]
+
 let concat ?tag xs =
   let descr = descr ?tag "concat" in
   match xs with
