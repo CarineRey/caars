@@ -1,7 +1,8 @@
 (library
  (name caars)
  (public_name caars)
- (libraries bistro.bioinfo bistro.utils)
+ (libraries bistro.bioinfo bistro.utils dbm)
+ (flags (:standard -w -58))
  (preprocess (pps bistro.ppx ppx_jane)))
 
 (rule

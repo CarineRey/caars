@@ -30,11 +30,10 @@ let full_analysis_workflow ?get_reads ?debug ~outdir p =
 let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile _refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report quiet use_docker family_to_use () =
   let open Defs in
   let open Bistro_utils in
-  let loggers quiet html_report = [
-    if quiet then Bistro_engine.Logger.null else Console_logger.create () ;
-    (match html_report with
-     | Some path -> Html_logger.create path
-     | None -> Bistro_engine.Logger.null) ;
+  let loggers quiet html_report = List.filter_opt [
+    if quiet then None else Some (Console_logger.create ()) ;
+    Option.map html_report ~f:Html_logger.create ;
+    Some (Time_logger.create "_caars/time_logger") ;
   ]
   in
   let run_reconciliation = not no_reconcile in
