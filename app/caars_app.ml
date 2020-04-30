@@ -71,6 +71,7 @@ let _main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np mem
 
 let refactored_main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile _refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report quiet use_docker family_to_use () =
   let open Refactoring in
+  let open Defs in
   let loggers quiet html_report = [
     if quiet then Bistro_engine.Logger.null else Console_logger.create () ;
     (match html_report with
