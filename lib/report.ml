@@ -11,11 +11,6 @@ let optfloat = function
   | None -> k"NA"
   | Some i -> k (Float.to_string i)
 
-(* let svg_from_file fn =
- *   let contents = In_channel.read_all fn in
- *   let src = sprintf "data:image/%s;base64,%s" "svg+xml" contents in
- *   Tyxml_html.img ~src ~alt:"" () *)
-
 let head t =
   head (title (txt t)) [
     link ~rel:[`Stylesheet] ~href:"http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" () ;
@@ -38,7 +33,7 @@ let trinity_section trinity_assemblies_stats =
   let foreach_sample (sample, assembly_stats) =
     let { Trinity_stats.n50 ; nb_genes; gc; nb_transcripts } = Trinity_stats.parse assembly_stats in
     tr [
-      td [ k sample.Commons.species ] ;
+      td [ k sample.Rna_sample.species ] ;
       td [ optint nb_genes ] ;
       td [ optint nb_transcripts ] ;
       td [ optfloat gc] ;
@@ -59,10 +54,10 @@ let render ~trinity_assemblies_stats =
         txt "This is a fabulous content." ;
       ] ;
       trinity_section trinity_assemblies_stats ;
-      
+
     ]
 
-    in
+  in
   html
     (head mytitle)
     (body [ div ~a:[a_class ["container"]] contents ])

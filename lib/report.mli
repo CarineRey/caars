@@ -1,7 +1,4 @@
-open Commons
-
 val generate :
-  trinity_assemblies_stats:(rna_sample * string) list ->
+  trinity_assemblies_stats:(Rna_sample.t * string) list ->
   string ->
   unit
-

@@ -1,8 +1,8 @@
 (library
- (name caars_lib)
+ (name caars)
  (public_name caars)
  (libraries bistro.bioinfo bistro.utils)
- (preprocess (pps bistro.ppx)))
+ (preprocess (pps bistro.ppx ppx_jane)))
 
 (rule
  (targets scripts.ml)
