@@ -1,0 +1,11 @@
+(executable
+ (name caars_execution_report_ui)
+ (libraries caars.execution_trace js_of_ocaml js_of_ocaml-lwt ocaml-vdom parsexp re.glob)
+ (preprocess (pps js_of_ocaml.ppx ppx_jane))
+ (flags -no-check-prims))
+
+(rule
+ (targets caars_execution_report_ui.js)
+ (deps (:x caars_execution_report_ui.bc))
+ (action
+  (run js_of_ocaml +base/runtime.js +toplevel.js %{x})))

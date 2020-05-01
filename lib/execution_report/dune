@@ -1,0 +1,13 @@
+(library
+  (name caars_execution_report)
+  (public_name caars.execution_report)
+  (libraries caars core_kernel tyxml)
+  (preprocess (pps ppx_jane))
+  (optional))
+
+(rule
+ (targets js_code.ml)
+ (action
+  (run ocamlify --var-string string %{js} --output js_code.ml))
+ (deps
+  (:js ui/caars_execution_report_ui.js)))
