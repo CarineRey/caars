@@ -1,7 +1,7 @@
 (library
  (name caars)
  (public_name caars)
- (libraries bistro.bioinfo bistro.utils dbm)
+ (libraries bistro.bioinfo bistro.utils caars.execution_trace dbm)
  (flags (:standard -w -58))
  (preprocess (pps bistro.ppx ppx_jane)))
 

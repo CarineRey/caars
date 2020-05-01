@@ -1,14 +1,6 @@
 open Core_kernel
 open Bistro_engine
-
-type entry = {
-  id : string ;
-  descr : string ;
-  start_time : float ;
-  end_time : float ;
-  size : int ;
-}
-[@@deriving sexp]
+open Caars_execution_trace
 
 let save_entry fn e =
   let handler = Dbm.(opendbm fn [Dbm_rdwr ; Dbm_create]) 0o600 in

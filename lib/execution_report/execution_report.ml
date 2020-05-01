@@ -8,7 +8,7 @@ let save doc dest =
   Out_channel.write_all dest ~data:(Buffer.contents buf)
 
 let encode_trace trace =
-  [%sexp_of: Caars.Time_logger.entry list] trace
+  [%sexp_of: Caars_execution_trace.entry list] trace
   |> Sexp.to_string_mach
 
 let generate trace dest =

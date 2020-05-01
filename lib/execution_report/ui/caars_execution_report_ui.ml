@@ -1,19 +1,12 @@
 open Base
 open Js_browser
 
+type trace = Caars_execution_trace.entry list
+
 let sp = Printf.sprintf
 let float = Float.of_int
 
-type entry = {
-  id : string ;
-  descr : string ;
-  start_time : float ;
-  end_time : float ;
-  size : int ;
-}
-[@@deriving sexp]
-
-let elapsed_time e =
+let elapsed_time (e : Caars_execution_trace.entry) =
   e.end_time -. e.start_time
 
 let shorten_id id =
@@ -53,7 +46,7 @@ module Task_table = struct
 
   let string_td s = elt "td" [ text s ]
 
-  let table_line e =
+  let table_line (e : Caars_execution_trace.entry) =
     elt "tr" [
       string_td (shorten_id e.id) ;
       string_td e.descr ;
@@ -88,11 +81,11 @@ module Selection_stats = struct
 end
 
 type model = {
-  data : entry list ;
+  data : trace ;
   selection : string ;
 }
 
-let filter_data data sel =
+let filter_data (data : trace) sel =
   let res =
     String.split ~on:',' sel
     |> List.map ~f:(fun sel -> Re.Glob.glob sel |> Re.compile)
@@ -132,7 +125,7 @@ let run () =
   let data =
     Element.get_attribute (Document.body document) "data-events"
     |> Parsexp.Single.parse_string_exn
-    |> [%of_sexp: entry list]
+    |> [%of_sexp: Caars_execution_trace.entry list]
   in
   let init = { data ; selection = "" } in
   let app = Vdom.simple_app ~init ~view ~update () in

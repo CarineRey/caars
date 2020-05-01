@@ -1,4 +1,4 @@
 val generate :
-  Caars.Time_logger.entry list ->
+  Caars_execution_trace.entry list ->
   string ->
   unit
