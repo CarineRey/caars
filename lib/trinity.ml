@@ -142,23 +142,15 @@ let trinity_fasta
   ]
   |> Fn.flip Workflow.select [ "trinity.Trinity.fasta" ]
 
-let fastq2fasta ?(descr="") ?dep_input (fastq : #fastq file) :  fasta file =
-  let (check_input, w_input) = match dep_input with
-    | Some w -> (true, dep w)
-    | None -> (false, ident dest)
-  in
+let fastq2fasta ?(descr="") (fastq : #fastq file) :  fasta file =
   let descr = if String.is_empty descr then descr else ":" ^ descr in
   let script =
     let vars = [
-      "CHECK", flag seq [string "ls "; w_input] check_input  ;
       "FQ", dep fastq ;
       "DEST", dest ;
     ]
     in
-    bash_script vars {|
-        $CHECK
-        seqtk seq -A $FQ > $DEST
-        |}
+    bash_script vars {|seqtk seq -A $FQ > $DEST|}
   in
   Workflow.shell ~descr:("fastq2fasta" ^ descr) ~np:1 [
     cmd "sh" ~img:caars_img [ file_dump script ];

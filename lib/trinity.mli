@@ -2,7 +2,6 @@ open Bistro
 
 val fastq2fasta :
   ?descr:string ->
-  ?dep_input:_ file -> (* FIXME: what's this for? *)
   fastq file ->
   fasta file
 
