@@ -1,0 +1,5 @@
+(library
+  (name caars_paper_pipeline)
+  (public_name caars.paper_pipeline)
+  (libraries biotope caars)
+  (preprocess (pps ppx_jane)))

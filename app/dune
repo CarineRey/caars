@@ -1,5 +1,10 @@
 (executable
  (name caars_app)
  (public_name caars)
- (libraries caars)
- (preprocess (pps ppx_jane)))
+ (modules Caars_app)
+ (libraries caars))
+
+(executable
+ (name caars_paper_pipeline_app)
+ (modules Caars_paper_pipeline_app)
+ (libraries caars.paper_pipeline))
