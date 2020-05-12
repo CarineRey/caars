@@ -72,4 +72,12 @@ test_wiki:
 	git clone https://github.com/CarineRey/caars.wiki.git . && \
 	make tests
 
-.PHONY: caars test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
+# test paper_pipline
+test_paper_pipline:
+	dune build app/caars_paper_pipeline_app.exe
+	mkdir -p test_paper_pipline && \
+	cd test_paper_pipline && \
+	cp ../_build/default/app/caars_paper_pipeline_app.exe caars_paper_pipeline_app && \
+	./caars_paper_pipeline_app --outdir output_test --np 3
+
+.PHONY: caars test_paper_pipline test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
