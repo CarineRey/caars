@@ -177,7 +177,6 @@ RUN git clone https://github.com/boussau/phylomerge/ /opt/phylomerge &&\
     cd /opt/phylomerge && bash ./compile
 ENV PATH /opt/phylomerge:$PATH
 
-
 ### install opam
 WORKDIR /home/caars_user
 ENV HOME /home/caars_user
@@ -195,8 +194,14 @@ ENV MANPATH $HOME/.opam/4.09.0/man:$MANPATH
 ENV PERL5LIB $HOME/.opam/4.09.0/lib/perl5:$PERL5LIB
 
 ##### install bistro
-RUN opam pin add -y bistro --dev-repo
-RUN opam install ocamlify
+RUN apt-get clean && apt-get update && \
+    apt-get install -qy --no-install-recommends liblapacke-dev libopenblas-dev libgsl0-dev
+RUN opam pin add -y bistro --dev-repo && \
+    opam pin add -y biotk https://github.com/pveber/biotk.git && \
+    opam pin add -y biotope https://github.com/pveber/biotope.git && \
+    opam pin add -y gen_js_api https://github.com/LexiFi/gen_js_api.git && \
+    opam pin add -y ocaml-vdom https://github.com/LexiFi/ocaml-vdom.git && \
+    opam install -y ppx_csv_conv js_of_ocaml ocamlify dbm js_of_ocaml-ppx js_of_ocaml-lwt
 
 ##### install local dependencies
 WORKDIR /opt/caars_py_lib
