@@ -44,14 +44,11 @@ let concat_fastq_gz fqs : fastq file =
 
 let pair_map (x, y) ~f = (f x, f y)
 
-let concatenated_fq species =
+let concatenated_fq ?preview species =
   srr_ids species
-  |> List.map ~f:(fastq_gz species)
+  |> List.map ~f:(fastq_gz ?preview species)
   |> List.unzip
   |> pair_map ~f:concat_fastq_gz
-
-let mouse_fq_1, mouse_fq_2 = concatenated_fq `Mouse
-let stickleback_fq_1, stickleback_fq_2 = concatenated_fq `Stickleback
 
 let get_msas_ensemblcompara_script : text file =
   Bistro_unix.wget "https://github.com/CarineRey/caars/wiki/src/Get_MSAs_EnsemblCompara.pl"
@@ -92,7 +89,10 @@ let sample_sheet : text file =
     ]
   ]
   
-let input_data_repo = Bistro_utils.Repo.[
+let input_data_repo ?preview () =
+  let mouse_fq_1, mouse_fq_2 = concatenated_fq ?preview `Mouse in
+  let stickleback_fq_1, stickleback_fq_2 = concatenated_fq ?preview `Stickleback in
+  Bistro_utils.Repo.[
     item ["sample_sheet.tsv"] sample_sheet ;
     item ["tree.nw"] tree ;
     item ["msa"] (msas_ensemblcompara ()) ;
@@ -102,13 +102,14 @@ let input_data_repo = Bistro_utils.Repo.[
     item ["rna_seq" ; "Gasterosteus_aculeatus_2.fq"] stickleback_fq_2 ;
   ]
 
-let main ?(np = 4) ?(memory = 4) ~outdir () =
+let main ?(np = 4) ?(memory = 4) ?preview ~outdir () =
   let open Bistro_utils in
   let loggers = [
     Console_logger.create () ;
   ]
   in
-  Repo.build_main ~loggers ~np ~mem:(`GB memory) ~outdir:(Filename.concat outdir "input_data") input_data_repo
+  let repo = input_data_repo ?preview () in
+  Repo.build_main ~loggers ~np ~mem:(`GB memory) ~outdir:(Filename.concat outdir "input_data") repo
 
 let command =
   let open Command.Let_syntax in
@@ -118,6 +119,7 @@ let command =
       let outdir = flag "--outdir" (required string) ~doc:"PATH Destination directory."
       and np = flag "--np" (optional int) ~doc:"INT Number of CPUs "
       and memory = flag "--memory" (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
+      and preview = flag "--preview" no_arg ~doc:" Preview mode"
       in
-      main ?np ?memory ~outdir
+      main ?np ?memory ~outdir ~preview
     ]
