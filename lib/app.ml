@@ -27,7 +27,11 @@ let full_analysis_workflow ?get_reads ?debug ~outdir p =
         (Filename.concat outdir "report_end.html")
     ]
 
-let main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile _refinetree (*refineali*) ali_sister_threshold merge_criterion debug (get_reads:bool) just_parse_input html_report quiet use_docker family_to_use () =
+let main
+    ~sample_sheet ~outdir ~species_tree_file ~alignments_dir ~seq2sp_dir
+    ?np ?memory ~no_reconcile ?ali_sister_threshold
+    ?merge_criterion ~debug ~(get_reads:bool) ~just_parse_input
+    ?html_report ~quiet ~use_docker ?family_to_use () =
   let open Defs in
   let open Bistro_utils in
   let loggers quiet html_report = List.filter_opt [
@@ -77,8 +81,6 @@ let command =
       and np = flag "--np"              (optional int)    ~doc:"INT Number of CPUs (at least 2). (Default:2)"
       and memory = flag "--memory"          (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
       and no_reconcile = flag "--no-reconcile"    no_arg            ~doc:" Not run final Reconciliation step"
-      and refinetree = flag "--refinetree"      no_arg            ~doc:" Refine topology during final Reconciliation step (Default:false)"
-      (*  and = flag "--refineali"       no_arg            ~doc:"Refine MSA after the final Reconciliation step (Default:false)"*)
       and ali_sister_threshold = flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of a caars sequence on its (non Caars) closest sequence to be kept in the final output"
       and merge_criterion = flag "--merge-criterion" (optional string) ~doc:"STR Merge criterion during redundancy removing. It must be “length“ or “length_complete” or “merge”. “length” means the longest sequence is selected. “length.complete” : means the largest number of complete sites (no gaps). “merge” means that the set of monophyletic sequences is used to build one long “chimera” sequence corresponding to the merging of them."
       and debug = flag "--debug"           no_arg            ~doc:" Get intermediary files (Default:false)"
@@ -90,5 +92,8 @@ let command =
       and use_docker = flag "--use-docker"      no_arg            ~doc:" Use docker in caars.  Default: off"
       and family_to_use = flag "--family-subset"  (optional Filename.arg_type)    ~doc:"PATH A file containing a subset of families to use.  Default: off"
       in
-      main sample_sheet outdir species_tree_file alignments_dir seq2sp_dir np memory no_reconcile refinetree (*refineali*) ali_sister_threshold merge_criterion debug get_reads just_parse_input html_report quiet use_docker family_to_use
+      main
+        ~sample_sheet ~outdir ~species_tree_file ~alignments_dir ~seq2sp_dir ?np ?memory ~no_reconcile
+        ?ali_sister_threshold ?merge_criterion ~debug ~get_reads ~just_parse_input ?html_report
+        ~quiet ~use_docker ?family_to_use
     ]
