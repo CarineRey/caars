@@ -102,7 +102,7 @@ let input_data_repo ?preview () =
     item ["rna_seq" ; "Gasterosteus_aculeatus_2.fq"] stickleback_fq_2 ;
   ]
 
-let main ?(np = 4) ?(memory = 4) ?preview ~outdir () =
+let prepare_dataset ?(np = 4) ?(memory = 4) ?preview ~outdir () =
   let open Bistro_utils in
   let loggers = [
     Console_logger.create () ;
@@ -111,15 +111,50 @@ let main ?(np = 4) ?(memory = 4) ?preview ~outdir () =
   let repo = input_data_repo ?preview () in
   Repo.build_main ~loggers ~np ~mem:(`GB memory) ~outdir:(Filename.concat outdir "input_data") repo
 
-let command =
+let prepare_dataset_command =
   let open Command.Let_syntax in
   Command.basic
-    ~summary:"caars_paper_pipeline"
+    ~summary:"Dataset preparation"
     [%map_open
       let outdir = flag "--outdir" (required string) ~doc:"PATH Destination directory."
       and np = flag "--np" (optional int) ~doc:"INT Number of CPUs "
       and memory = flag "--memory" (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
       and preview = flag "--preview" no_arg ~doc:" Preview mode"
       in
-      main ?np ?memory ~outdir ~preview
+      prepare_dataset ?np ?memory ~outdir ~preview
+    ]
+
+let analysis ?(np = 4) ?(memory = 4) ~indir ~outdir () =
+  let indir fn = Filename.concat indir fn in
+  let sample_sheet = indir "sample_sheet.tsv" in
+  let species_tree_file = indir "tree.nw" in
+  let alignments_dir = indir "msa" in
+  let seq2sp_dir = indir (assert false) in
+  let no_reconcile = assert false in
+  let ali_sister_threshold = assert false in
+  let merge_criterion = assert false in
+  let debug = assert false in
+  let get_reads = false in
+  let just_parse_input = false in
+  let html_report = assert false in
+  let quiet = true in
+  let use_docker = true in
+  let family_to_use = assert false in
+  Caars.App.main
+    ~sample_sheet ~species_tree_file ~alignments_dir ~ali_sister_threshold ~seq2sp_dir
+    ~no_reconcile ~merge_criterion ~debug ~get_reads ~just_parse_input ~html_report
+    ~quiet ~use_docker ~family_to_use ~np ~memory ~outdir
+    ()
+
+let analysis_command =
+  let open Command.Let_syntax in
+  Command.basic
+    ~summary:"Caars pipeline"
+    [%map_open
+      let outdir = flag "--outdir" (required string) ~doc:"PATH Destination directory"
+      and indir = flag "--indir" (required string) ~doc:"PATH Input directory"
+      and np = flag "--np" (optional int) ~doc:"INT Number of CPUs "
+      and memory = flag "--memory" (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
+      in
+      analysis ?np ?memory ~outdir ~indir
     ]

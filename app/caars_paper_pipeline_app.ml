@@ -1,3 +1,8 @@
 open Core
 
-let () = Command.run Caars_paper_pipeline.command
+let () =
+  Command.group ~summary:"CAARS's paper pipeline" [
+    "prepare-dataset", Caars_paper_pipeline.prepare_dataset_command ;
+    "analysis", Caars_paper_pipeline.analysis_command ;
+  ]
+  |> Command.run
