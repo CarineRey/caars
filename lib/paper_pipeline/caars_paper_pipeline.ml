@@ -1,6 +1,6 @@
 open Core
 open Bistro
-(*open Biotope*)
+open Biotope
 open Biotope.Formats
 open Bistro.Shell_dsl
 
@@ -17,43 +17,22 @@ let srr_ids = function
   | `Mouse -> mus_musculus_kidney_sample_srr_ids
   | `Stickleback -> stickleback_srr_ids
 
-let minReadLen_ids = function
+let minReadLen = function
   | `Mouse -> 50
   | `Stickleback -> 100
 
-let img_sratoolkit = [ docker_image ~account:"pegi3s" ~name:"sratoolkit" ~tag:"2.10.0" () ]
 let img_caars_prep_data = [ docker_image ~account:"carinerey" ~name:"caars_tuto_prep_data" ~tag:"latest" () ]
 
-let sra_of_input = function
-    | `id id -> string id
-    | `idw w -> string_dep w
-    | `file w -> dep w
-
-let fastq_dump_pe_gz ~minReadLen input =
-    let sra = sra_of_input input in
-    let dir =
-      Workflow.shell ~descr:"sratoolkit.fastq_dump" [
-        mkdir_p dest ;
-        cmd ~img:img_sratoolkit "fastq-dump" [
-          opt "-O" Fn.id dest ;
-          string "--split-files" ;
-          string "--gzip" ;
-          opt "--defline-seq" string "'@$ac_$si/$ri'";
-          opt "--defline-qual" string "'+'";
-          opt "-N" int 10000 ; (*TODO add a debug tag to not download the whole sra*)
-          opt "-X" int 200000 ;
-          opt "-M" int minReadLen ;
-          sra ;
-        ] ;
-        mv (dest // "*_1.fastq*") (dest // "reads_1.fq.gz") ;
-        mv (dest // "*_2.fastq*") (dest // "reads_2.fq.gz") ;
-      ]
-    in
-    Workflow.select dir ["reads_1.fq.gz"],
-    Workflow.select dir ["reads_2.fq.gz"]
-
-let fastq_gz srrid =
-  fastq_dump_pe_gz ~minReadLen:50 (`id srrid) (*TODO change minReadLen in fonction of the species (maybe useless, if trivial yes else no)*)
+let fastq_gz ?(preview = false) species srrid =
+  let _N_, _X_ =  if preview then Some 10_000, Some 200_000 else None, None in
+  Sra_toolkit.(
+    fastq_dump_pe fastq_gz
+      ?_N_ ?_X_
+      ~defline_qual:"+"
+      ~defline_seq:"@$ac_$si/$ri"
+      ~minReadLen:(minReadLen species)
+      (`id srrid)
+  )
 
 let concat_fastq_gz fqs : fastq file =
   let open Bistro.Shell_dsl in
@@ -67,7 +46,7 @@ let pair_map (x, y) ~f = (f x, f y)
 
 let concatenated_fq species =
   srr_ids species
-  |> List.map ~f:fastq_gz
+  |> List.map ~f:(fastq_gz species)
   |> List.unzip
   |> pair_map ~f:concat_fastq_gz
 
