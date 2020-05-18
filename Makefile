@@ -78,8 +78,11 @@ test_paper_pipeline:
 	mkdir -p test_paper_pipeline && \
 	cd test_paper_pipeline && \
 	cp ../_build/default/app/caars_paper_pipeline_app.exe caars_paper_pipeline_app && \
-	./caars_paper_pipeline_app prepare-data --outdir dataset_preview --np 3 --preview && \
-	./caars_paper_pipeline_app analysis --indir dataset_preview --outdir results --np 3
+	./caars_paper_pipeline_app prepare-data --outdir dataset_preview --np 4 --preview && \
+	rsync -avzL --exclude="_files/" dataset_preview/input_data/ input_data &&\
+	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4 --just-parse-input && \
+	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4  && \
+	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4 --mpast 50
 
 
 .PHONY: caars test_paper_pipeline test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
