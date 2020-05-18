@@ -32,7 +32,7 @@ else
     IMAGE_NAME=caars_dev
     DOCKERFILE_DIR=caars_dev
 
-    export ENV_TAG="dev_paper-pipeline_20200512"
+    export ENV_TAG="dev_paper-pipeline_20200518"
     #export ENV_TAG="generax_20200331"
 
     export TAG="dev_$BRANCH_$HASH"
