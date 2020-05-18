@@ -57,7 +57,7 @@ let make ?family_subset_file ~sample_sheet ~species_tree_file ~alignments_dir ~s
     )
   in
   if Filename.is_relative species_tree_file then
-    failwith {|caars needs the absolute path of the species tree.|}
+    failwith ({|caars needs the absolute path of the species tree. (|} ^ species_tree_file^{|)|})
   else if List.is_empty all_families_noid then
     failwith ({|No files with .fa extention in |} ^ alignments_dir)
   else

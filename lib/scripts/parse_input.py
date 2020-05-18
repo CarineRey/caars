@@ -105,7 +105,19 @@ else: # we create the directory
 
 
 ### Read the species tree
-t = ete3.Tree(species_tree_file)
+try:
+    t = ete3.Tree(species_tree_file)
+except Exception as err:
+    print("{0} error: {1}:".format(type(err).__name__,err))
+    raise
+finally:
+    with open(species_tree_file) as f:
+        counter = 0
+        for line in f:
+            print line
+            counter += 1
+            if counter == 5: break
+
 All_Species = [leaf.name for leaf in t.iter_leaves()]
 
 for sp in All_Species:
