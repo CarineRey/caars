@@ -73,11 +73,13 @@ test_wiki:
 	make tests
 
 # test paper_pipline
-test_paper_pipline:
+test_paper_pipeline:
 	dune build app/caars_paper_pipeline_app.exe
-	mkdir -p test_paper_pipline && \
-	cd test_paper_pipline && \
+	mkdir -p test_paper_pipeline && \
+	cd test_paper_pipeline && \
 	cp ../_build/default/app/caars_paper_pipeline_app.exe caars_paper_pipeline_app && \
-	./caars_paper_pipeline_app --outdir output_test --np 3
+	./caars_paper_pipeline_app prepare-data --outdir dataset_preview --np 3 --preview && \
+	./caars_paper_pipeline_app analysis --indir dataset_preview --outdir results --np 3
 
-.PHONY: caars test_paper_pipline test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
+
+.PHONY: caars test_paper_pipeline test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
