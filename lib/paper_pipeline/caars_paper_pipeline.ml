@@ -125,26 +125,27 @@ let prepare_dataset_command =
       prepare_dataset ?np ?memory ~outdir ~preview
     ]
 
-let analysis ?(np = 4) ?(memory = 4) ~indir ~outdir () =
+let analysis ?(np = 4) ?(memory = 4) ?family_to_use ?(ali_sister_threshold = 0.0) ~indir ~outdir ~just_parse_input () =
   let indir fn = Filename.concat indir fn in
   let sample_sheet = indir "sample_sheet.tsv" in
   let species_tree_file = indir "tree.nw" in
-  let alignments_dir = indir "msa" in
-  let seq2sp_dir = indir (assert false) in
-  let no_reconcile = assert false in
-  let ali_sister_threshold = assert false in
-  let merge_criterion = assert false in
-  let debug = assert false in
+  let species_tre_filename_abs = if Filename.is_relative species_tree_file then (Filename.concat (Sys.getcwd ()) species_tree_file) else species_tree_file in
+  let alignments_dir = indir "msa/MSA/" in
+  let seq2sp_dir = indir "msa/Seq2SpTable/" in
+  let no_reconcile = false in
+  let ali_sister_threshold = ali_sister_threshold in
+  let merge_criterion = "merge" in
+  let debug = false in
   let get_reads = false in
-  let just_parse_input = false in
-  let html_report = assert false in
-  let quiet = true in
+  let just_parse_input = just_parse_input in
+  let html_report = outdir ^ "/report.html" in
+  let quiet = false in
   let use_docker = true in
-  let family_to_use = assert false in
+  let family_to_use = family_to_use in
   Caars.App.main
-    ~sample_sheet ~species_tree_file ~alignments_dir ~ali_sister_threshold ~seq2sp_dir
+    ~sample_sheet ~species_tree_file:species_tre_filename_abs ~alignments_dir ~ali_sister_threshold ~seq2sp_dir
     ~no_reconcile ~merge_criterion ~debug ~get_reads ~just_parse_input ~html_report
-    ~quiet ~use_docker ~family_to_use ~np ~memory ~outdir
+    ~quiet ~use_docker ?family_to_use ~np ~memory ~outdir
     ()
 
 let analysis_command =
@@ -155,7 +156,10 @@ let analysis_command =
       let outdir = flag "--outdir" (required string) ~doc:"PATH Destination directory"
       and indir = flag "--indir" (required string) ~doc:"PATH Input directory"
       and np = flag "--np" (optional int) ~doc:"INT Number of CPUs "
-      and memory = flag "--memory" (optional int)    ~doc:"INT Number of GB of system memory to use.(Default:1)"
+      and memory = flag "--memory" (optional int) ~doc:"INT Number of GB of system memory to use.(Default:1)"
+      and just_parse_input = flag "--just-parse-input"  no_arg ~doc:" Parse input and exit. Recommended to check all input files. (Default:false)"
+      and family_to_use = flag "--family-subset"  (optional Filename.arg_type)    ~doc:"PATH A file containing a subset of families to use.  Default: off"
+      and ali_sister_threshold = flag "--mpast"           (optional float)  ~doc:"FLOAT Minimal percentage of alignment of a caars sequence on its (non Caars) closest sequence to be kept in the final output"
       in
-      analysis ?np ?memory ~outdir ~indir
+      analysis ?np ?memory ?family_to_use ?ali_sister_threshold ~outdir ~indir ~just_parse_input
     ]
