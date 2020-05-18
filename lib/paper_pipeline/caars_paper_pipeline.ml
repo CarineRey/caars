@@ -72,15 +72,15 @@ let tree : newick file =
   let open Shell_dsl in
   Workflow.shell ~descr:"tree" [
     cmd "cat" ~stdout:dest [
-      file_dump (string "(((Danio_rerio,Gasterosteus_aculeatus),Lepisosteus_oculatus),((Anolis_carolinensis,Taeniopygia_guttata),((Loxodonta_africana,Dasypus_novemcinctus),(((((Ictidomys_tridecemlineatus,Mus_musculus),Cavia_porcellus),Oryctolagus_cuniculus),(Otolemur_garnettii,(Callithrix_jacchus,Homo_sapiens))),((Myotis_lucifugus,(Felis_catus,Mustela_putorius_furo)),(Sus_scrofa,Ovis_aries))))))") ;
+      file_dump (string "(((Danio_rerio,Gasterosteus_aculeatus),Lepisosteus_oculatus),((Anolis_carolinensis,Taeniopygia_guttata),((Loxodonta_africana,Dasypus_novemcinctus),(((((Ictidomys_tridecemlineatus,Mus_musculus),Cavia_porcellus),Oryctolagus_cuniculus),(Otolemur_garnettii,(Callithrix_jacchus,Homo_sapiens))),((Myotis_lucifugus,(Felis_catus,Mustela_putorius_furo)),(Sus_scrofa,Ovis_aries))))));\n") ;
     ]
   ]
 
 let sample_sheet_string =
-{|id      species  group  ref_species     path_fastq_single       path_fastq_left path_fastq_right        orientation     run_trinity    path_assembly   run_apytram
-CMM     Mus_musculus  g1   Homo_sapiens  -       rna_seq/Mus_musculus_1.fq        rna_seq/Mus_musculus_2.fq        UP    yes      -       yes
-CGA     Gasterosteus_aculeatus  g2  Homo_sapiens  -       rna_seq/Gasterosteus_aculeatus_1.fq      rna_seq/Gasterosteus_aculeatus_2.fq      UP    yes      -       yes
-|}
+"id\tspecies\tgroup\tref_species\tpath_fastq_single\tpath_fastq_left\tpath_fastq_right\torientation\trun_trinity\tpath_assembly\trun_apytram\n
+CMM\tMus_musculus\tg1\tHomo_sapiens\t-\tinput_data/rna_seq/Mus_musculus_1.fq\tinput_data/rna_seq/Mus_musculus_2.fq\tUP\tyes\t-\tyes\n
+CGA\tGasterosteus_aculeatus\tg2\tHomo_sapiens\t-\tinput_data/rna_seq/Gasterosteus_aculeatus_1.fq\tinput_data/rna_seq/Gasterosteus_aculeatus_2.fq\tUP\tyes\t-\tyes\n
+"
 
 let sample_sheet : text file =
   let open Shell_dsl in
