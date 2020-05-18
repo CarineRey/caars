@@ -53,14 +53,15 @@ let concatenated_fq ?preview species =
 let get_msas_ensemblcompara_script : text file =
   Bistro_unix.wget "https://github.com/CarineRey/caars/wiki/src/Get_MSAs_EnsemblCompara.pl"
 
-let msas_ensemblcompara () : [`msa_ensemblcompara] directory =
+let msas_ensemblcompara ?(preview = false) () : [`msa_ensemblcompara] directory =
+  let families = if preview then "ENSGT00550000074800,ENSGT00550000074846,ENSGT00870000136549" else "all" in
   let open Shell_dsl in
   let quoted_string s = quote ~using:'"' (string s) in
   Workflow.shell ~descr:"get_msas_ensemblcompara" [
     cmd "perl" ~img:img_caars_prep_data [
       dep get_msas_ensemblcompara_script ;
       opt "-s" quoted_string "Anolis_carolinensis,Taeniopygia_guttata,Dasypus_novemcinctus,Loxodonta_africana,Sus_scrofa,Ovis_aries,Myotis_lucifugus,Felis_catus,Mustela_putorius_furo,Otolemur_garnettii,Callithrix_jacchus,Homo_sapiens,Oryctolagus_cuniculus,Cavia_porcellus,Ictidomys_tridecemlineatus,Danio_rerio,Lepisosteus_oculatus" ;
-      opt "-f" string "ENSGT00550000074800,ENSGT00550000074846,ENSGT00870000136549" ; (*TODO if debug: "ENSGT00550000074800,ENSGT00550000074846,ENSGT00870000136549" else: "all"*)
+      opt "-f" string families ;
       opt "-g" quoted_string "Homo_sapiens" ;
       opt "-r" quoted_string "Mus_musculus,Cavia_porcellus,Gasterosteus_aculeatus,Danio_rerio,Homo_sapiens,Ictidomys_tridecemlineatus,Oryzias_latipes,Oreochromis_niloticus" ;
       opt "-o" Fn.id dest ;
@@ -95,7 +96,7 @@ let input_data_repo ?preview () =
   Bistro_utils.Repo.[
     item ["sample_sheet.tsv"] sample_sheet ;
     item ["tree.nw"] tree ;
-    item ["msa"] (msas_ensemblcompara ()) ;
+    item ["msa"] (msas_ensemblcompara ?preview ()) ;
     item ["rna_seq" ; "Mus_musculus_1.fq"] mouse_fq_1 ;
     item ["rna_seq" ; "Mus_musculus_2.fq"] mouse_fq_2 ;
     item ["rna_seq" ; "Gasterosteus_aculeatus_1.fq"] stickleback_fq_1 ;
