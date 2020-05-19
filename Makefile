@@ -84,5 +84,12 @@ test_paper_pipeline:
 	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4  && \
 	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4 --mpast 50
 
+paper_pipeline:
+	dune build app/caars_paper_pipeline_app.exe
+	mkdir -p paper_pipeline && \
+	cd paper_pipeline && \
+	cp ../_build/default/app/caars_paper_pipeline_app.exe caars_paper_pipeline_app && \
+	./caars_paper_pipeline_app prepare-data --outdir dataset --np 8
 
-.PHONY: caars test_paper_pipeline test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
+
+.PHONY: caars paper_pipeline test_paper_pipeline test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
