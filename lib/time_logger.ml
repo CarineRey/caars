@@ -14,27 +14,33 @@ let sizeof db id =
   match Bistro_engine.Misc.du (Db.cache db id) with
   | Ok i -> i
   | Error (`Msg msg) -> failwith msg
-
 let entry_of_task_result db start _end_ : Task_result.t -> entry option = function
-  | Shell s ->
-    {
-      id = s.id ;
-      descr = s.descr ;
-      start_time = start ;
-      end_time = _end_ ;
-      size = sizeof db s.id ;
-    }
-    |> Option.some
-  | Plugin s ->
-    {
-      id = s.id ;
-      descr = s.descr ;
-      start_time = start ;
-      end_time = _end_ ;
-      size = sizeof db s.id ;
-    }
-    |> Option.some
-
+  | Shell s -> (
+      match s.outcome with
+      | `Succeeded ->    
+        Some {
+          id = s.id ;
+          descr = s.descr ;
+          start_time = start ;
+          end_time = _end_ ;
+          size = sizeof db s.id ;
+        }
+      | `Failed | `Missing_output ->
+        None
+    )
+  | Plugin s -> (
+      match s.outcome with
+      | `Succeeded ->    
+        Some {
+          id = s.id ;
+          descr = s.descr ;
+          start_time = start ;
+          end_time = _end_ ;
+          size = sizeof db s.id ;
+        }
+      | `Failed | `Missing_output ->
+        None
+    )
   | Input _
   | Select _
   | Container_image_fetch _ -> None
