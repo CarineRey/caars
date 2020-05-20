@@ -80,7 +80,10 @@ test_paper_pipeline:
 	cp ../_build/default/app/caars_paper_pipeline_app.exe caars_paper_pipeline_app && \
 	./caars_paper_pipeline_app prepare-data --outdir dataset_preview --np 4 --preview && \
 	rsync -avzL --exclude="_files/" dataset_preview/input_data/ input_data &&\
-	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4 --just-parse-input && \
+	touch fam_subset_empty.txt && \
+	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4 --just-parse-input --family-subset fam_subset_empty.txt && \
+	cat results/UsableFamilies.txt | head -n 2 > Families.txt && \
+	./caars_paper_pipeline_app analysis --indir input_data --outdir results --family-subset Families.txt --np 4  && \
 	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4  && \
 	./caars_paper_pipeline_app analysis --indir input_data --outdir results --np 4 --mpast 50
 
@@ -89,7 +92,12 @@ paper_pipeline:
 	mkdir -p paper_pipeline && \
 	cd paper_pipeline && \
 	cp ../_build/default/app/caars_paper_pipeline_app.exe caars_paper_pipeline_app && \
-	./caars_paper_pipeline_app prepare-data --outdir dataset --np 8
+	./caars_paper_pipeline_app prepare-data --outdir dataset --np 8 &&\
+	touch fam_subset_empty.txt  && \
+	./caars_paper_pipeline_app analysis --indir dataset/input_data --outdir results_just_parse_input --np 8 --just-parse-input --family-subset fam_subset_empty.txt && \
+	sort -R results_just_parse_input/UsableFamilies.txt | head -n 10 > Families_subset.txt && \
+	./caars_paper_pipeline_app analysis --indir dataset/input_data --outdir results_subset --family-subset Families_subset.txt --np 8 && \
+	./caars_paper_pipeline_app analysis --indir dataset/input_data --outdir results_subset --family-subset Families_subset.txt --np 8  --mpast 50
 
 
 .PHONY: caars paper_pipeline test_paper_pipeline test test_using_docker clean_test clean test_options test_options_using_docker clean_test_options build_caars_env_docker build_caars_docker push_caars_env_docker push_caars_docker
